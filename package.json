@@ -7,7 +7,7 @@
     "test": "test",
     "start": "npx tsc && node ./dist/index.js"
   },
-  "author": "Marc Levin",
+  "author": "Matt Bishop, Marc Levin",
   "license": "MIT",
   "repository": {
     "type": "git",
