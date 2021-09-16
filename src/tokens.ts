@@ -2,7 +2,7 @@ import {createToken, Lexer} from "chevrotain";
 
 export const Wildcard = createToken({name: "Wildcard", pattern: /\*/})
 
-export const Identifier = createToken({ name: "Identifier", pattern: /[a-zA-Z]\w*/ })
+export const Identifier = createToken({ name: "Identifier", pattern: /\w+/u })
 
 export const ObjectRoot = createToken({name: "Root", pattern: /\$/})
 
@@ -49,6 +49,8 @@ export const NotOperator = createToken({name: "NotOperator", pattern: /!/})
 export const True = createToken({name: "True", pattern: /true/})
 
 export const False = createToken({name: "False", pattern: /false/})
+
+export const MethodName = createToken({ name: "MethodName", pattern: /[a-zA-Z]\w*/ })
 
 export const MethodStart = createToken({name: "MethodStart", pattern: /\(/})
 
