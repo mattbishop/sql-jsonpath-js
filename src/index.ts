@@ -15,6 +15,5 @@ function parseInput(text: string) {
     throw new Error(`sad sad panda, Parsing errors detected: ${parser.errors[0]}`)
   }
 }
-
-const inputText = "$.foo.bar"
+const inputText = "$._ಠ_ಠ.bar"
 parseInput(inputText)

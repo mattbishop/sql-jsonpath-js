@@ -16,6 +16,7 @@ import {
   LteOperator,
   LtOperator,
   MethodEnd,
+  MethodName,
   MethodStart,
   NotEqualsOperator,
   NotEqualsOperator2,
@@ -52,7 +53,7 @@ export class JsonPathParser extends CstParser {
   })
 
   method = this.RULE("method", () => {
-    this.CONSUME(Identifier)
+    this.CONSUME(MethodName)
     this.CONSUME(MethodStart)
     this.SUBRULE(this.arguments)
     this.CONSUME(MethodEnd)
