@@ -1,0 +1,22 @@
+{
+  "name": "sql-jsonpath-js",
+  "version": "1.0.0",
+  "description": "JS implementation of the SQL JSONPath dialect, from SQL2016.",
+  "main": "dist/index.ts",
+  "scripts": {
+    "test": "test",
+    "start": "npx tsc && node ./dist/index.js"
+  },
+  "author": "Matt Bishop, Marc Levin",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mattbishop/sql-jsonpath-js"
+  },
+  "dependencies": {
+    "chevrotain": "^9.0.2"
+  },
+  "devDependencies": {
+    "typescript": "^4.4.3"
+  }
+}
