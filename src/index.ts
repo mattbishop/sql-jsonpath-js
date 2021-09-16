@@ -1,20 +1,23 @@
 import {JsonPathParser} from "./parser";
 import {allTokens} from "./tokens";
 import {Lexer} from "chevrotain"
+import {newJsonPathVisitor} from "./visitor";
+import {SqlJsonPathStatement} from "./json-path";
+
 const JsonPathLexer = new Lexer(allTokens)
 const parser = new JsonPathParser()
+const visitor = newJsonPathVisitor(parser.getBaseCstVisitorConstructor())
 
-function parseInput(text: string) {
+export function compile(text: string): SqlJsonPathStatement {
   const lexingResult = JsonPathLexer.tokenize(text)
 
   // "input" is a setter which will reset the parser's state.
   parser.input = lexingResult.tokens
-  parser.jsonPathStatement()
 
+  const cst = parser.jsonPathStatement()
   if (parser.errors.length > 0) {
     throw new Error(`sad sad panda, Parsing errors detected: ${parser.errors[0]}`)
   }
-}
 
-const inputText = "$.foo.bar"
-parseInput(inputText)
+  return visitor.visit(cst)
+}
