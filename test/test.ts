@@ -265,7 +265,7 @@ describe('SQL Json Path', function () {
     tests.forEach(test => {
       it('should correctly parse ' + test.statement, function () {
         const actual = compile(test.statement)
-        expect(actual).to.deep.equal(test.expected)
+        expect(actual.statement).to.deep.equal(test.expected)
       })
     });
   });
