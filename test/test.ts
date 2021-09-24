@@ -239,7 +239,7 @@ describe('SQL Json Path', function () {
     ]
 
     const methodNames = [
-      "type", "size", "double", "ceiling", "floor", "abs", "datetime"
+      "type", "size", "double", "ceiling", "floor", "abs", "datetime", "keyvalue"
     ]
 
     methodNames.forEach(methodName => {
