@@ -1,9 +1,9 @@
 # sql-jsonpath-js
-JS implementation of the SQL JSONPath dialect, from SQL2016. SQL JSONPath takes much of it’s design from JSONPath which was created by Stefan Goessner. Stefan’s goal was to create a JSON version of XPath, an XML processing tool. SQL JSONPath has a smaller set of requirements that are mostly focused on finding and extracting data from JSON data columns. To this end, the expression language has been simplified from JSONPath to take advantage of database indexes. Additionally, the expressions have been reorganized to provide a more query-oriented experience.
+JS implementation of the SQL JSONPath dialect, from SQL2016. SQL JSONPath takes much of its design from JSONPath which was created by Stefan Goessner. Stefan’s goal was to create a JSON version of XPath, an XML processing tool. SQL JSONPath has a smaller set of requirements that are mostly focused on finding and extracting data from JSON data columns. To this end, the expression language has been simplified from JSONPath to take advantage of database indexes. Additionally, the expressions have been reorganized to provide a more query-oriented experience.
 
-Many databases have implemented this specification in their products. This project implements a javascript-native SQL JSON Path and brings the same features and expressions from the database in application code. One can use this package to search for matching data in local javascript values, much like one uses the Regexp library to search for matching text in string values.
+Many databases have implemented this specification in their products. This project implements a javascript-native SQL JSONPath and brings the same features and expressions from the database in application code. One can use this package to search for matching data in local javascript values, much like one uses the Regexp library to search for matching text in string values.
 
-While many JSON Path libraries are available to perform similar search tasks, they often includevariations on the JSONPath expression language that can make them incompatible with each other. SQL JSONPath has a published specification, and multiple implementations in database products. An application can adopt SQL JSONPath knowing it is supported by a stable standard.
+While many JSONPath libraries are available to perform similar search tasks, they often includevariations on the JSONPath expression language that can make them incompatible with each other. SQL JSONPath has a published specification, and multiple implementations in database products. An application can adopt SQL JSONPath knowing it is supported by a stable standard.
 
 ### Expressions
 
@@ -39,8 +39,8 @@ Bracket notation must use double quotes instead of single quotes.
 | `*`                       | Wildcard references any child or array element               |
 | `[<pos>]`                 | Array element reference                                      |
 | `[<pos>, <pos>]`          | Comma-separated list of array element references             |
-| `[<pos> to <pos>]`        | Array element range reference                                |
-| `[last]`, `[last-1]`      | Last variable refers to the last element in the array and can be used as `<pos>` in array and can be modified with the subtraction (`-`) operator. |
+| `[<pos> to <pos>]`        | Array element range reference. Can be used as `<pos>` in list of element references. |
+| `[last]`, `[last-1]`      | Last variable refers to the last element in the array and can be used as `<pos>` in list of element references. Value can be modified with the subtraction (`-`) operator. |
 
 At the completion of navigation, the values are represented as the `@` character in the filter section.
 
@@ -76,14 +76,23 @@ Value functions offer ways to extract type information and apply mathematical fu
 | `.ceiling()`             | Round a numeric value up to the next largest integer         |
 | `.floor()`               | Round a numeric value down to the next smallest integer      |
 | `.abs()`                 | The absolute value of a numeric value                        |
-| `.datetime("template"?)` | Converts a string into a Date object. The optional `template` is a quoted string. If omitted, the ISO-8601 pattern (built-in to Javascript) will be used to evaluate the string. The JSONPath spec does not specify this template format. Postgres formatting rules: https://www.postgresql.org/docs/14/functions-formatting.html#FUNCTIONS-FORMATTING-TABLE but other databases have different template formats. JS Joda time has a very capable parser using templates: https://js-joda.github.io/js-joda/  so we could specify a cross-platform simplification template dictionary. https://js-joda.github.io/js-joda/manual/formatting.html Use this and convert to Postgres variant at runtime? `h` is `HH12` and `H` is `HH24` in Postgres. |
-| `.keyvalue()`            | Converts an object into an array of name/value objects: `[{name, value}, ...]` which allows a predicate to extract the key name and value |
+| `.datetime("template"?)` | Converts a string into a Date object. The optional `template` is a quoted template string. If omitted, the ISO-8601 pattern (built into Javascript) will be used to evaluate the string. The SQL JSONPath spec does not specify this template format. |
+| `.keyvalue()`            | Converts an object into an array of name/value objects: `[{name, value}, ...]` which allows a predicate to extract the key name and value. |
 
-Datetime template formatting symbols:
+Datetime template formatting symbols only match numeric date-time values, as SQL JSONPath does not have a language or culture setting to parse words for month and day.
 
-
-
-
+| Symbol | Meaning                                                      |
+| ------ | ------------------------------------------------------------ |
+| `y`    | year                                                         |
+| `M`    | month                                                        |
+| `d`    | day of month                                                 |
+| `h`    | clock hour from 1 to 12; use `a` in template to capture AM/PM |
+| `a`    | AM or PM                                                     |
+| `H`    | hour from 0 to 23                                            |
+| `m`    | minute from 00 to 59                                         |
+| `s`    | second from 00 to 59                                         |
+| `S`    | millisecond                                                  |
+| `z`    | [Timezone abbreviation](https://en.wikipedia.org/wiki/List_of_time_zone_abbreviations) |
 
 #### Predicate functions
 
