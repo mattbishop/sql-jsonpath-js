@@ -9,9 +9,9 @@ While many JSON Path libraries are available to perform similar search tasks, th
 
 SQL JSONPath expressions can match any form of JSON, including scalars, arrays and objects. The top level of a JSON structure starts with `$` and expressions progress their way down object properties and across arrays to reference fields and apply filtering query expressions.
 
-Expressions have two sections; the navigation section and an optional filter section.
+Expressions have two sections; the navigation section and an optional filter section. The mode and filter sections are optional, which is indicated with a trailing `?` character. 
 
-#### `<mode> <navigation> ? <filter>`
+#### `<mode?> <navigation> ? <filter?>`
 
 Here is an example expression:
 
@@ -40,6 +40,7 @@ Bracket notation must use double quotes instead of single quotes.
 | `[<pos>]`                 | Array element reference                                      |
 | `[<pos>, <pos>]`          | Comma-separated list of array element references             |
 | `[<pos> to <pos>]`        | Array element range reference                                |
+| `[last]`, `[last-1]`      | Last variable refers to the last element in the array and can be used as `<pos>` in array and can be modified with the subtraction (`-`) operator. |
 
 At the completion of navigation, the values are represented as the `@` character in the filter section.
 
@@ -67,27 +68,40 @@ A predicate can transform the navigation data with arithmetic operators. These d
 
 Value functions offer ways to extract type information and apply mathematical functions before testing the value with predicate operators.
 
-| Function               | Description                                                  |
-| ---------------------- | ------------------------------------------------------------ |
-| `.type()`              | Returns `null`, `boolean`, `number`, `string`, `array`, `object` or `date` |
-| `.size()`              | If `@` references an array, then it returns the number of elements in the array |
-| `.double()`            | Converts a string to a numeric value                         |
-| `.ceiling()`           | Round a numeric value up to the next largest integer         |
-| `.floor()`             | Round a numeric value down to the next smallest integer      |
-| `.abs()`               | The absolute value of a numeric value                        |
-| `.datetime(template?)` | Converts a string into a Date object. The optional `template` is a quoted string. The JSONPath spec does not specify this template format. Postgres formatting rules: https://www.postgresql.org/docs/14/functions-formatting.html#FUNCTIONS-FORMATTING-TABLE but I don’t know if we want to follow this exactly because other databases have different template formats. JS Joda time has a very capable parser using templates: https://js-joda.github.io/js-joda/  so we could specify a cross-platform simplification template dictionary. |
-| `.keyvalue()`          | Converts an object into an array of name/value objects: `[{name, value}, ...]` which allows a predicate to extract the key name and value |
+| Function                 | Description                                                  |
+| ------------------------ | ------------------------------------------------------------ |
+| `.type()`                | Returns `null`, `boolean`, `number`, `string`, `array`, `object` or `date` |
+| `.size()`                | If `@` references an array, then it returns the number of elements in the array |
+| `.double()`              | Converts a string to a numeric value                         |
+| `.ceiling()`             | Round a numeric value up to the next largest integer         |
+| `.floor()`               | Round a numeric value down to the next smallest integer      |
+| `.abs()`                 | The absolute value of a numeric value                        |
+| `.datetime("template"?)` | Converts a string into a Date object. The optional `template` is a quoted string. If omitted, the ISO-8601 pattern (built-in to Javascript) will be used to evaluate the string. The JSONPath spec does not specify this template format. Postgres formatting rules: https://www.postgresql.org/docs/14/functions-formatting.html#FUNCTIONS-FORMATTING-TABLE but other databases have different template formats. JS Joda time has a very capable parser using templates: https://js-joda.github.io/js-joda/  so we could specify a cross-platform simplification template dictionary. https://js-joda.github.io/js-joda/manual/formatting.html Use this and convert to Postgres variant at runtime? `h` is `HH12` and `H` is `HH24` in Postgres. |
+| `.keyvalue()`            | Converts an object into an array of name/value objects: `[{name, value}, ...]` which allows a predicate to extract the key name and value |
+
+Datetime template formatting symbols:
+
+
+
+
 
 #### Predicate functions
 
 A value can be tested for existence, and string values can be tested for prefixes and regular expression matches.
 
-| Expression                                     | Description                                                  |
-| ---------------------------------------------- | ------------------------------------------------------------ |
-| `exists ()`                                    | A value exists                                               |
-| `is unknown`                                   | No value exists                                              |
-| `starts with "<text>"`                         | Value starts with specified text                             |
-| `like regex "regex-expression" flag "<flags>"` | [XQuery](https://www.regular-expressions.info/xpath.html) regular expression. |
+| Expression                                      | Description                                                  |
+| ----------------------------------------------- | ------------------------------------------------------------ |
+| `exists ()`                                     | A value exists                                               |
+| `is unknown`                                    | No value exists                                              |
+| `starts with "<text>"`                          | Value starts with specified text                             |
+| `like regex "regex-expression" flag? "<flags>"` | [XQuery](https://www.regular-expressions.info/xpath.html) regular expression. Have a look at [XRegexp](https://xregexp.com) |
+
+Regex flags are optional, and change the pattern matching behavior.
+
+* `i` case-insensitive mode.
+* `s` single-line mode, or dot-all mode. Content, including newlines, is treated as a single line.
+* `m` multi-line mode. `$` and `^` match newlines in the content in addition to the string as a whole.
+* `x` free spaceing mode. Whitespace in the regex pattern is ignored, so if your regex is declared across multiple lines, the whitespace is removed before evaluation. One would use whitespace to improve the readability of larger regex patterns in source code. Without this mode, whitespace in the regex would be matched in the content.
 
 ### Examples
 
