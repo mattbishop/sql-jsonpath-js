@@ -7,8 +7,8 @@ interface SqlJsonPathTest {
   expected: SqlJsonPathStatement
 }
 
-describe('SQL Json Path', function () {
-  describe('parser test', function () {
+describe("SQL JSONPath", () => {
+  describe("parser test", () => {
     const tests: SqlJsonPathTest[] = [
       {
         statement: "$.foo.bar",
@@ -263,7 +263,7 @@ describe('SQL Json Path', function () {
     })
 
     tests.forEach(test => {
-      it('should correctly parse ' + test.statement, function () {
+      it(`should correctly parse ${test.statement}`, () => {
         const actual = compile(test.statement)
         expect(actual.statement).to.deep.equal(test.expected)
       })
