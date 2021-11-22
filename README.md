@@ -110,11 +110,11 @@ Regex flags are optional, and change the pattern matching behavior.
 * `i` case-insensitive mode.
 * `s` single-line mode, or dot-all mode. Content, including newlines, is treated as a single line.
 * `m` multi-line mode. `$` and `^` match newlines in the content in addition to the string as a whole.
-* `x` free spaceing mode. Whitespace in the regex pattern is ignored, so if your regex is declared across multiple lines, the whitespace is removed before evaluation. One would use whitespace to improve the readability of larger regex patterns in source code. Without this mode, whitespace in the regex would be matched in the content.
+* `x` free spacing mode. Whitespace in the regex pattern is ignored, so if your regex is declared across multiple lines, the whitespace is removed before evaluation. One would use whitespace to improve the readability of larger regex patterns in source code. Without this mode, whitespace in the regex would be matched in the content.
 
 ### Examples
 
-This example is taken from Stefan Goessner’s original JSONPath documentation. SQL JSONPath expressions have many similarities to Goessner’s JSONPath statements.
+This example is taken from Stefan Goessner’s original JSONPath documentation.
 
 ```json
 { "store": {
