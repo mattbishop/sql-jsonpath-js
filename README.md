@@ -1,9 +1,9 @@
 # sql-jsonpath-js
-JS implementation of the SQL JSONPath dialect, from SQL2016. SQL JSONPath takes much of its design from JSONPath which was created by Stefan Goessner. Stefan’s goal was to create a JSON version of XPath, an XML processing tool. SQL JSONPath has a smaller set of requirements that are mostly focused on finding and extracting data from JSON data columns. To this end, the expression language has been simplified from JSONPath to take advantage of database indexes. Additionally, the expressions have been reorganized to provide a more query-oriented experience.
+JS implementation of the SQL JSONPath dialect, from SQL2016. SQL JSONPath takes much of its design from JSONPath which was created by Stefan Goessner. Stefan’s goal was to create a JSON version of XPath, an XML processing tool. SQL JSONPath has a smaller set of requirements that focus on finding and extracting data from JSON data columns. To this end, the expression language has been simplified from JSONPath to take advantage of database indexes. Additionally, the expressions have been reorganized to provide a more query-oriented experience.
 
 Many databases have implemented this specification in their products. This project implements a javascript-native SQL JSONPath and brings the same features and expressions from the database in application code. One can use this package to search for matching data in local javascript values, much like one uses the Regexp library to search for matching text in string values.
 
-While many JSONPath libraries are available to perform similar search tasks, they often includevariations on the JSONPath expression language that can make them incompatible with each other. SQL JSONPath has a published specification, and multiple implementations in database products. An application can adopt SQL JSONPath knowing it is supported by a stable standard.
+While many JSONPath libraries perform similar search tasks, they often include variations on the JSONPath expression language that make them incompatible with each other. SQL JSONPath has a published specification, and multiple implementations in database products. An application can adopt SQL JSONPath and gain the stability privided by a long-term standard.
 
 ### Expressions
 
