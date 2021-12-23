@@ -150,13 +150,16 @@ This example is taken from Stefan Goessner’s original JSONPath documentation.
 }
 ```
 
-| JSONPath Expression      | Result                                |
-| ------------------------ | ------------------------------------- |
-| `$.store.book[*].author` | The authors of all books in the store |
-|                          |                                       |
-|                          |                                       |
-|                          |                                       |
-|                          |                                       |
-|                          |                                       |
-|                          |                                       |
-
+| JSONPath Expression                                        | Result                                                          |
+|------------------------------------------------------------|-----------------------------------------------------------------|
+| `$.store.book[*].author`                                   | The authors of all books in the store                           |
+| `$.store`                                                  | All the things in the store, which includes books and a bicycle |
+| `$.store.book[2]`                                          | The third book in the store.                                    |
+| `$.store.book[last]`                                       | The last book in the store                                      |
+| `$.store.book[0,1,2]` or `$.store.book[0 to 2]`            | The first three books in the store                              |
+| `$.store.book ? (exists(@.isbn))`                          | All books with an isbn                                          |
+| `$.store.book ? (!exists(@.isbn))`                         | All books without an isbn                                       |
+| `$.store.book.title ? (@ starts with "S")`                 | All books whose title starts with the letter “S”                |
+| `$.store.bicycle ? (@.colour like_regex "^RED$" flag "i")` | All bicycles whose colour is “red”, case insensitive            |
+| `$.store.book.price ? (@ > 10)`                            | All books whose price is > 10                                   |
+| `$.store ? ((@.book.price > 10) || (@.bicycle.price > 10)` | All books and bicycles whose price is > 10                      |
