@@ -26,7 +26,33 @@ export interface Method {
 }
 
 export enum MethodName {
-  TYPE = "type", SIZE = "size", DOUBLE = "double", CEILING = "ceiling", FLOOR = "floor", ABS = "abs", DATETIME = "datetime", KEYVALUE = "keyvalue"
+  ABS       = "abs",
+  CEILING   = "ceiling",
+  DATETIME  = "datetime",
+  DOUBLE    = "double",
+  FLOOR     = "floor",
+  KEYVALUE  = "keyvalue",
+  SIZE      = "size",
+  TYPE      = "type",
+}
+
+export enum SqlJsonPathArithmeticOperator {
+  ADD = "+",
+  SUB = "-",
+  MUL = "*",
+  DIV = "/",
+  MOD = "%"
+}
+
+export enum ConditionalOperator {
+  EQ  = "==",
+  NE  = "!=",
+  GT  = ">",
+  LT  = "<",
+  AND = "&&",
+  OR  = "||",
+  GTE = ">=",
+  LTE = "<="
 }
 
 export interface ArrayElement {
@@ -54,12 +80,4 @@ export interface FilterQuery {
 export interface Exists {
   method: "exists",
   path: PathQuery
-}
-
-export enum SqlJsonPathArithmeticOperator {
-  ADD= "+", SUB = "-", DIV = "/", MULT = "*", MOD = "*"
-}
-
-export enum ConditionalOperator {
-  EQ = "==", NE = "!=", GT = ">", LT = "<", AND = "&&", OR = "||", GTE = ">=", LTE = "<="
 }

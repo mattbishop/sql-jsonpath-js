@@ -1,7 +1,7 @@
 {
   "name": "sql-jsonpath-js",
   "version": "1.0.0",
-  "description": "JS implementation of the SQL JSONPath dialect, from SQL2016.",
+  "description": "JavaScript implementation of the SQL JSONPath dialect, from SQL2016.",
   "main": "dist/src/index.js",
   "scripts": {
     "test": "mocha -r ts-node/register test/**/test.ts",

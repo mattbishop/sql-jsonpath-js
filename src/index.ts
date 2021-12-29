@@ -19,13 +19,13 @@ export function compile(text: string): SqlJsonPath {
     throw new Error(`sad sad panda, Parsing errors detected: ${parser.errors[0]}`)
   }
 
-  const statement =  visitor.visit(cst) as SqlJsonPathStatement
+  const statement = visitor.visit(cst) as SqlJsonPathStatement
   return {
-    statement: statement,
-    exists: exists,
-    match: match,
-    query: query,
-    first: first
+    statement,
+    exists,
+    match,
+    query,
+    first
   }
 }
 

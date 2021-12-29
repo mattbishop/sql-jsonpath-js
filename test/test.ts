@@ -112,6 +112,7 @@ describe("SQL JSONPath", () => {
         }
       },
       {
+        // this one should break, only allow one '?'
         statement: "$.foo.bar[*] ? (@.zoo[1] < 13) ? (@.roo > 130).goo",
         expected: {
           lhs: [
@@ -154,6 +155,7 @@ describe("SQL JSONPath", () => {
         }
       },
       {
+        // also should break
         statement: "$.foo.bar[*] ? (@.zoo[1] < 13).roo ? (@ > 130)",
         expected: {
           lhs: [

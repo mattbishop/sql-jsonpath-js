@@ -124,7 +124,7 @@ export function newJsonPathVisitor(constr: { new(...args: any[]): ICstVisitor<an
         case "-":
           return SqlJsonPathArithmeticOperator.SUB
         case "*":
-          return SqlJsonPathArithmeticOperator.MULT
+          return SqlJsonPathArithmeticOperator.MUL
         case "/":
           return SqlJsonPathArithmeticOperator.DIV
         case "%":
