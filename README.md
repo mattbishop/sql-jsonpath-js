@@ -56,7 +56,7 @@ Predicates must be wrapped in parentheses `()` and can be internally combined wi
 | Predicate Operator | Description           |
 | ------------------ | --------------------- |
 | `==`               | Equal                 |
-| `!=`               | Not Equal             |
+| `!=`, `<>`         | Not Equal             |
 | `>`                | Greater than          |
 | `<`                | Less than             |
 | `>=`               | Equal or greater than |
