@@ -23,9 +23,8 @@ export function compile(text: string): SqlJsonPath {
   return {
     statement,
     exists,
-    match,
-    query,
-    first
+    value,
+    query
   }
 }
 
@@ -33,14 +32,10 @@ function exists(): boolean {
   return false
 }
 
-function match(): boolean {
+function value(): boolean {
   return false
 }
 
-function query(): any[] {
+function query(): any {
   return []
-}
-
-function first(): any {
-  return undefined
 }

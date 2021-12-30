@@ -1,10 +1,14 @@
+export interface QueryConfig {
+  arrayWrapper: "always" | "onlyScalars"
+  defaultIfUndefined: "object" | "array"
+}
+
 export interface SqlJsonPath {
   statement: SqlJsonPathStatement
 
-  exists: () => boolean
-  match: () => boolean
-  query: () => any[]
-  first: () => any
+  exists: () => boolean | undefined
+  value: (defaultValue?: any) => any | undefined
+  query: (config?: QueryConfig) => any
 }
 
 export type PathPart = SimpleProperty | ArrayElement | Method

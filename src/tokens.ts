@@ -4,11 +4,11 @@ import {createToken, Lexer} from "chevrotain";
 export const Wildcard               = createToken({name: "Wildcard", pattern: /\*/})
 // define '$' before Identifier as ID character class includes '$'
 export const ObjectRoot             = createToken({name: "Root", pattern: /\$/})
-export const Identifier             = createToken({name: "Identifier", pattern: /[a-zA-Z]\w*/ })
+export const Identifier             = createToken({name: "Identifier", pattern: /[a-zA-Z]\w*/})
 export const FilterValue            = createToken({name: "FilterValue", pattern: /@/})
 export const PathSeparator          = createToken({name: "PathSeparator", pattern: /\./})
 export const Comma                  = createToken({name: "Comma", pattern: /,/ })
-export const StartFilterExpression  = createToken({name: "StartFilterExpression", pattern: /\?/ })
+export const StartFilterExpression  = createToken({name: "StartFilterExpression", pattern: /\?/})
 export const Integer                = createToken({name: "Integer", pattern: /0|[1-9]\d*/ })
 export const StringLiteral          = createToken({name: "StringLiteral", pattern: /".*"/})
 export const LeftSquareBracket      = createToken({name: "LeftSquareBracket", pattern: /\[/})
