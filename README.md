@@ -1,6 +1,6 @@
 # sql-jsonpath-js
 
-Javascript implementation of the SQL JSONPath dialect, from SQL2016. SQL JSONPath takes much of its design from JSONPath which was created by [Stefan Goessner](https://goessner.net/articles/JsonPath/index.html). Stefan’s goal was to create a JSON version of XPath, an XML processing tool. SQL JSONPath has a smaller set of requirements that focus on finding and extracting data from JSON data columns. To this end, the expression language has been simplified from JSONPath to take advantage of database indexes. Additionally, the expressions have been reorganized to provide a more query-oriented experience.
+Javascript implementation of the SQL JSONPath dialect, from SQL2016. SQL JSONPath takes much of its design from Stefan Goessner’s [ JSONPath](https://goessner.net/articles/JsonPath/index.html). Stefan’s goal was to create a JSON version of [XPath](https://developer.mozilla.org/en-US/docs/Web/XPath), an XML processing tool. SQL JSONPath has a smaller set of requirements that focus on finding and extracting data from JSON data columns. To this end, the expression language has been simplified from JSONPath to take advantage of database indexes. Additionally, the expressions have been reorganized to provide a more query-oriented experience.
 
 Many databases have implemented this specification in their products. This project implements a javascript-native SQL JSONPath and brings the same features and expressions from the database in application code. One can use this package to search for matching data in local javascript values, much like one uses the Regexp library to search for matching text in string values.
 
@@ -10,7 +10,7 @@ While many JSONPath libraries perform similar search tasks, they often include v
 
 SQL JSONPath expressions can match any form of JSON, including scalars, arrays and objects. The top level of a JSON structure starts with `$` and expressions progress their way down object properties and across arrays to reference fields and apply filtering query expressions.
 
-Expressions have two sections; the navigation section and an optional filter section. The mode and filter sections are optional, which is indicated with a trailing `?` character. 
+Expressions have three sections; the mode, the navigation statement and a filter expression. The mode and filter sections are optional. 
 
 #### `<mode?> <navigation> ? <filter?>`
 
@@ -22,8 +22,8 @@ Here is an example expression:
 
 Expressions can be evaluated in two modes: `strict` and `lax`, the default mode if omitted. The two modes have different behaviors for navigating to data properties.
 
-1. Missing properties. Strict mode expects the navigation statement to reference existing properties and will throw an error if they are not present in the data. Lax mode will ignore missing properties and treat the situation as an unmatched path.
-2. Arrays. If an operation expects an array, but the data value is not an array, lax mode will thread the value as a single-element array. Conversely if the operation does not expect an array, but encounters an array data value, it will be unnested and each value will be tested. In strict mode, either of these conditions results in an error.
+1. **Missing properties:** Strict mode expects the navigation statement to reference existing properties and will throw an error if they are not present in the data. Lax mode will ignore missing properties and treat the situation as an unmatched path.
+2. **Arrays:** If an operation expects an array, but the data value is not an array, lax mode treats the value as a single-element array. Conversely if the operation does not expect an array, but encounters an array, each array value will be tested. In strict mode, either of these conditions results in an error.
 
 #### Navigation
 
@@ -151,16 +151,21 @@ This example is taken from Stefan Goessner’s original JSONPath documentation.
 }
 ```
 
-| JSONPath Expression                                        | Result                                                          |
-|------------------------------------------------------------|-----------------------------------------------------------------|
-| `$.store.book[*].author`                                   | The authors of all books in the store                           |
+| JSONPath Expression                                        | Result                                                       |
+| ---------------------------------------------------------- | ------------------------------------------------------------ |
+| `$.store.book[*].author`                                   | The authors of all books in the store                        |
 | `$.store`                                                  | All the things in the store, which includes books and a bicycle |
-| `$.store.book[2]`                                          | The third book in the store.                                    |
-| `$.store.book[last]`                                       | The last book in the store                                      |
-| `$.store.book[0,1,2]` or `$.store.book[0 to 2]`            | The first three books in the store                              |
-| `$.store.book ? (exists(@.isbn))`                          | All books with an isbn                                          |
-| `$.store.book ? (!exists(@.isbn))`                         | All books without an isbn                                       |
-| `$.store.book.title ? (@ starts with "S")`                 | All books whose title starts with the letter “S”                |
-| `$.store.bicycle ? (@.colour like_regex "^RED$" flag "i")` | All bicycles whose colour is “red”, case insensitive            |
-| `$.store.book.price ? (@ > 10)`                            | All books whose price is > 10                                   |
-| `$.store ? ((@.book.price > 10) || (@.bicycle.price > 10)` | All books and bicycles whose price is > 10                      |
+| `$.store.book[2]`                                          | The third book in the store.                                 |
+| `$.store.book[last]`                                       | The last book in the store                                   |
+| `$.store.book[0,1,2]` or `$.store.book[0 to 2]`            | The first three books in the store                           |
+| `$.store.book ? (exists(@.isbn))`                          | All books with an isbn                                       |
+| `$.store.book ? (!exists(@.isbn))`                         | All books without an isbn                                    |
+| `$.store.book.title ? (@ starts with "S")`                 | All books whose title starts with the letter “S”             |
+| `$.store.bicycle ? (@.colour like_regex "^RED$" flag "i")` | All bicycles whose colour is “red”, case insensitive         |
+| `$.store.book.price ? (@ > 10)`                            | All books whose price is > 10                                |
+| `$.store ? ((@.book.price > 10) || (@.bicycle.price > 10)` | All books and bicycles whose price is > 10                   |
+
+BUG: Github’s markdown render is messing up with `||` inside a table cell. The above expression is
+
+`$.store ? ((@.book.price > 10) || (@.bicycle.price > 10)`
+
