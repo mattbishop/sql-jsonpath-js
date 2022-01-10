@@ -163,9 +163,5 @@ This example is taken from Stefan Goessner’s original JSONPath documentation.
 | `$.store.book.title ? (@ starts with "S")`                  | All books whose title starts with the letter “S”             |
 | `$.store.bicycle ? (@.colour like_regex "^RED$" flag "i")`  | All bicycles whose colour is “red”, case insensitive         |
 | `$.store.book.price ? (@ > 10)`                             | All books whose price is > 10                                |
-| `$.store ? ((@.book.price > 10) || (@.bicycle.price > 10))` | All books and bicycles whose price is > 10                   |
-
-BUG: Github’s markdown render is messing up with `||` inside a table cell. The above expression is
-
-`$.store ? ((@.book.price > 10) || (@.bicycle.price > 10))`
+| `$.store ? ((@.book.price > 10) \|\| (@.bicycle.price > 10))` | All books and bicycles whose price is > 10                 |
 
