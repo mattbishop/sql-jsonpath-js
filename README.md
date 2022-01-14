@@ -144,7 +144,7 @@ This example is taken from Stefan Goessner’s original JSONPath documentation.
       }
     ],
     "bicycle": {
-      "color": "red",
+      "colour": "red",
       "price": 19.95
     }
   }
