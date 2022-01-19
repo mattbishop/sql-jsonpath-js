@@ -59,6 +59,26 @@ describe("SQL JSONPath", () => {
         }
       },
       {
+        statement: "$.foo.bar[1 to 3].location",
+        expected: {
+          lhs: [
+            {
+              property: "foo"
+            },
+            {
+              array: "bar",
+              element: {
+                start: 1,
+                end: 3,
+              }
+            },
+            {
+              property: "location"
+            },
+          ]
+        }
+      },
+      {
         statement: "$.foo.bar[*].zar ? (@ > 333)",
         expected: {
           lhs: [

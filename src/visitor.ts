@@ -1,6 +1,7 @@
 import {CstNode, ICstVisitor} from "@chevrotain/types";
 import {
   ArrayElement,
+  ArrayRange,
   ConditionalOperator,
   Exists,
   FilterExpression,
@@ -166,13 +167,25 @@ export function newJsonPathVisitor(constr: { new(...args: any[]): ICstVisitor<an
       return ctx.filterExpressions.map((filterExpression: CstNode) => this.visit(filterExpression))
     }
 
-    arrayAccessor(ctx: any, name: string): ArrayElement {
-      return {
-        array: name,
-        element: (ctx.wildcard) ? ctx.wildcard[0].image : parseInt(ctx.number[0].image)
-      }
+    rangePart(ctx: any, start: string): ArrayRange {
+      return {start: parseInt(start), end: parseInt(ctx.number[0].image)}
     }
 
+    /*
+      ctx.rangeLastPart? {rangeLast: [parseInt(ctx.number[0], arithmeticOperator(ctx), parseInt(ctx.number[1])}
+        : parseInt(ctx.number[0].image)
+    */
+
+    arrayAccessor(ctx:any, name: string): ArrayElement {
+      return {
+        array: name,
+        element: 
+          (ctx.wildcard) ? ctx.wildcard[0].image :
+          (ctx.rangePart)? this.visit(ctx.rangePart, ctx.number[0].image) :
+          parseInt(ctx.number[0].image)
+      }
+
+    }
 
     methodNameToEnum(name: string): MethodName {
       switch (name) {

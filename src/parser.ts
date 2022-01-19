@@ -25,6 +25,7 @@ import {
   RightSquareBracket,
   StartFilterExpression,
   StringLiteral,
+  ToRange,
   Wildcard
 } from "./tokens";
 
@@ -145,11 +146,20 @@ export class JsonPathParser extends CstParser {
     this.OPTION2(() => this.SUBRULE(this.filterChain))
   })
 
+  range = this.RULE("rangePart", () => {
+    this.CONSUME(ToRange, {LABEL: "operator"})
+    this.CONSUME(Integer, {LABEL: "number"})
+  })
+
   arrayAccessor = this.RULE("arrayAccessor", () => {
     this.CONSUME(LeftSquareBracket)
     this.OR([
       {ALT: () => this.CONSUME(Wildcard, {LABEL: "wildcard"})},
-      {ALT: () => this.CONSUME(Integer, {LABEL: "number"})}
+      {ALT: () => {
+        this.CONSUME(Integer, {LABEL: "number"}),
+        this.OPTION(() => this.SUBRULE(this.range))
+      }
+    }
     ])
     this.CONSUME(RightSquareBracket)
   })

@@ -11,7 +11,7 @@ export interface SqlJsonPath {
   query: (config?: QueryConfig) => any
 }
 
-export type PathPart = SimpleProperty | ArrayElement | Method
+export type PathPart = SimpleProperty | ArrayElement | ArrayRange | Method
 export type PathQuery = PathPart[]
 
 export interface SqlJsonPathStatement {
@@ -61,8 +61,13 @@ export enum ConditionalOperator {
 
 export interface ArrayElement {
   array: string
-  element: "*" | number
+  element: "*" | number | ArrayRange
   filterChain?: FilterExpression[]
+}
+
+export interface ArrayRange {
+  start: number
+  end: number
 }
 
 export interface SimpleProperty {

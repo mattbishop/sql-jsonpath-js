@@ -29,6 +29,7 @@ export const False                  = createToken({name: "False", pattern: /fals
 export const MethodStart            = createToken({name: "MethodStart", pattern: /\(/})
 export const MethodEnd              = createToken({name: "MethodEnd", pattern: /\)/})
 export const Exists                 = createToken({name: "Exists", pattern: /exists/})
+export const ToRange                = createToken({name: "ToRange", pattern: /to/})
 
 export const WhiteSpace = createToken({
   name: "WhiteSpace",
@@ -40,6 +41,7 @@ export const allTokens = [
   WhiteSpace,
   // "keywords" appear before the Identifier
   Exists,
+  ToRange,
   True,
   False,
   // The Identifier must appear after the keywords because all keywords are valid identifiers.
