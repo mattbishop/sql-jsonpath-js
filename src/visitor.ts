@@ -169,7 +169,7 @@ export function newJsonPathVisitor(constr: { new(...args: any[]): ICstVisitor<an
     }
 
     group(ctx: any): Group {
-      return { wff: ctx.visit(ctx.wff) }
+      return this.visit(ctx.wff)
     }
 
 
@@ -183,7 +183,7 @@ export function newJsonPathVisitor(constr: { new(...args: any[]): ICstVisitor<an
       if (ctx.connector) {
         o.connector = ctx.connector[0].image
 
-        o.rhs = ctx.rhs_group? this.visit(ctx.rhs_group[0])
+        o.rhs = ctx.rhs_group? this.visit(ctx.rhs_group)
           : ctx.rhs_last ? ctx.rhs_last[0].image
             : parseInt(ctx.rhs_integer[0].image)
       } 
@@ -192,7 +192,7 @@ export function newJsonPathVisitor(constr: { new(...args: any[]): ICstVisitor<an
     }
 
     arrayAccessor(ctx: any, name: string): ArrayElement {
-      let o: Partial<ArrayElement> = { array: name }
+      const o: Partial<ArrayElement> = { array: name }
 
       if (ctx.wildcard) {
         o.element = ctx.wildcard[0].image

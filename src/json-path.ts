@@ -71,9 +71,7 @@ export interface WFF {
   rhs?: Group | number | "last"
 }
 
-export interface Group {
-  wff: WFF
-}
+export interface Group extends WFF {}
 
 export interface SimpleProperty {
   property: string
