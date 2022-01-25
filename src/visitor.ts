@@ -1,17 +1,18 @@
 import {CstNode, ICstVisitor} from "@chevrotain/types";
 import {
   ArrayElement,
-  ArrayRange,
   ConditionalOperator,
   Exists,
   FilterExpression,
   FilterQuery,
+  Group,
   MethodName,
   PathPart,
   PathQuery,
   SimpleProperty,
   SqlJsonPathArithmeticOperator,
-  SqlJsonPathStatement
+  SqlJsonPathStatement,
+  WFF
 } from "./json-path";
 
 export function newJsonPathVisitor(constr: { new(...args: any[]): ICstVisitor<any, any> }) {
@@ -167,24 +168,31 @@ export function newJsonPathVisitor(constr: { new(...args: any[]): ICstVisitor<an
       return ctx.filterExpressions.map((filterExpression: CstNode) => this.visit(filterExpression))
     }
 
-    rangePart(ctx: any, start: string): ArrayRange {
-      return {start: parseInt(start), end: parseInt(ctx.number[0].image)}
+    group(ctx: any): Group {
+      return {wff: ctx.visit(ctx.wff)}
     }
 
-    /*
-      ctx.rangeLastPart? {rangeLast: [parseInt(ctx.number[0], arithmeticOperator(ctx), parseInt(ctx.number[1])}
-        : parseInt(ctx.number[0].image)
-    */
+    wff(ctx: any): WFF {
+      return {
+        lhs: ctx.group? this.visit(ctx.group) : 
+          ctx.integer? parseInt(ctx.integer[0].image) :
+          ctx.last[0].image
+      }
+    }
 
     arrayAccessor(ctx:any, name: string): ArrayElement {
-      return {
-        array: name,
-        element: 
-          (ctx.wildcard) ? ctx.wildcard[0].image :
-          (ctx.rangePart)? this.visit(ctx.rangePart, ctx.number[0].image) :
-          parseInt(ctx.number[0].image)
+      let o:Partial<ArrayElement> = {array: name}
+
+      if (ctx.wildcard) {
+        o.element = ctx.wildcard[0].image
       }
 
+      else {
+        const arr = ctx.wff.map((wff:any) => this.visit(wff))
+        o.element = arr;
+      }
+
+      return o as ArrayElement;
     }
 
     methodNameToEnum(name: string): MethodName {

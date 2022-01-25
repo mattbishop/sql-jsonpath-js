@@ -1,6 +1,6 @@
-import {expect} from "chai"
-import {ConditionalOperator, MethodName, SqlJsonPathStatement} from "../src/json-path";
-import {compile} from "../src";
+import { expect } from "chai"
+import { ConditionalOperator, MethodName, SqlJsonPathStatement } from "../src/json-path"
+import { compile } from "../src"
 
 interface SqlJsonPathTest {
   statement: string
@@ -49,8 +49,7 @@ describe("SQL JSONPath", () => {
             },
             {
               array: "bar",
-              element: 1
-
+              element: [{ lhs: 1 }]
             },
             {
               property: "location"
@@ -59,7 +58,7 @@ describe("SQL JSONPath", () => {
         }
       },
       {
-        statement: "$.foo.bar[1 to 3].location",
+        statement: "$.foo.bar[1,2].location",
         expected: {
           lhs: [
             {
@@ -67,10 +66,7 @@ describe("SQL JSONPath", () => {
             },
             {
               array: "bar",
-              element: {
-                start: 1,
-                end: 3,
-              }
+              element: [{ lhs: 1 }, {lhs: 2}]
             },
             {
               property: "location"
@@ -78,6 +74,28 @@ describe("SQL JSONPath", () => {
           ]
         }
       },
+      // {
+      //   statement: "$.foo.bar[1 to 3].location",
+      //   expected: {
+      //     lhs: [
+      //       {
+      //         property: "foo"
+      //       },
+      //       {
+      //         array: "bar",
+      //         element:
+      //           [{
+      //             start: 1,
+      //             end: 3
+      //           }],
+      //       }
+      //       ,
+      //       {
+      //         property: "location"
+      //       },
+      //     ]
+      //   }
+      // },
       {
         statement: "$.foo.bar[*].zar ? (@ > 333)",
         expected: {
@@ -148,7 +166,7 @@ describe("SQL JSONPath", () => {
                     path: [
                       {
                         array: "zoo",
-                        element: 1
+                        element: [{ lhs: 1 }]
                       }
                     ],
                     compareTo: 13,
@@ -191,7 +209,7 @@ describe("SQL JSONPath", () => {
                     path: [
                       {
                         array: "zoo",
-                        element: 1
+                        element: [{ lhs: 1 }]
                       }
                     ],
                     compareTo: 13,
@@ -289,6 +307,6 @@ describe("SQL JSONPath", () => {
         const actual = compile(test.statement)
         expect(actual.statement).to.deep.equal(test.expected)
       })
-    });
-  });
-});
+    })
+  })
+})
