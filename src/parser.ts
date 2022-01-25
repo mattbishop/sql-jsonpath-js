@@ -155,9 +155,9 @@ export class JsonPathParser extends CstParser {
 
   wff = this.RULE("wff", () => {
     this.OR([
-      { ALT: () => this.SUBRULE(this.group, {LABEL: "group"})},
-      { ALT: () => this.CONSUME(Integer, { LABEL: "integer" }) },
-      { ALT: () => this.CONSUME(Last, { LABEL: "last" }) }
+      { ALT: () => this.SUBRULE(this.group, {LABEL: "lhs_group"})},
+      { ALT: () => this.CONSUME(Integer, { LABEL: "lhs_integer" }) },
+      { ALT: () => this.CONSUME(Last, { LABEL: "lhs_last" }) }
     ])
     this.OPTION(() => {
       this.OR1([
@@ -165,9 +165,9 @@ export class JsonPathParser extends CstParser {
         { ALT: () => this.CONSUME(To, { LABEL: "connector" }) }
       ])
       this.OR2([
-        { ALT: () => this.SUBRULE1(this.group, {LABEL: "group"})},
-        { ALT: () => this.CONSUME1(Integer, { LABEL: "integer" }) },
-        { ALT: () => this.CONSUME1(Last, { LABEL: "last" }) }
+        { ALT: () => this.SUBRULE1(this.group, {LABEL: "rhs_group"})},
+        { ALT: () => this.CONSUME1(Integer, { LABEL: "rhs_integer" }) },
+        { ALT: () => this.CONSUME1(Last, { LABEL: "rhs_last" }) }
       ])
     })
   })

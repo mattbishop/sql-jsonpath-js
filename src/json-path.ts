@@ -67,7 +67,7 @@ export interface ArrayElement {
 
 export interface WFF {
   lhs: Group | number | "last"
-  connector?: SqlJsonPathArithmeticOperator
+  connector?: SqlJsonPathArithmeticOperator | string
   rhs?: Group | number | "last"
 }
 

@@ -66,7 +66,7 @@ describe("SQL JSONPath", () => {
             },
             {
               array: "bar",
-              element: [{ lhs: 1 }, {lhs: 2}]
+              element: [{ lhs: 1 }, { lhs: 2 }]
             },
             {
               property: "location"
@@ -74,28 +74,73 @@ describe("SQL JSONPath", () => {
           ]
         }
       },
-      // {
-      //   statement: "$.foo.bar[1 to 3].location",
-      //   expected: {
-      //     lhs: [
-      //       {
-      //         property: "foo"
-      //       },
-      //       {
-      //         array: "bar",
-      //         element:
-      //           [{
-      //             start: 1,
-      //             end: 3
-      //           }],
-      //       }
-      //       ,
-      //       {
-      //         property: "location"
-      //       },
-      //     ]
-      //   }
-      // },
+      {
+        statement: "$.foo.bar[1 to 3].location",
+        expected: {
+          lhs: [
+            {
+              property: "foo"
+            },
+            {
+              array: "bar",
+              element:
+                [{
+                  lhs: 1,
+                  rhs: 3,
+                  connector: "to"
+                }],
+            }
+            ,
+            {
+              property: "location"
+            },
+          ]
+        }
+      },
+      {
+        statement: "$.foo.bar[last].location",
+        expected: {
+          lhs: [
+            {
+              property: "foo"
+            },
+            {
+              array: "bar",
+              element:
+                [{
+                  lhs: "last",
+                }],
+            }
+            ,
+            {
+              property: "location"
+            },
+          ]
+        }
+      },
+      {
+        statement: "$.foo.bar[last - 1].location",
+        expected: {
+          lhs: [
+            {
+              property: "foo"
+            },
+            {
+              array: "bar",
+              element:
+                [{
+                  lhs: "last",
+                  connector: "-",
+                  rhs: 1
+                }],
+            }
+            ,
+            {
+              property: "location"
+            },
+          ]
+        }
+      },
       {
         statement: "$.foo.bar[*].zar ? (@ > 333)",
         expected: {
