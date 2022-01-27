@@ -86,8 +86,10 @@ describe("SQL JSONPath", () => {
               element:
                 [{
                   lhs: 1,
-                  rhs: 3,
-                  connector: "to"
+                  ops: [{
+                    rhs: 3,
+                    connector: "to"
+                  }]
                 }],
             }
             ,
@@ -130,8 +132,11 @@ describe("SQL JSONPath", () => {
               element:
                 [{
                   lhs: "last",
-                  connector: "-",
-                  rhs: 1
+                  ops: [{
+                    connector: "-",
+                    rhs: 1
+                  }
+                  ]
                 }],
             }
             ,
@@ -152,12 +157,45 @@ describe("SQL JSONPath", () => {
               element:
                 [{
                   lhs: 1,
-                  connector: "+",
-                  rhs: {
-                    lhs: "last",
-                    connector: "-",
-                    rhs: 1
+                  ops: [{
+                    connector: "+",
+                    rhs: {
+                      lhs: "last",
+                      ops: [{
+                        connector: "-",
+                        rhs: 1
+                      }]
+                    }
+                  }]
+                }],
+            }
+            ,
+            {
+              property: "location"
+            },
+          ]
+        }
+      }, {
+        statement: "$.foo.bar[1 + 2 + 3].location",
+        expected: {
+          lhs: [
+            {
+              property: "foo"
+            },
+            {
+              array: "bar",
+              element:
+                [{
+                  lhs: 1,
+                  ops: [{
+                    connector: "+",
+                    rhs: 2
+                  },
+                  {
+                    connector: "+",
+                    rhs: 3
                   }
+                  ]
                 }],
             }
             ,

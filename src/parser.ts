@@ -148,27 +148,31 @@ export class JsonPathParser extends CstParser {
   })
 
   group = this.RULE("group", () => {
-    this.CONSUME(MethodStart, {LABEL: "group"})
+    this.CONSUME(MethodStart, { LABEL: "group" })
     this.SUBRULE(this.wff)
-    this.CONSUME(MethodEnd, {LABEL: "group"})
-   })
+    this.CONSUME(MethodEnd, { LABEL: "group" })
+  })
+
+  op = this.RULE("op", () => {
+    this.OR1([
+      { ALT: () => this.CONSUME(ArithmeticOperator, { LABEL: "connector" }) },
+      { ALT: () => this.CONSUME(To, { LABEL: "connector" }) }
+    ])
+    this.OR2([
+      { ALT: () => this.SUBRULE1(this.group, { LABEL: "rhs_group" }) },
+      { ALT: () => this.CONSUME1(Integer, { LABEL: "rhs_integer" }) },
+      { ALT: () => this.CONSUME1(Last, { LABEL: "rhs_last" }) }
+    ])
+  })
 
   wff = this.RULE("wff", () => {
     this.OR([
-      { ALT: () => this.SUBRULE(this.group, {LABEL: "lhs_group"})},
+      { ALT: () => this.SUBRULE(this.group, { LABEL: "lhs_group" }) },
       { ALT: () => this.CONSUME(Integer, { LABEL: "lhs_integer" }) },
       { ALT: () => this.CONSUME(Last, { LABEL: "lhs_last" }) }
     ])
-    this.OPTION(() => {
-      this.OR1([
-        { ALT: () => this.CONSUME(ArithmeticOperator, { LABEL: "connector" }) },
-        { ALT: () => this.CONSUME(To, { LABEL: "connector" }) }
-      ])
-      this.OR2([
-        { ALT: () => this.SUBRULE1(this.group, {LABEL: "rhs_group"})},
-        { ALT: () => this.CONSUME1(Integer, { LABEL: "rhs_integer" }) },
-        { ALT: () => this.CONSUME1(Last, { LABEL: "rhs_last" }) }
-      ])
+    this.MANY(() => {
+      this.SUBRULE(this.op, { LABEL: "ops" })
     })
   })
 

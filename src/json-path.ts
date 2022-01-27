@@ -65,13 +65,18 @@ export interface ArrayElement {
   filterChain?: FilterExpression[]
 }
 
-export interface WFF {
-  lhs: Group | number | "last"
-  connector?: SqlJsonPathArithmeticOperator | string
-  rhs?: Group | number | "last"
+export interface OperaX {
+  connector: SqlJsonPathArithmeticOperator | string
+  rhs: Group | number | "last"
 }
 
-export interface Group extends WFF {}
+export interface WFF {
+  lhs: Group | number | "last"
+  ops?: OperaX[]
+
+}
+
+export type Group = WFF
 
 export interface SimpleProperty {
   property: string

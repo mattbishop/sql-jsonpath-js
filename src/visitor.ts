@@ -7,6 +7,7 @@ import {
   FilterQuery,
   Group,
   MethodName,
+  OperaX,
   PathPart,
   PathQuery,
   SimpleProperty,
@@ -172,6 +173,16 @@ export function newJsonPathVisitor(constr: { new(...args: any[]): ICstVisitor<an
       return this.visit(ctx.wff)
     }
 
+    op(ctx: any): OperaX {
+      return {
+        connector : ctx.connector[0].image,
+
+        rhs : ctx.rhs_group? this.visit(ctx.rhs_group)
+        : ctx.rhs_last ? ctx.rhs_last[0].image
+          : parseInt(ctx.rhs_integer[0].image)
+      }
+    }
+
 
     wff(ctx: any): WFF {
       const o: any = {}
@@ -180,13 +191,7 @@ export function newJsonPathVisitor(constr: { new(...args: any[]): ICstVisitor<an
           : ctx.lhs_last ? ctx.lhs_last[0].image
           : parseInt(ctx.lhs_integer[0].image)
 
-      if (ctx.connector) {
-        o.connector = ctx.connector[0].image
-
-        o.rhs = ctx.rhs_group? this.visit(ctx.rhs_group)
-          : ctx.rhs_last ? ctx.rhs_last[0].image
-            : parseInt(ctx.rhs_integer[0].image)
-      } 
+      if (ctx.ops) o.ops = ctx.ops.map((op:any) => this.visit(op))
 
       return o as WFF
     }
