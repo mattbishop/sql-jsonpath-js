@@ -4,7 +4,7 @@
   "description": "JavaScript implementation of the SQL JSONPath dialect, from SQL2016.",
   "main": "dist/src/index.js",
   "scripts": {
-    "test": "mocha -r ts-node/register test/**/test.ts",
+    "test": "mocha -r ts-node/register test/**/test.ts --timeout 0",
     "start": "npx tsc && node ./dist/src/index.js"
   },
   "author": "Matt Bishop, Marc Levin",

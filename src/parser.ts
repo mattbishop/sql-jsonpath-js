@@ -1,4 +1,4 @@
-import {CstParser} from "chevrotain"
+import { CstParser } from "chevrotain"
 import {
   allTokens,
   AndOperator,
@@ -25,8 +25,10 @@ import {
   RightSquareBracket,
   StartFilterExpression,
   StringLiteral,
+  To,
+  Last,
   Wildcard
-} from "./tokens";
+} from "./tokens"
 
 export class JsonPathParser extends CstParser {
   constructor() {
@@ -36,18 +38,18 @@ export class JsonPathParser extends CstParser {
   }
 
   jsonPathStatement = this.RULE("jsonPathStatement", () => {
-    this.OPTION(() => this.SUBRULE(this.operand, {LABEL: "lhs"}))
+    this.OPTION(() => this.SUBRULE(this.operand, { LABEL: "lhs" }))
     this.OPTION2(() => {
-      this.SUBRULE(this.arithmeticOperator, {LABEL: "operator"})
-      this.SUBRULE2(this.operand, {LABEL: "rhs"})
+      this.SUBRULE(this.arithmeticOperator, { LABEL: "operator" })
+      this.SUBRULE2(this.operand, { LABEL: "rhs" })
     })
   })
 
   operand = this.RULE("operand", () => {
     this.OPTION(() => {
       this.OR([
-        {ALT: () => this.SUBRULE(this.rootQuery, {LABEL: "path"})},
-        {ALT: () => this.CONSUME(Integer, {LABEL: "number"})}
+        { ALT: () => this.SUBRULE(this.rootQuery, { LABEL: "path" }) },
+        { ALT: () => this.CONSUME(Integer, { LABEL: "number" }) }
       ])
     })
   })
@@ -56,7 +58,7 @@ export class JsonPathParser extends CstParser {
     this.CONSUME(MethodStart)
     this.MANY_SEP({
       SEP: Comma,
-      DEF: () => this.CONSUME(Identifier, {LABEL: "args"})
+      DEF: () => this.CONSUME(Identifier, { LABEL: "args" })
     })
     this.CONSUME(MethodEnd)
   })
@@ -65,19 +67,19 @@ export class JsonPathParser extends CstParser {
     this.CONSUME(ObjectRoot)
     this.OPTION(() => {
       this.CONSUME(PathSeparator)
-      this.SUBRULE(this.pathQuery, {LABEL: "path"})
+      this.SUBRULE(this.pathQuery, { LABEL: "path" })
     })
   })
 
   pathQuery = this.RULE("pathQuery", () => {
     this.MANY_SEP({
       SEP: PathSeparator,
-      DEF: () => this.SUBRULE(this.pathPart, {LABEL: "pathParts"})
+      DEF: () => this.SUBRULE(this.pathPart, { LABEL: "pathParts" })
     })
   })
 
   filterChain = this.RULE("filterChain", () => {
-    this.AT_LEAST_ONE(() => this.SUBRULE(this.filterExpression, {LABEL: "filterExpressions"}))
+    this.AT_LEAST_ONE(() => this.SUBRULE(this.filterExpression, { LABEL: "filterExpressions" }))
   })
 
   filterExpression = this.RULE("filterExpression", () => {
@@ -85,72 +87,108 @@ export class JsonPathParser extends CstParser {
     this.CONSUME(MethodStart)
     this.OPTION(() => this.CONSUME(NotOperator))
     this.OR([
-      {ALT: () => this.SUBRULE(this.existsQuery, {LABEL: "query"})},
-      {ALT: () => this.SUBRULE(this.filterQuery, {LABEL: "query"})}
+      { ALT: () => this.SUBRULE(this.existsQuery, { LABEL: "query" }) },
+      { ALT: () => this.SUBRULE(this.filterQuery, { LABEL: "query" }) }
     ])
     this.CONSUME(MethodEnd)
   })
 
   filterQuery = this.RULE("filterQuery", () => {
-    this.SUBRULE(this.existsPathQuery, {LABEL: "query"})
+    this.SUBRULE(this.existsPathQuery, { LABEL: "query" })
     this.OPTION2(() => {
-      this.SUBRULE(this.booleanOperator, {LABEL: "operator"})
+      this.SUBRULE(this.booleanOperator, { LABEL: "operator" })
       this.OR([
-        {ALT: () => this.CONSUME(StringLiteral, {LABEL: "stringLiteral"})},
-        {ALT: () => this.CONSUME(Integer, {LABEL: "number"})}
+        { ALT: () => this.CONSUME(StringLiteral, { LABEL: "stringLiteral" }) },
+        { ALT: () => this.CONSUME(Integer, { LABEL: "number" }) }
       ])
     })
   })
 
   existsPathQuery = this.RULE("existsPathQuery", () => {
-      this.CONSUME(FilterValue)
-      this.OPTION(() => {
-        this.CONSUME(PathSeparator)
-        this.SUBRULE(this.pathQuery)
-      })
+    this.CONSUME(FilterValue)
+    this.OPTION(() => {
+      this.CONSUME(PathSeparator)
+      this.SUBRULE(this.pathQuery)
+    })
   })
 
   existsQuery = this.RULE("existsQuery", () => {
     this.CONSUME(Exists)
     this.CONSUME(MethodStart)
-    this.SUBRULE(this.existsPathQuery, {LABEL: "query"})
+    this.SUBRULE(this.existsPathQuery, { LABEL: "query" })
     this.CONSUME(MethodEnd)
   })
 
   booleanOperator = this.RULE("booleanOperator", () => {
     this.OR([
-      {ALT: () => this.CONSUME(AndOperator, {LABEL: "operator"})},
-      {ALT: () => this.CONSUME(OrOperator, {LABEL: "operator"})},
-      {ALT: () => this.CONSUME(EqualsOperator, {LABEL: "operator"})},
-      {ALT: () => this.CONSUME(NotEqualsOperator, {LABEL: "operator"})},
-      {ALT: () => this.CONSUME(NotEqualsOperator2, {LABEL: "operator"})},
-      {ALT: () => this.CONSUME(GtOperator, {LABEL: "operator"})},
-      {ALT: () => this.CONSUME(LtOperator, {LABEL: "operator"})},
-      {ALT: () => this.CONSUME(GteOperator, {LABEL: "operator"})},
-      {ALT: () => this.CONSUME(LteOperator, {LABEL: "operator"})},
+      { ALT: () => this.CONSUME(AndOperator, { LABEL: "operator" }) },
+      { ALT: () => this.CONSUME(OrOperator, { LABEL: "operator" }) },
+      { ALT: () => this.CONSUME(EqualsOperator, { LABEL: "operator" }) },
+      { ALT: () => this.CONSUME(NotEqualsOperator, { LABEL: "operator" }) },
+      { ALT: () => this.CONSUME(NotEqualsOperator2, { LABEL: "operator" }) },
+      { ALT: () => this.CONSUME(GtOperator, { LABEL: "operator" }) },
+      { ALT: () => this.CONSUME(LtOperator, { LABEL: "operator" }) },
+      { ALT: () => this.CONSUME(GteOperator, { LABEL: "operator" }) },
+      { ALT: () => this.CONSUME(LteOperator, { LABEL: "operator" }) },
     ])
   })
 
   arithmeticOperator = this.RULE("arithmeticOperator", () => {
-    this.CONSUME(ArithmeticOperator, {LABEL: "operator"})
+    this.CONSUME(ArithmeticOperator, { LABEL: "operator" })
   })
 
   pathPart = this.RULE("pathPart", () => {
-    this.CONSUME(Identifier, {LABEL: "name"})
+    this.CONSUME(Identifier, { LABEL: "name" })
     this.OPTION(() =>
       this.OR2([
-        {ALT: () => this.SUBRULE(this.arrayAccessor)},
-        {ALT: () => this.SUBRULE(this.arguments)}
+        { ALT: () => this.SUBRULE(this.arrayAccessor) },
+        { ALT: () => this.SUBRULE(this.arguments) }
       ]))
     this.OPTION2(() => this.SUBRULE(this.filterChain))
   })
 
+  group = this.RULE("group", () => {
+    this.CONSUME(MethodStart, { LABEL: "group" })
+    this.SUBRULE(this.wff)
+    this.CONSUME(MethodEnd, { LABEL: "group" })
+  })
+
+  op = this.RULE("op", () => {
+    this.OR1([
+      { ALT: () => this.CONSUME(ArithmeticOperator, { LABEL: "connector" }) },
+      { ALT: () => this.CONSUME(To, { LABEL: "connector" }) }
+    ])
+    this.OR2([
+      { ALT: () => this.SUBRULE1(this.group, { LABEL: "rhs_group" }) },
+      { ALT: () => this.CONSUME1(Integer, { LABEL: "rhs_integer" }) },
+      { ALT: () => this.CONSUME1(Last, { LABEL: "rhs_last" }) }
+    ])
+  })
+
+  wff = this.RULE("wff", () => {
+    this.OR([
+      { ALT: () => this.SUBRULE(this.group, { LABEL: "lhs_group" }) },
+      { ALT: () => this.CONSUME(Integer, { LABEL: "lhs_integer" }) },
+      { ALT: () => this.CONSUME(Last, { LABEL: "lhs_last" }) }
+    ])
+    this.MANY(() => {
+      this.SUBRULE(this.op, { LABEL: "ops" })
+    })
+  })
+
+
   arrayAccessor = this.RULE("arrayAccessor", () => {
     this.CONSUME(LeftSquareBracket)
-    this.OR([
-      {ALT: () => this.CONSUME(Wildcard, {LABEL: "wildcard"})},
-      {ALT: () => this.CONSUME(Integer, {LABEL: "number"})}
-    ])
-    this.CONSUME(RightSquareBracket)
+    this.AT_LEAST_ONE_SEP({
+      SEP: Comma,
+      DEF: () => {
+        this.OR([
+          { ALT: () => this.CONSUME(Wildcard, { LABEL: "wildcard" }) },
+          { ALT: () => this.SUBRULE(this.wff) }
+        ])
+        this.OPTION(() => this.CONSUME(RightSquareBracket))
+      }
+    })
+
   })
 }

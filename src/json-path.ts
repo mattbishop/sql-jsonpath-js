@@ -61,9 +61,22 @@ export enum ConditionalOperator {
 
 export interface ArrayElement {
   array: string
-  element: "*" | number
+  element: "*" | WFF[]
   filterChain?: FilterExpression[]
 }
+
+export interface OperaX {
+  connector: SqlJsonPathArithmeticOperator | string
+  rhs: Group | number | "last"
+}
+
+export interface WFF {
+  lhs: Group | number | "last"
+  ops?: OperaX[]
+
+}
+
+export type Group = WFF
 
 export interface SimpleProperty {
   property: string

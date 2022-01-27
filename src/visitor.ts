@@ -1,17 +1,20 @@
-import {CstNode, ICstVisitor} from "@chevrotain/types";
+import { CstNode, ICstVisitor } from "@chevrotain/types"
 import {
   ArrayElement,
   ConditionalOperator,
   Exists,
   FilterExpression,
   FilterQuery,
+  Group,
   MethodName,
+  OperaX,
   PathPart,
   PathQuery,
   SimpleProperty,
   SqlJsonPathArithmeticOperator,
-  SqlJsonPathStatement
-} from "./json-path";
+  SqlJsonPathStatement,
+  WFF
+} from "./json-path"
 
 export function newJsonPathVisitor(constr: { new(...args: any[]): ICstVisitor<any, any> }) {
   return new class JsonPathVisitor extends constr {
@@ -166,13 +169,47 @@ export function newJsonPathVisitor(constr: { new(...args: any[]): ICstVisitor<an
       return ctx.filterExpressions.map((filterExpression: CstNode) => this.visit(filterExpression))
     }
 
-    arrayAccessor(ctx: any, name: string): ArrayElement {
+    group(ctx: any): Group {
+      return this.visit(ctx.wff)
+    }
+
+    op(ctx: any): OperaX {
       return {
-        array: name,
-        element: (ctx.wildcard) ? ctx.wildcard[0].image : parseInt(ctx.number[0].image)
+        connector : ctx.connector[0].image,
+
+        rhs : ctx.rhs_group? this.visit(ctx.rhs_group)
+        : ctx.rhs_last ? ctx.rhs_last[0].image
+          : parseInt(ctx.rhs_integer[0].image)
       }
     }
 
+
+    wff(ctx: any): WFF {
+      const o: any = {}
+
+      o.lhs = ctx.lhs_group ? this.visit(ctx.lhs_group)
+          : ctx.lhs_last ? ctx.lhs_last[0].image
+          : parseInt(ctx.lhs_integer[0].image)
+
+      if (ctx.ops) o.ops = ctx.ops.map((op:any) => this.visit(op))
+
+      return o as WFF
+    }
+
+    arrayAccessor(ctx: any, name: string): ArrayElement {
+      const o: Partial<ArrayElement> = { array: name }
+
+      if (ctx.wildcard) {
+        o.element = ctx.wildcard[0].image
+      }
+
+      else {
+        const arr = ctx.wff.map((wff: any) => this.visit(wff))
+        o.element = arr
+      }
+
+      return o as ArrayElement
+    }
 
     methodNameToEnum(name: string): MethodName {
       switch (name) {
