@@ -11,10 +11,12 @@ export interface SqlJsonPath {
   query: (config?: QueryConfig) => any
 }
 
+export type Mode = "strict" | "lax"
 export type PathPart = SimpleProperty | ArrayElement | Method
 export type PathQuery = PathPart[]
 
 export interface SqlJsonPathStatement {
+  mode?: Mode
   lhs?: PathQuery | number
   operation?: Operation
 }

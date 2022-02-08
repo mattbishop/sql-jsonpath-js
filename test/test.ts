@@ -11,8 +11,9 @@ describe("SQL JSONPath", () => {
   describe("parser test", () => {
     const tests: SqlJsonPathTest[] = [
       {
-        statement: "$.foo.bar",
+        statement: "strict $.foo.bar",
         expected: {
+          mode: "strict",
           lhs: [
             {
               property: "foo"
@@ -24,8 +25,9 @@ describe("SQL JSONPath", () => {
         }
       },
       {
-        statement: "$.foo.bar[*].location",
+        statement: "lax $.foo.bar[*].location",
         expected: {
+          mode: "lax",
           lhs: [
             {
               property: "foo"
