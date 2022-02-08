@@ -5,7 +5,10 @@
   "main": "dist/src/index.js",
   "scripts": {
     "test": "mocha -r ts-node/register test/**/test.ts --timeout 0",
-    "start": "npx tsc && node ./dist/src/index.js"
+    "clean": "rm -rf ./dist",
+    "build": "yarn clean && tsc",
+    "start": "npx tsc && node ./dist/index.js",
+    "diagram": "yarn build && node generate-diagrams.js"
   },
   "author": "Matt Bishop, Marc Levin",
   "license": "MIT",
