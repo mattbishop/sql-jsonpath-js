@@ -45,6 +45,7 @@ describe("SQL JSONPath", () => {
       {
         statement: "$.foo.bar[1].location",
         expected: {
+          mode: "lax",
           lhs: [
             {
               property: "foo"
@@ -62,6 +63,7 @@ describe("SQL JSONPath", () => {
       {
         statement: "$.foo.bar[1,2].location",
         expected: {
+          mode: "lax",
           lhs: [
             {
               property: "foo"
@@ -79,6 +81,7 @@ describe("SQL JSONPath", () => {
       {
         statement: "$.foo.bar[1 to 3].location",
         expected: {
+          mode: "lax",
           lhs: [
             {
               property: "foo"
@@ -104,6 +107,7 @@ describe("SQL JSONPath", () => {
       {
         statement: "$.foo.bar[last].location",
         expected: {
+          mode: "lax",
           lhs: [
             {
               property: "foo"
@@ -125,6 +129,7 @@ describe("SQL JSONPath", () => {
       {
         statement: "$.foo.bar[last - 1].location",
         expected: {
+          mode: "lax",
           lhs: [
             {
               property: "foo"
@@ -150,6 +155,7 @@ describe("SQL JSONPath", () => {
       }, {
         statement: "$.foo.bar[1 + (last - 1)].location",
         expected: {
+          mode: "lax",
           lhs: [
             {
               property: "foo"
@@ -180,6 +186,7 @@ describe("SQL JSONPath", () => {
       }, {
         statement: "$.foo.bar[1 + 2 + 3].location",
         expected: {
+          mode: "lax",
           lhs: [
             {
               property: "foo"
@@ -210,6 +217,7 @@ describe("SQL JSONPath", () => {
       {
         statement: "$.foo.bar[*].zar ? (@ > 333)",
         expected: {
+          mode: "lax",
           lhs: [
             {
               property: "foo"
@@ -235,6 +243,7 @@ describe("SQL JSONPath", () => {
       {
         statement: "$.foo.bar[*] ? (@.value != 22).zoo",
         expected: {
+          mode: "lax",
           lhs: [
             {
               property: "foo"
@@ -264,6 +273,7 @@ describe("SQL JSONPath", () => {
         // this one should break, only allow one '?'
         statement: "$.foo.bar[*] ? (@.zoo[1] < 13) ? (@.roo > 130).goo",
         expected: {
+          mode: "lax",
           lhs: [
             {
               property: "foo"
@@ -307,6 +317,7 @@ describe("SQL JSONPath", () => {
         // also should break
         statement: "$.foo.bar[*] ? (@.zoo[1] < 13).roo ? (@ > 130)",
         expected: {
+          mode: "lax",
           lhs: [
             {
               property: "foo",
@@ -347,6 +358,7 @@ describe("SQL JSONPath", () => {
       {
         statement: "$.foo ? (exists(@.bar[*] ? (@.zoo > 130))).bar.size()",
         expected: {
+          mode: "lax",
           lhs: [
             {
               property: "foo",
@@ -397,6 +409,7 @@ describe("SQL JSONPath", () => {
       tests.push({
         statement: `$.foo.bar.${methodName}()`,
         expected: {
+          mode: "lax",
           lhs: [
             {
               property: "foo"

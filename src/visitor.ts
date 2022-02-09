@@ -28,10 +28,7 @@ export function newJsonPathVisitor(constr: { new(...args: any[]): ICstVisitor<an
       const obj: SqlJsonPathStatement = {}
 
       if (ctx.mode) {
-        const mode = this.visit(ctx.mode)
-        if (mode) {
-          obj.mode = mode
-        }
+        obj.mode = this.visit(ctx.mode)
       }
 
       if (ctx.lhs) {
@@ -48,12 +45,10 @@ export function newJsonPathVisitor(constr: { new(...args: any[]): ICstVisitor<an
       return obj
     }
 
-    mode(ctx: any): Mode | undefined {
+    mode(ctx: any): Mode {
       return ctx.strict
         ? "strict"
-        : ctx.lax
-          ? "lax"
-          : undefined
+        : "lax"
     }
 
     operand(ctx: any): PathQuery | number {
