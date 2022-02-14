@@ -7,6 +7,7 @@ import {
   FilterQuery,
   Group,
   MethodName,
+  Mode,
   OperaX,
   PathPart,
   PathQuery,
@@ -26,6 +27,10 @@ export function newJsonPathVisitor(constr: { new(...args: any[]): ICstVisitor<an
     jsonPathStatement(ctx: any): SqlJsonPathStatement {
       const obj: SqlJsonPathStatement = {}
 
+      if (ctx.mode) {
+        obj.mode = this.visit(ctx.mode)
+      }
+
       if (ctx.lhs) {
         obj.lhs = this.visit(ctx.lhs)
       }
@@ -38,6 +43,12 @@ export function newJsonPathVisitor(constr: { new(...args: any[]): ICstVisitor<an
       }
 
       return obj
+    }
+
+    mode(ctx: any): Mode {
+      return ctx.strict
+        ? "strict"
+        : "lax"
     }
 
     operand(ctx: any): PathQuery | number {

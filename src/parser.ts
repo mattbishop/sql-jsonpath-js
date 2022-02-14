@@ -11,6 +11,7 @@ import {
   GtOperator,
   Identifier,
   Integer,
+  Lax,
   LeftSquareBracket,
   LteOperator,
   LtOperator,
@@ -25,6 +26,7 @@ import {
   RightSquareBracket,
   StartFilterExpression,
   StringLiteral,
+  Strict,
   To,
   Last,
   Wildcard
@@ -38,12 +40,23 @@ export class JsonPathParser extends CstParser {
   }
 
   jsonPathStatement = this.RULE("jsonPathStatement", () => {
-    this.OPTION(() => this.SUBRULE(this.operand, { LABEL: "lhs" }))
+    this.OPTION(() => this.SUBRULE(this.mode, { LABEL: "mode" }))
+    this.OPTION1(() => this.SUBRULE(this.operand, { LABEL: "lhs" }))
     this.OPTION2(() => {
       this.SUBRULE(this.arithmeticOperator, { LABEL: "operator" })
       this.SUBRULE2(this.operand, { LABEL: "rhs" })
     })
   })
+
+  mode = this.RULE("mode", () => {
+    this.OPTION(() => {
+      this.OR([
+        { ALT: () => this.CONSUME(Lax, { LABEL: "lax" }) },
+        { ALT: () => this.CONSUME(Strict, { LABEL: "strict" }) }
+      ])
+    })
+  })
+
 
   operand = this.RULE("operand", () => {
     this.OPTION(() => {

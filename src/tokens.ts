@@ -4,6 +4,8 @@ import {createToken, Lexer} from "chevrotain";
 export const Wildcard               = createToken({name: "Wildcard", pattern: /\*/})
 // define '$' before Identifier as ID character class includes '$'
 export const ObjectRoot             = createToken({name: "Root", pattern: /\$/})
+export const Lax                    = createToken({name: "Lax", pattern: /lax/})
+export const Strict                 = createToken({name: "Strict", pattern: /strict/})
 export const Identifier             = createToken({name: "Identifier", pattern: /[a-zA-Z]\w*/})
 export const FilterValue            = createToken({name: "FilterValue", pattern: /@/})
 export const PathSeparator          = createToken({name: "PathSeparator", pattern: /\./})
@@ -46,6 +48,8 @@ export const allTokens = [
   Last,
   True,
   False,
+  Lax,
+  Strict,
   // The Identifier must appear after the keywords because all keywords are valid identifiers.
   Identifier,
   Integer,
