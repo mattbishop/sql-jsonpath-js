@@ -63,7 +63,7 @@ export function newJsonPathVisitor(constr: { new(...args: any[]): ICstVisitor<an
         : []
     }
 
-    rootQuery(ctx: any): PathQuery {
+    contextQuery(ctx: any): PathQuery {
       return this.visit(ctx.path)
     }
 
