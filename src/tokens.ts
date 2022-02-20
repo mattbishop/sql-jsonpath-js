@@ -28,8 +28,8 @@ export const LteOperator            = createToken({name: "LteOperator", pattern:
 export const NotOperator            = createToken({name: "NotOperator", pattern: /!/})
 export const True                   = createToken({name: "True", pattern: /true/})
 export const False                  = createToken({name: "False", pattern: /false/})
-export const MethodStart            = createToken({name: "MethodStart", pattern: /\(/})
-export const MethodEnd              = createToken({name: "MethodEnd", pattern: /\)/})
+export const LeftParen              = createToken({name: "LeftParen", pattern: /\(/})
+export const RightParen             = createToken({name: "RightParen", pattern: /\)/})
 export const Exists                 = createToken({name: "Exists", pattern: /exists/})
 export const To                     = createToken({name: "To", pattern: /to/})
 export const Last                   = createToken({name: "Last", pattern: /last/})
@@ -70,8 +70,8 @@ export const allTokens = [
   Comma,
   Wildcard,
   ArithmeticOperator,
-  MethodStart,
-  MethodEnd,
+  LeftParen,
+  RightParen,
   StartFilterExpression,
   FilterValue
 ]

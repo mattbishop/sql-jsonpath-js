@@ -15,8 +15,8 @@ import {
   LeftSquareBracket,
   LteOperator,
   LtOperator,
-  MethodEnd,
-  MethodStart,
+  RightParen,
+  LeftParen,
   NotEqualsOperator,
   NotEqualsOperator2,
   NotOperator,
@@ -68,12 +68,12 @@ export class JsonPathParser extends CstParser {
   })
 
   arguments = this.RULE("arguments", () => {
-    this.CONSUME(MethodStart)
+    this.CONSUME(LeftParen)
     this.MANY_SEP({
       SEP: Comma,
       DEF: () => this.CONSUME(Identifier, { LABEL: "args" })
     })
-    this.CONSUME(MethodEnd)
+    this.CONSUME(RightParen)
   })
 
   rootQuery = this.RULE("rootQuery", () => {
@@ -97,13 +97,13 @@ export class JsonPathParser extends CstParser {
 
   filterExpression = this.RULE("filterExpression", () => {
     this.CONSUME(StartFilterExpression)
-    this.CONSUME(MethodStart)
+    this.CONSUME(LeftParen)
     this.OPTION(() => this.CONSUME(NotOperator))
     this.OR([
       { ALT: () => this.SUBRULE(this.existsQuery, { LABEL: "query" }) },
       { ALT: () => this.SUBRULE(this.filterQuery, { LABEL: "query" }) }
     ])
-    this.CONSUME(MethodEnd)
+    this.CONSUME(RightParen)
   })
 
   filterQuery = this.RULE("filterQuery", () => {
@@ -127,9 +127,9 @@ export class JsonPathParser extends CstParser {
 
   existsQuery = this.RULE("existsQuery", () => {
     this.CONSUME(Exists)
-    this.CONSUME(MethodStart)
+    this.CONSUME(LeftParen)
     this.SUBRULE(this.existsPathQuery, { LABEL: "query" })
-    this.CONSUME(MethodEnd)
+    this.CONSUME(RightParen)
   })
 
   booleanOperator = this.RULE("booleanOperator", () => {
@@ -161,9 +161,9 @@ export class JsonPathParser extends CstParser {
   })
 
   group = this.RULE("group", () => {
-    this.CONSUME(MethodStart, { LABEL: "group" })
+    this.CONSUME(LeftParen, { LABEL: "group" })
     this.SUBRULE(this.wff)
-    this.CONSUME(MethodEnd, { LABEL: "group" })
+    this.CONSUME(RightParen, { LABEL: "group" })
   })
 
   op = this.RULE("op", () => {
