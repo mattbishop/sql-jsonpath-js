@@ -1,27 +1,19 @@
 import { CstParser } from "chevrotain"
 import {
   allTokens,
-  AndOperator,
   ArithmeticOperator,
   Comma,
-  EqualsOperator,
+  ConditionalOperator,
   Exists,
   FilterValue,
-  GteOperator,
-  GtOperator,
   Identifier,
   Integer,
   Lax,
   LeftSquareBracket,
-  LteOperator,
-  LtOperator,
   RightParen,
   LeftParen,
-  NotEqualsOperator,
-  NotEqualsOperator2,
   NotOperator,
   ContextItem,
-  OrOperator,
   PathSeparator,
   RightSquareBracket,
   StartFilterExpression,
@@ -95,7 +87,7 @@ export class JsonPathParser extends CstParser {
   filterQuery = this.RULE("filterQuery", () => {
     this.SUBRULE(this.existsPathQuery, { LABEL: "query" })
     this.OPTION2(() => {
-      this.SUBRULE(this.booleanOperator, { LABEL: "operator" })
+      this.SUBRULE(this.conditionalOperator, { LABEL: "operator" })
       this.OR([
         { ALT: () => this.CONSUME(StringLiteral, { LABEL: "stringLiteral" }) },
         { ALT: () => this.CONSUME(Integer, { LABEL: "number" }) }
@@ -118,18 +110,8 @@ export class JsonPathParser extends CstParser {
     this.CONSUME(RightParen)
   })
 
-  booleanOperator = this.RULE("booleanOperator", () => {
-    this.OR([
-      { ALT: () => this.CONSUME(AndOperator, { LABEL: "operator" }) },
-      { ALT: () => this.CONSUME(OrOperator, { LABEL: "operator" }) },
-      { ALT: () => this.CONSUME(EqualsOperator, { LABEL: "operator" }) },
-      { ALT: () => this.CONSUME(NotEqualsOperator, { LABEL: "operator" }) },
-      { ALT: () => this.CONSUME(NotEqualsOperator2, { LABEL: "operator" }) },
-      { ALT: () => this.CONSUME(GtOperator, { LABEL: "operator" }) },
-      { ALT: () => this.CONSUME(LtOperator, { LABEL: "operator" }) },
-      { ALT: () => this.CONSUME(GteOperator, { LABEL: "operator" }) },
-      { ALT: () => this.CONSUME(LteOperator, { LABEL: "operator" }) },
-    ])
+  conditionalOperator = this.RULE("conditionalOperator", () => {
+    this.CONSUME(ConditionalOperator, { LABEL: "operator" })
   })
 
   pathPart = this.RULE("pathPart", () => {
@@ -183,6 +165,5 @@ export class JsonPathParser extends CstParser {
         this.OPTION(() => this.CONSUME(RightSquareBracket))
       }
     })
-
   })
 }
