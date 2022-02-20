@@ -2,8 +2,7 @@ import {createToken, Lexer} from "chevrotain";
 
 // Declaration order matters
 export const Wildcard               = createToken({name: "Wildcard", pattern: /\*/})
-// define '$' before Identifier as ID character class includes '$'
-export const ObjectRoot             = createToken({name: "Root", pattern: /\$/})
+export const ContextItem            = createToken({name: "ContextItem", pattern: /\$/})
 export const Lax                    = createToken({name: "Lax", pattern: /lax/})
 export const Strict                 = createToken({name: "Strict", pattern: /strict/})
 export const Identifier             = createToken({name: "Identifier", pattern: /[a-zA-Z]\w*/})
@@ -65,7 +64,7 @@ export const allTokens = [
   NotOperator,
   LeftSquareBracket,
   RightSquareBracket,
-  ObjectRoot,
+  ContextItem,
   PathSeparator,
   Comma,
   Wildcard,

@@ -1,4 +1,4 @@
-import { CstNode, ICstVisitor } from "@chevrotain/types"
+import {CstNode, ICstVisitor} from "@chevrotain/types"
 import {
   ArrayElement,
   ConditionalOperator,
@@ -12,10 +12,10 @@ import {
   PathPart,
   PathQuery,
   SimpleProperty,
-  SqlJsonPathArithmeticOperator,
   SqlJsonPathStatement,
   WFF
 } from "./json-path"
+
 
 export function newJsonPathVisitor(constr: { new(...args: any[]): ICstVisitor<any, any> }) {
   return new class JsonPathVisitor extends constr {
@@ -35,13 +35,6 @@ export function newJsonPathVisitor(constr: { new(...args: any[]): ICstVisitor<an
         obj.lhs = this.visit(ctx.lhs)
       }
 
-      if (ctx.rhs && ctx.operator) {
-        obj.operation = {
-          operator: this.visit(ctx.operator),
-          operand: this.visit(ctx.rhs)
-        }
-      }
-
       return obj
     }
 
@@ -51,19 +44,13 @@ export function newJsonPathVisitor(constr: { new(...args: any[]): ICstVisitor<an
         : "lax"
     }
 
-    operand(ctx: any): PathQuery | number {
-      return (ctx.path)
-        ? this.visit(ctx.path)
-        : ctx.number
-    }
-
     arguments(ctx: any): string[] {
       return ctx.args
         ? ctx.args.map((arg: any) => arg.image)
         : []
     }
 
-    rootQuery(ctx: any): PathQuery {
+    contextQuery(ctx: any): PathQuery {
       return this.visit(ctx.path)
     }
 
@@ -128,23 +115,6 @@ export function newJsonPathVisitor(constr: { new(...args: any[]): ICstVisitor<an
           return ConditionalOperator.NE
         default:
           throw Error("Unknown conditional operator: " + ctx.operator[0].image)
-      }
-    }
-
-    arithmeticOperator(ctx: any): SqlJsonPathArithmeticOperator {
-      switch (ctx.operator) {
-        case "+":
-          return SqlJsonPathArithmeticOperator.ADD
-        case "-":
-          return SqlJsonPathArithmeticOperator.SUB
-        case "*":
-          return SqlJsonPathArithmeticOperator.MUL
-        case "/":
-          return SqlJsonPathArithmeticOperator.DIV
-        case "%":
-          return SqlJsonPathArithmeticOperator.MOD
-        default:
-          throw new Error("Unknown operator type: " + ctx.operator)
       }
     }
 
