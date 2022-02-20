@@ -18,12 +18,6 @@ export type PathQuery = PathPart[]
 export interface SqlJsonPathStatement {
   mode?: Mode
   lhs?: PathQuery | number
-  operation?: Operation
-}
-
-export interface Operation {
-  operator: SqlJsonPathArithmeticOperator
-  operand: PathQuery | number
 }
 
 export interface Method {

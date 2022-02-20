@@ -20,7 +20,7 @@ import {
   NotEqualsOperator,
   NotEqualsOperator2,
   NotOperator,
-  ObjectRoot,
+  ContextItem,
   OrOperator,
   PathSeparator,
   RightSquareBracket,
@@ -41,11 +41,7 @@ export class JsonPathParser extends CstParser {
 
   jsonPathStatement = this.RULE("jsonPathStatement", () => {
     this.OPTION(() => this.SUBRULE(this.mode, { LABEL: "mode" }))
-    this.OPTION1(() => this.SUBRULE(this.operand, { LABEL: "lhs" }))
-    this.OPTION2(() => {
-      this.SUBRULE(this.arithmeticOperator, { LABEL: "operator" })
-      this.SUBRULE2(this.operand, { LABEL: "rhs" })
-    })
+    this.OPTION1(() => this.SUBRULE(this.contextQuery, { LABEL: "lhs" }))
   })
 
   mode = this.RULE("mode", () => {
@@ -53,16 +49,6 @@ export class JsonPathParser extends CstParser {
       this.OR([
         { ALT: () => this.CONSUME(Lax, { LABEL: "lax" }) },
         { ALT: () => this.CONSUME(Strict, { LABEL: "strict" }) }
-      ])
-    })
-  })
-
-
-  operand = this.RULE("operand", () => {
-    this.OPTION(() => {
-      this.OR([
-        { ALT: () => this.SUBRULE(this.rootQuery, { LABEL: "path" }) },
-        { ALT: () => this.CONSUME(Integer, { LABEL: "number" }) }
       ])
     })
   })
@@ -76,8 +62,8 @@ export class JsonPathParser extends CstParser {
     this.CONSUME(RightParen)
   })
 
-  rootQuery = this.RULE("rootQuery", () => {
-    this.CONSUME(ObjectRoot)
+  contextQuery = this.RULE("contextQuery", () => {
+    this.CONSUME(ContextItem)
     this.OPTION(() => {
       this.CONSUME(PathSeparator)
       this.SUBRULE(this.pathQuery, { LABEL: "path" })
@@ -146,10 +132,6 @@ export class JsonPathParser extends CstParser {
     ])
   })
 
-  arithmeticOperator = this.RULE("arithmeticOperator", () => {
-    this.CONSUME(ArithmeticOperator, { LABEL: "operator" })
-  })
-
   pathPart = this.RULE("pathPart", () => {
     this.CONSUME(Identifier, { LABEL: "name" })
     this.OPTION(() =>
@@ -188,7 +170,6 @@ export class JsonPathParser extends CstParser {
       this.SUBRULE(this.op, { LABEL: "ops" })
     })
   })
-
 
   arrayAccessor = this.RULE("arrayAccessor", () => {
     this.CONSUME(LeftSquareBracket)
