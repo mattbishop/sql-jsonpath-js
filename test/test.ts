@@ -270,6 +270,35 @@ describe("SQL JSONPath", () => {
         }
       },
       {
+        statement: "$.foo.bar[*] ? (@.value <> 22).zoo",
+        expected: {
+          mode: "lax",
+          lhs: [
+            {
+              property: "foo"
+            },
+            {
+              array: "bar",
+              element: "*",
+              filterChain: [{
+                query: {
+                  operator: ConditionalOperator.NE,
+                  compareTo: 22,
+                  path: [
+                    {
+                      property: "value"
+                    }
+                  ]
+                }
+              }]
+            },
+            {
+              property: "zoo"
+            }
+          ]
+        }
+      },
+      {
         // this one should break, only allow one '?'
         statement: "$.foo.bar[*] ? (@.zoo[1] < 13) ? (@.roo > 130).goo",
         expected: {

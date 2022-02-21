@@ -96,26 +96,12 @@ export function newJsonPathVisitor(constr: { new(...args: any[]): ICstVisitor<an
       }
     }
 
-    booleanOperator(ctx: any): ConditionalOperator {
-      switch (ctx.operator[0].image) {
-        case "&&":
-          return ConditionalOperator.AND
-        case "||":
-          return ConditionalOperator.OR
-        case ">":
-          return ConditionalOperator.GT
-        case "<":
-          return ConditionalOperator.LT
-        case ">=":
-          return ConditionalOperator.GTE
-        case "<=":
-          return ConditionalOperator.LTE
-        case "!=":
-        case "<>":
-          return ConditionalOperator.NE
-        default:
-          throw Error("Unknown conditional operator: " + ctx.operator[0].image)
-      }
+    conditionalOperator(ctx: any): ConditionalOperator {
+      const operator = ctx.operator[0].image
+
+      return operator === "<>"
+        ? ConditionalOperator.NE
+        : operator
     }
 
     pathPart(ctx: any): PathPart {
