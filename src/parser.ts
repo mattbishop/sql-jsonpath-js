@@ -33,16 +33,14 @@ export class JsonPathParser extends CstParser {
 
   jsonPathStatement = this.RULE("jsonPathStatement", () => {
     this.OPTION(() => this.SUBRULE(this.mode, { LABEL: "mode" }))
-    this.OPTION1(() => this.SUBRULE(this.contextQuery, { LABEL: "lhs" }))
+    this.SUBRULE(this.contextQuery, { LABEL: "lhs" })
   })
 
   mode = this.RULE("mode", () => {
-    this.OPTION(() => {
-      this.OR([
-        { ALT: () => this.CONSUME(Lax, { LABEL: "lax" }) },
-        { ALT: () => this.CONSUME(Strict, { LABEL: "strict" }) }
-      ])
-    })
+    this.OR([
+      { ALT: () => this.CONSUME(Lax, { LABEL: "lax" }) },
+      { ALT: () => this.CONSUME(Strict, { LABEL: "strict" }) }
+    ])
   })
 
   arguments = this.RULE("arguments", () => {

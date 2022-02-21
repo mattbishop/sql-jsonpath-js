@@ -29,6 +29,8 @@ export function newJsonPathVisitor(constr: { new(...args: any[]): ICstVisitor<an
 
       if (ctx.mode) {
         obj.mode = this.visit(ctx.mode)
+      } else {
+        obj.mode = "lax"
       }
 
       if (ctx.lhs) {
