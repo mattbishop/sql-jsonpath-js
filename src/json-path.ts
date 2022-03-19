@@ -12,12 +12,13 @@ export interface SqlJsonPath {
 }
 
 export type Mode = "strict" | "lax"
-export type PathPart = SimpleProperty | ArrayElement | Method
+export type PathPart = Property | ArrayElement | Method
 export type PathQuery = PathPart[]
 
 export interface SqlJsonPathStatement {
   mode?: Mode
   lhs?: PathQuery | number
+  filter?: FilterExpression
 }
 
 export interface Method {
@@ -58,7 +59,6 @@ export enum ConditionalOperator {
 export interface ArrayElement {
   array: string
   element: "*" | WFF[]
-  filterChain?: FilterExpression[]
 }
 
 export interface OperaX {
@@ -74,9 +74,8 @@ export interface WFF {
 
 export type Group = WFF
 
-export interface SimpleProperty {
+export interface Property {
   property: string
-  filterChain?: FilterExpression[]
 }
 
 export interface FilterExpression {

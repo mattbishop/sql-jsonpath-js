@@ -1,6 +1,5 @@
 import {createToken, Lexer} from "chevrotain";
 
-// Declaration order matters
 export const Wildcard               = createToken({name: "Wildcard", pattern: /\*/})
 export const ContextItem            = createToken({name: "ContextItem", pattern: /\$/})
 export const Lax                    = createToken({name: "Lax", pattern: /lax/})
@@ -31,6 +30,7 @@ export const WhiteSpace = createToken({
   group: Lexer.SKIPPED
 })
 
+// order matters when tokens start with the same matching characters
 export const allTokens = [
   WhiteSpace,
   // "keywords" appear before the Identifier

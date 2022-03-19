@@ -11,7 +11,6 @@ import {
   OperaX,
   PathPart,
   PathQuery,
-  SimpleProperty,
   SqlJsonPathStatement,
   WFF
 } from "./json-path"
@@ -35,6 +34,10 @@ export function newJsonPathVisitor(constr: { new(...args: any[]): ICstVisitor<an
 
       if (ctx.lhs) {
         obj.lhs = this.visit(ctx.lhs)
+      }
+
+      if (ctx.filterExpression) {
+        obj.filter = this.visit(ctx.filterExpression)
       }
 
       return obj
@@ -108,34 +111,19 @@ export function newJsonPathVisitor(constr: { new(...args: any[]): ICstVisitor<an
 
     pathPart(ctx: any): PathPart {
       if (ctx.arguments) {
-        if (ctx.filterExpression) {
-          throw new Error("Filter expressions cannot follow method calls")
-        }
         return {
           method: this.methodNameToEnum(ctx.name[0].image),
           arguments: this.visit(ctx.arguments)
         }
       }
 
-      let pathPart: PathPart
-
       if (ctx.arrayAccessor) {
-        pathPart = this.visit(ctx.arrayAccessor, ctx.name[0].image)
-      } else {
-        pathPart = {
-          property: ctx.name[0].image
-        }
+        return this.visit(ctx.arrayAccessor, ctx.name[0].image)
       }
 
-      if (ctx.filterChain) {
-        (pathPart as SimpleProperty).filterChain = this.visit(ctx.filterChain)
+      return {
+        property: ctx.name[0].image
       }
-
-      return pathPart
-    }
-
-    filterChain(ctx: any): FilterExpression[] {
-      return ctx.filterExpressions.map((filterExpression: CstNode) => this.visit(filterExpression))
     }
 
     group(ctx: any): Group {
@@ -160,7 +148,9 @@ export function newJsonPathVisitor(constr: { new(...args: any[]): ICstVisitor<an
           : ctx.lhs_last ? ctx.lhs_last[0].image
           : parseInt(ctx.lhs_integer[0].image)
 
-      if (ctx.ops) o.ops = ctx.ops.map((op:any) => this.visit(op))
+      if (ctx.ops) {
+        o.ops = ctx.ops.map((op:any) => this.visit(op))
+      }
 
       return o as WFF
     }
@@ -170,11 +160,8 @@ export function newJsonPathVisitor(constr: { new(...args: any[]): ICstVisitor<an
 
       if (ctx.wildcard) {
         o.element = ctx.wildcard[0].image
-      }
-
-      else {
-        const arr = ctx.wff.map((wff: any) => this.visit(wff))
-        o.element = arr
+      } else {
+        o.element = ctx.wff.map((wff: any) => this.visit(wff))
       }
 
       return o as ArrayElement

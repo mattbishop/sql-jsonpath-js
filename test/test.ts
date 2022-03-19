@@ -183,7 +183,8 @@ describe("SQL JSONPath", () => {
             },
           ]
         }
-      }, {
+      },
+    {
         statement: "$.foo.bar[1 + 2 + 3].location",
         expected: {
           mode: "lax",
@@ -206,8 +207,7 @@ describe("SQL JSONPath", () => {
                   }
                   ]
                 }],
-            }
-            ,
+            },
             {
               property: "location"
             },
@@ -215,217 +215,27 @@ describe("SQL JSONPath", () => {
         }
       },
       {
-        statement: "$.foo.bar[*].zar ? (@ > 333)",
+        statement: "$.foo.zar.bar[*] ? (@ > 333)",
         expected: {
           mode: "lax",
           lhs: [
             {
               property: "foo"
+            },
+            {
+              property: "zar"
             },
             {
               array: "bar",
               element: "*"
-            },
-            {
-
-              property: "zar",
-              filterChain: [{
-                query: {
-                  path: [],
-                  operator: ConditionalOperator.GT,
-                  compareTo: 333
-                }
-              }]
-            },
-          ]
-        }
-      },
-      {
-        statement: "$.foo.bar[*] ? (@.value != 22).zoo",
-        expected: {
-          mode: "lax",
-          lhs: [
-            {
-              property: "foo"
-            },
-            {
-              array: "bar",
-              element: "*",
-              filterChain: [{
-                query: {
-                  operator: ConditionalOperator.NE,
-                  compareTo: 22,
-                  path: [
-                    {
-                      property: "value"
-                    }
-                  ]
-                }
-              }]
-            },
-            {
-              property: "zoo"
+            }],
+          filter: {
+            query: {
+              path: [],
+              operator: ConditionalOperator.GT,
+              compareTo: 333
             }
-          ]
-        }
-      },
-      {
-        statement: "$.foo.bar[*] ? (@.value <> 22).zoo",
-        expected: {
-          mode: "lax",
-          lhs: [
-            {
-              property: "foo"
-            },
-            {
-              array: "bar",
-              element: "*",
-              filterChain: [{
-                query: {
-                  operator: ConditionalOperator.NE,
-                  compareTo: 22,
-                  path: [
-                    {
-                      property: "value"
-                    }
-                  ]
-                }
-              }]
-            },
-            {
-              property: "zoo"
-            }
-          ]
-        }
-      },
-      {
-        // this one should break, only allow one '?'
-        statement: "$.foo.bar[*] ? (@.zoo[1] < 13) ? (@.roo > 130).goo",
-        expected: {
-          mode: "lax",
-          lhs: [
-            {
-              property: "foo"
-            },
-            {
-              array: "bar",
-              element: "*",
-              filterChain: [
-                {
-                  query: {
-                    path: [
-                      {
-                        array: "zoo",
-                        element: [{ lhs: 1 }]
-                      }
-                    ],
-                    compareTo: 13,
-                    operator: ConditionalOperator.LT
-                  }
-                },
-                {
-                  query: {
-                    path: [
-                      {
-                        property: "roo"
-                      }
-                    ],
-                    compareTo: 130,
-                    operator: ConditionalOperator.GT
-                  }
-                }
-              ]
-            },
-            {
-              property: "goo"
-            }
-          ]
-        }
-      },
-      {
-        // also should break
-        statement: "$.foo.bar[*] ? (@.zoo[1] < 13).roo ? (@ > 130)",
-        expected: {
-          mode: "lax",
-          lhs: [
-            {
-              property: "foo",
-            },
-            {
-              array: "bar",
-              element: "*",
-              filterChain: [
-                {
-                  query: {
-                    path: [
-                      {
-                        array: "zoo",
-                        element: [{ lhs: 1 }]
-                      }
-                    ],
-                    compareTo: 13,
-                    operator: ConditionalOperator.LT
-                  }
-                }
-              ]
-            },
-            {
-              property: "roo",
-              filterChain: [
-                {
-                  query: {
-                    path: [],
-                    operator: ConditionalOperator.GT,
-                    compareTo: 130
-                  }
-                }
-              ]
-            }
-          ]
-        }
-      },
-      {
-        statement: "$.foo ? (exists(@.bar[*] ? (@.zoo > 130))).bar.size()",
-        expected: {
-          mode: "lax",
-          lhs: [
-            {
-              property: "foo",
-              filterChain: [
-                {
-                  query: {
-                    method: "exists",
-                    path: [
-                      {
-                        array: "bar",
-                        element: "*",
-                        filterChain: [
-                          {
-                            query: {
-                              path: [
-                                {
-                                  property: "zoo"
-                                }
-                              ],
-                              operator: ConditionalOperator.GT,
-                              compareTo: 130
-                            }
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                }
-              ]
-            },
-            {
-              property: "bar"
-            },
-            {
-              method: MethodName.SIZE,
-              arguments: []
-            }
-          ]
+          }
         }
       }
     ]

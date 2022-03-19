@@ -32,8 +32,9 @@ export class JsonPathParser extends CstParser {
   }
 
   jsonPathStatement = this.RULE("jsonPathStatement", () => {
-    this.OPTION(() => this.SUBRULE(this.mode, { LABEL: "mode" }))
+    this.OPTION1(() => this.SUBRULE(this.mode, { LABEL: "mode" }))
     this.SUBRULE(this.contextQuery, { LABEL: "lhs" })
+    this.OPTION2(() => this.SUBRULE(this.filterExpression, { LABEL: "filterExpression" }))
   })
 
   mode = this.RULE("mode", () => {
@@ -67,10 +68,6 @@ export class JsonPathParser extends CstParser {
     })
   })
 
-  filterChain = this.RULE("filterChain", () => {
-    this.AT_LEAST_ONE(() => this.SUBRULE(this.filterExpression, { LABEL: "filterExpressions" }))
-  })
-
   filterExpression = this.RULE("filterExpression", () => {
     this.CONSUME(StartFilterExpression)
     this.CONSUME(LeftParen)
@@ -84,7 +81,7 @@ export class JsonPathParser extends CstParser {
 
   filterQuery = this.RULE("filterQuery", () => {
     this.SUBRULE(this.existsPathQuery, { LABEL: "query" })
-    this.OPTION2(() => {
+    this.OPTION(() => {
       this.SUBRULE(this.conditionalOperator, { LABEL: "operator" })
       this.OR([
         { ALT: () => this.CONSUME(StringLiteral, { LABEL: "stringLiteral" }) },
@@ -115,11 +112,10 @@ export class JsonPathParser extends CstParser {
   pathPart = this.RULE("pathPart", () => {
     this.CONSUME(Identifier, { LABEL: "name" })
     this.OPTION(() =>
-      this.OR2([
+      this.OR([
         { ALT: () => this.SUBRULE(this.arrayAccessor) },
         { ALT: () => this.SUBRULE(this.arguments) }
       ]))
-    this.OPTION2(() => this.SUBRULE(this.filterChain))
   })
 
   group = this.RULE("group", () => {
