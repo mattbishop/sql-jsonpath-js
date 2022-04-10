@@ -48,6 +48,9 @@ Note: Identifiers are ECMAScript identifier names, but may not start with <dolla
 ```
 <JSON last subscript> ::=
           last
+```
+
+```
 <JSON accessor expression> ::=
             <JSON path primary>
           | <JSON accessor expression> <JSON accessor op>
@@ -100,7 +103,7 @@ NOTE: Unlike ECMAScript, SQL/JSON path language does not provide a member access
 <JSON filter expression> ::=
           <question mark> <left paren> <JSON path predicate> <right paren>
 ```
-NOTE: unlike ECMAScript, predicates are not expressions; instead they form a separate language that can only be invoked within a <JSON filter expression>.
+NOTE: unlike ECMAScript, predicates are not expressions; instead they form a separate language that can only be invoked within a <JSON filter expression>
 
 ```
 <JSON item method> ::=
@@ -190,7 +193,7 @@ NOTE: comparison operators are not left associative, unlike ECMAScript.
           | <less than or equals operator>
           | <greater than or equals operator>
 ```
-NOTE nnn: equality operators have the same precedence as inequality comparision operators, unlike ECMAScript.
+NOTE: equality operators have the same precedence as inequality comparision operators, unlike ECMAScript.
 
 ```
 <JSON like_regex predicate> ::=

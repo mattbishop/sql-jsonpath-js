@@ -7,8 +7,8 @@ interface SqlJsonPathTest {
   expected: SqlJsonPathStatement
 }
 
-describe("SQL JSONPath", () => {
-  describe("parser test", () => {
+describe("SQL JSONPath Visitor", () => {
+  describe("Visitor tests", () => {
     const tests: SqlJsonPathTest[] = [
       {
         statement: "strict $.foo.bar",

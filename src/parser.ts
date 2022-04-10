@@ -1,27 +1,26 @@
-import { CstParser } from "chevrotain"
+import {CstParser} from "chevrotain"
 import {
   allTokens,
   ArithmeticOperator,
   Comma,
-  ConditionalOperator,
+  ComparisonOperator,
   Exists,
   FilterValue,
   Identifier,
   Integer,
-  Lax,
+  Mode,
   LeftSquareBracket,
   RightParen,
   LeftParen,
   NotOperator,
-  ContextItem,
+  ContextVariable,
   PathSeparator,
   RightSquareBracket,
   StartFilterExpression,
   StringLiteral,
-  Strict,
   To,
   Last,
-  Wildcard
+  Wildcard, LikeRegex, Flag, FlagValue
 } from "./tokens"
 
 export class JsonPathParser extends CstParser {
@@ -31,17 +30,19 @@ export class JsonPathParser extends CstParser {
     this.performSelfAnalysis()
   }
 
-  jsonPathStatement = this.RULE("jsonPathStatement", () => {
-    this.OPTION1(() => this.SUBRULE(this.mode, { LABEL: "mode" }))
-    this.SUBRULE(this.contextQuery, { LABEL: "lhs" })
-    this.OPTION2(() => this.SUBRULE(this.filterExpression, { LABEL: "filterExpression" }))
+  likeRegex = this.RULE("likeRegex", () => {
+    this.CONSUME(LikeRegex)
+    this.CONSUME(StringLiteral, { LABEL: "pattern" })
+    this.OPTION(() => {
+      this.CONSUME(Flag)
+      this.CONSUME(FlagValue)
+    })
   })
 
-  mode = this.RULE("mode", () => {
-    this.OR([
-      { ALT: () => this.CONSUME(Lax, { LABEL: "lax" }) },
-      { ALT: () => this.CONSUME(Strict, { LABEL: "strict" }) }
-    ])
+  jsonPathStatement = this.RULE("jsonPathStatement", () => {
+    this.OPTION1(() => this.CONSUME(Mode))
+    this.SUBRULE(this.contextQuery)
+    this.OPTION2(() => this.SUBRULE(this.filterExpression, { LABEL: "filterExpression" }))
   })
 
   arguments = this.RULE("arguments", () => {
@@ -54,7 +55,7 @@ export class JsonPathParser extends CstParser {
   })
 
   contextQuery = this.RULE("contextQuery", () => {
-    this.CONSUME(ContextItem)
+    this.CONSUME(ContextVariable)
     this.OPTION(() => {
       this.CONSUME(PathSeparator)
       this.SUBRULE(this.pathQuery, { LABEL: "path" })
@@ -106,7 +107,7 @@ export class JsonPathParser extends CstParser {
   })
 
   conditionalOperator = this.RULE("conditionalOperator", () => {
-    this.CONSUME(ConditionalOperator, { LABEL: "operator" })
+    this.CONSUME(ComparisonOperator, { LABEL: "operator" })
   })
 
   pathPart = this.RULE("pathPart", () => {
