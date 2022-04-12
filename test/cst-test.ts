@@ -11,7 +11,7 @@ function parseJsonPath(statement: string, parserPart = () => parser.jsonPathStat
   const lexingResult = JsonPathLexer.tokenize(statement)
   parser.input = lexingResult.tokens
   const cst = parserPart()
-  if (parser.errors) {
+  if (parser.errors?.length) {
     console.error(parser.errors)
   }
   expect(parser.errors).to.be.empty

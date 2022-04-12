@@ -31,18 +31,21 @@ export const IsUnknown              = createToken({name: "IsUnknown", pattern: "
 
 // lexical
 export const Comma                  = createToken({name: "Comma", pattern: ","})
-export const Integer                = createToken({name: "Integer", pattern: /0|[1-9]\d*/})
-export const StringLiteral          = createToken({name: "StringLiteral", pattern: /"(?:.*?(?:""))"|"[^"]*?"/})
+// SQL JSON Path has stricter number declarations than JS. for instance, +10 is not legal, nor is 2. without a trailing 0.
+export const Integer                = createToken({name: "Integer", pattern: /-?[1-9]\d*|0/})
+export const Number                 = createToken({name: "Number", pattern: /(?:-?(?:0\.\d+|[1-9]\d*\.\d+|[1-9]\d*|0))(?:[eE]-?[1-9]\d*)?/})
+export const StringLiteral          = createToken({name: "StringLiteral", pattern: /"(?:""|[^"])*"/})
 export const ArithmeticOperator     = createToken({name: "ArithmeticOperator", pattern: /[+\-*\/%]/})
 export const DoubleVerticalBar      = createToken({name: "DoubleVerticalBar", pattern: "||"})
 export const DoubleAmpersand        = createToken({name: "DoubleAmpersand", pattern: "&&"})
 export const NotOperator            = createToken({name: "NotOperator", pattern: "!"})
-export const ComparisonOperator     = createToken({name: "ComparisonOperator", pattern: /==|!=|<>|>=|<=|></})
+export const ComparisonOperator     = createToken({name: "ComparisonOperator", pattern: /==|!=|<>|>=|<=|<|>/})
 export const Null                   = createToken({name: "Null", pattern: "null"})
 export const True                   = createToken({name: "True", pattern: "true"})
 export const False                  = createToken({name: "False", pattern: "false"})
 export const LeftParen              = createToken({name: "LeftParen", pattern: "("})
 export const RightParen             = createToken({name: "RightParen", pattern: ")"})
+export const Identifier             = createToken({name: "Identifier", pattern: /[_a-zA-Z]\w*/})
 
 export const WhiteSpace = createToken({
   name: "WhiteSpace",
@@ -52,8 +55,8 @@ export const WhiteSpace = createToken({
   group: Lexer.SKIPPED
 })
 
+// not sure yet about identifier. Doesn't support unicode properly.
 // I don't think these are needed any more
-export const Identifier             = createToken({name: "Identifier", pattern: /[a-zA-Z]\w*/})
 export const PathSeparator          = createToken({name: "PathSeparator", pattern: /\./})
 export const Wildcard               = createToken({name: "Wildcard", pattern: /\*/})
 
@@ -87,6 +90,7 @@ export const allTokens = [
   // The Identifier must appear after the keywords because all keywords are valid identifiers.
   Identifier,
   Integer,
+  Number,
   StringLiteral,
   ComparisonOperator,
   NotOperator,

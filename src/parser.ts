@@ -20,7 +20,10 @@ import {
   StringLiteral,
   To,
   Last,
-  Wildcard, LikeRegex, Flag, FlagValue
+  Wildcard,
+  LikeRegex,
+  Flag,
+  FlagValue
 } from "./tokens"
 
 export class JsonPathParser extends CstParser {
