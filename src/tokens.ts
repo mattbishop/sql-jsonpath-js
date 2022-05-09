@@ -6,7 +6,8 @@ export const NamedVariable          = createToken({name: "NamedVariable", patter
 
 export const ItemMethod             = createToken({name: "ItemMethod", pattern: /\.(?:type|size|double|ceiling|floor|abs|datetime|keyvalue)\(\)/})
 export const WildcardMember         = createToken({name: "WildcardMember", pattern: ".*"})
-export const Member                 = createToken({name: "Member", pattern: /\.[a-zA-Z]\w*/})
+// first char is '.' so the rest can be the unicode ID character set
+export const Member                 = createToken({name: "Member", pattern: /\.\p{ID_Start}\p{ID_Continue}*/u})
 
 
 // arrays
