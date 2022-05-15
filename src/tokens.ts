@@ -36,6 +36,7 @@ export const Comma                  = createToken({name: "Comma", pattern: ","})
 export const Integer                = createToken({name: "Integer", pattern: /-?[1-9]\d*|0/})
 export const Number                 = createToken({name: "Number", pattern: /(?:-?(?:0\.\d+|[1-9]\d*\.\d+|[1-9]\d*|0))(?:[eE]-?[1-9]\d*)?/})
 export const StringLiteral          = createToken({name: "StringLiteral", pattern: /"(?:""|[^"])*"/})
+export const PlusMinusOperator      = createToken({name: "PlusMinusOperator", pattern: /[+|-]/})
 export const ArithmeticOperator     = createToken({name: "ArithmeticOperator", pattern: /[+\-*\/%]/})
 export const DoubleVerticalBar      = createToken({name: "DoubleVerticalBar", pattern: "||"})
 export const DoubleAmpersand        = createToken({name: "DoubleAmpersand", pattern: "&&"})
@@ -68,6 +69,7 @@ export const allTokens = [
   WhiteSpace,
   // "keywords" appear before the Identifier
   Mode,
+  PlusMinusOperator,
   Exists,
   LikeRegex,
   Flag,
@@ -101,7 +103,7 @@ export const allTokens = [
   Comma,
   Wildcard,
   ArithmeticOperator,
-  DoubleVerticalBar,
+//  DoubleVerticalBar,
   DoubleAmpersand,
   LeftParen,
   RightParen,

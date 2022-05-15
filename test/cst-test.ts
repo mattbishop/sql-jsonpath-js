@@ -24,7 +24,7 @@ describe("SQL JSONPath CST", () => {
 
     it("parses context item without a mode", () => {
       const actual = parseJsonPath("$")
-      expect(actual).to.have.nested.property("children.contextQuery[0].children.ContextVariable")
+      expect(actual).to.have.nested.property("children.jsonPathWff[0].children.left[0].children.left[0].children.ContextVariable")
     })
 
     it("parses lax mode", () => {
@@ -36,6 +36,13 @@ describe("SQL JSONPath CST", () => {
       const actual = parseJsonPath("strict $")
       expect(actual).to.nested.include({"children.Mode[0].image": "strict"})
     })
+  })
+
+  describe("wff tests", () => {
+    const actual = parseJsonPath("$ + $")
+    expect(actual).to.have.nested.property("children.jsonPathWff[0].children.left[0].children.left[0].children.ContextVariable")
+    expect(actual).to.have.nested.property("children.jsonPathWff[0].children.left[0].children.PlusMinusOperator")
+    expect(actual).to.have.nested.property("children.jsonPathWff[0].children.left[0].children.right[0].children.left[0].children.ContextVariable")
   })
 
 
