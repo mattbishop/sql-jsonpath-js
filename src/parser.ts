@@ -6,9 +6,10 @@ import {
   FlagValue,
   LikeRegex,
   Mode,
-  PlusMinusOperator,
-  StringLiteral
+  AdditiveOperator,
+  StringLiteral, MultiplicativeOperator
 } from "./tokens"
+
 
 export class JsonPathParser extends CstParser {
   constructor() {
@@ -17,44 +18,46 @@ export class JsonPathParser extends CstParser {
     this.performSelfAnalysis()
   }
 
-  jsonPathStatement = this.RULE("jsonPathStatement", () => {
+  jsonPathStatement = this.RULE("jsonPathStmt", () => {
     this.OPTION(() => this.CONSUME(Mode))
-    this.SUBRULE(this.jsonPathWff)
+    // additive comes first to support order of precendence rules
+    this.SUBRULE(this.additiveExpression)
   })
 
 
-  /*
-  I don't really understand why we can't just use "multiplicativeExpression". It seems like
-  it has the same patterns.
-   */
-/*  jsonPathWff = this.RULE("jsonPathWff", () => {
-    this.SUBRULE(this.multiplicativeExpression, { LABEL: "left" })
+
+  additiveExpression = this.RULE("addExp", () => {
+    this.SUBRULE(this.multiplicativeExpression, { LABEL: "wl" })
     this.MANY(() => {
-        this.CONSUME(PlusMinusOperator)
-        this.SUBRULE2(this.multiplicativeExpression, { LABEL: "right" })
+        this.CONSUME(AdditiveOperator)
+        this.SUBRULE2(this.multiplicativeExpression, { LABEL: "wr" })
       }
     )
   })
-*/
 
-  jsonPathWff = this.RULE("jsonPathWff", () => {
-    this.SUBRULE(this.unaryExpression, { LABEL: "left" })
+
+  multiplicativeExpression = this.RULE("multExp", () => {
+    this.SUBRULE(this.unaryExpression, { LABEL: "ml" })
     this.MANY(() => {
-      this.CONSUME(ArithmeticOperator)
-      this.SUBRULE2(this.unaryExpression, { LABEL: "right" })
+      this.CONSUME(MultiplicativeOperator)
+      this.SUBRULE2(this.unaryExpression, { LABEL: "mr" })
     })
   })
 
-  unaryExpression = this.RULE("UnaryExpression", () => {
-    this.SUBRULE(this.accessorExpression, {LABEL: "left"})
-    this.MANY(() => {
-      this.CONSUME(PlusMinusOperator)
-      this.SUBRULE2(this.unaryExpression, { LABEL: "right" })
-    })
+
+  unaryExpression = this.RULE("unExp", () => {
+    this.OR([
+      { ALT: () => this.SUBRULE(this.accessorExpression, {LABEL: "ul"}) },
+      { ALT: () => {
+          this.CONSUME(AdditiveOperator)
+          this.SUBRULE2(this.unaryExpression, { LABEL: "ur" })
+      }}
+    ])
   })
+
 
   // this will grow, need to terminate it here to write some tests
-  accessorExpression = this.RULE("AccessorExpression", () => {
+  accessorExpression = this.RULE("accessExp", () => {
     this.CONSUME(ContextVariable)
   })
 

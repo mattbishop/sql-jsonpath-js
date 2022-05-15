@@ -24,7 +24,7 @@ describe("SQL JSONPath CST", () => {
 
     it("parses context item without a mode", () => {
       const actual = parseJsonPath("$")
-      expect(actual).to.have.nested.property("children.jsonPathWff[0].children.left[0].children.left[0].children.ContextVariable")
+      expect(actual).to.have.nested.property("children.wff[0].children.wl[0].children.ml[0].children.ul[0].children.ContextVariable")
     })
 
     it("parses lax mode", () => {
@@ -39,10 +39,19 @@ describe("SQL JSONPath CST", () => {
   })
 
   describe("wff tests", () => {
-    const actual = parseJsonPath("$ + $")
-    expect(actual).to.have.nested.property("children.jsonPathWff[0].children.left[0].children.left[0].children.ContextVariable")
-    expect(actual).to.have.nested.property("children.jsonPathWff[0].children.left[0].children.PlusMinusOperator")
-    expect(actual).to.have.nested.property("children.jsonPathWff[0].children.left[0].children.right[0].children.left[0].children.ContextVariable")
+    it("adds two contextsVariables", () => {
+      const actual = parseJsonPath("$ + $")
+      expect(actual).to.have.nested.property("children.wff[0].children.wl[0].children.ml[0].children.ul[0].children.ContextVariable")
+      expect(actual).to.have.nested.property("children.wff[0].children.wl[0].children.ml[0].children.PlusMinusOperator")
+      expect(actual).to.have.nested.property("children.wff[0].children.wl[0].children.ml[0].children.ur[0].children.ul[0].children.ContextVariable")
+    })
+
+    it("multiplies two contextsVariables", () => {
+      const actual = parseJsonPath("$ * $")
+      expect(actual).to.have.nested.property("children.wff[0].children.wl[0].children.ml[0].children.ul[0].children.ContextVariable")
+      expect(actual).to.have.nested.property("children.jsonPathWff[0].children.left[0].children.ArithmeticOperator")
+      expect(actual).to.have.nested.property("children.wff[0].children.wl[0].children.ml[0].children.ur[0].children.ul[0].children.ContextVariable")
+    })
   })
 
 
