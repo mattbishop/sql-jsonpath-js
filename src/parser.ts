@@ -1,13 +1,15 @@
 import {CstParser} from "chevrotain"
 import {
   allTokens,
-  ArithmeticOperator, ContextVariable,
+  ContextVariable,
   Flag,
   FlagValue,
   LikeRegex,
   Mode,
   AdditiveOperator,
-  StringLiteral, MultiplicativeOperator
+  StringLiteral,
+  MultiplicativeOperator,
+  Member
 } from "./tokens"
 
 
@@ -61,6 +63,9 @@ export class JsonPathParser extends CstParser {
     this.CONSUME(ContextVariable)
   })
 
+  memberRule = this.RULE("member", () => {
+    this.CONSUME(Member)
+  })
 
 
   likeRegex = this.RULE("likeRegex", () => {

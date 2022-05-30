@@ -7,7 +7,16 @@ export const NamedVariable          = createToken({name: "NamedVariable", patter
 export const ItemMethod             = createToken({name: "ItemMethod", pattern: /\.(?:type|size|double|ceiling|floor|abs|datetime|keyvalue)\(\)/})
 export const WildcardMember         = createToken({name: "WildcardMember", pattern: ".*"})
 // first char is '.' so the rest can be the unicode ID character set
-export const Member                 = createToken({name: "Member", pattern: /\.\p{ID_Start}\p{ID_Continue}*/u})
+export const Member = createToken({
+  name: "Member",
+  pattern: (text, offset) => {
+    const re = /\.\p{ID_Start}\p{ID_Continue}*/uy
+    re.lastIndex = offset
+    return re.exec(text)
+  },
+  start_chars_hint: ["."],
+  line_breaks: false
+})
 
 
 // arrays
@@ -60,8 +69,8 @@ export const WhiteSpace = createToken({
 
 // not sure yet about identifier. Doesn't support unicode properly.
 // I don't think these are needed any more
-export const PathSeparator          = createToken({name: "PathSeparator", pattern: /\./})
-export const Wildcard               = createToken({name: "Wildcard", pattern: /\*/})
+// export const PathSeparator          = createToken({name: "PathSeparator", pattern: /\./})
+// export const Wildcard               = createToken({name: "Wildcard", pattern: /\*/})
 
 
 
@@ -92,7 +101,7 @@ export const allTokens = [
   LeftSquareBracket,
   RightSquareBracket,
   // The Identifier must appear after the keywords because all keywords are valid identifiers.
-  Identifier,
+  // Identifier,
   Integer,
   Number,
   StringLiteral,
@@ -100,9 +109,7 @@ export const allTokens = [
   NotOperator,
   ContextVariable,
   NamedVariable,
-  PathSeparator,
   Comma,
-  Wildcard,
   ArithmeticOperator,
 //  DoubleVerticalBar,
   DoubleAmpersand,
