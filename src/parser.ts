@@ -9,7 +9,7 @@ import {
   AdditiveOperator,
   StringLiteral,
   MultiplicativeOperator,
-  Member
+  Member, ArithmeticOperator
 } from "./tokens"
 
 
@@ -22,45 +22,35 @@ export class JsonPathParser extends CstParser {
 
   jsonPathStatement = this.RULE("jsonPathStmt", () => {
     this.OPTION(() => this.CONSUME(Mode))
-    // additive comes first to support order of precendence rules
-    this.SUBRULE(this.additiveExpression)
+    this.SUBRULE(this.arithmeticExpression)
   })
 
 
-
-  additiveExpression = this.RULE("addExp", () => {
-    this.SUBRULE(this.multiplicativeExpression, { LABEL: "wl" })
+  arithmeticExpression = this.RULE("arithmeticExpression", () => {
+    this.SUBRULE(this.accessorExpression, { LABEL: "left" })
     this.MANY(() => {
-        this.CONSUME(AdditiveOperator)
-        this.SUBRULE2(this.multiplicativeExpression, { LABEL: "wr" })
+        this.CONSUME(ArithmeticOperator)
+        this.SUBRULE2(this.accessorExpression, { LABEL: "right" })
       }
     )
   })
 
 
-  multiplicativeExpression = this.RULE("multExp", () => {
-    this.SUBRULE(this.unaryExpression, { LABEL: "ml" })
-    this.MANY(() => {
-      this.CONSUME(MultiplicativeOperator)
-      this.SUBRULE2(this.unaryExpression, { LABEL: "mr" })
-    })
+  // this will grow, need to stop it here to write some tests
+  accessorExpression = this.RULE("accessExp", () => {
+    this.CONSUME(ContextVariable)
   })
 
 
-  unaryExpression = this.RULE("unExp", () => {
+
+  unaryExpression = this.RULE("unaryExpression", () => {
     this.OR([
       { ALT: () => this.SUBRULE(this.accessorExpression, {LABEL: "ul"}) },
       { ALT: () => {
-          this.CONSUME(AdditiveOperator)
+          this.CONSUME(ArithmeticOperator)
           this.SUBRULE2(this.unaryExpression, { LABEL: "ur" })
       }}
     ])
-  })
-
-
-  // this will grow, need to terminate it here to write some tests
-  accessorExpression = this.RULE("accessExp", () => {
-    this.CONSUME(ContextVariable)
   })
 
   memberRule = this.RULE("member", () => {

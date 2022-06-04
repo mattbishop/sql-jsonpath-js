@@ -45,9 +45,9 @@ export const Comma                  = createToken({name: "Comma", pattern: ","})
 export const Integer                = createToken({name: "Integer", pattern: /-?[1-9]\d*|0/})
 export const Number                 = createToken({name: "Number", pattern: /(?:-?(?:0\.\d+|[1-9]\d*\.\d+|[1-9]\d*|0))(?:[eE]-?[1-9]\d*)?/})
 export const StringLiteral          = createToken({name: "StringLiteral", pattern: /"(?:""|[^"])*"/})
+export const ArithmeticOperator     = createToken({name: "ArithmeticOperator", pattern: /[+\-*\/%]/})
 export const AdditiveOperator       = createToken({name: "AddOp", pattern: /[+-]/})
 export const MultiplicativeOperator = createToken({name: "MultOp", pattern: /[*\/%]/})
-export const ArithmeticOperator     = createToken({name: "ArithmeticOperator", pattern: /[+\-*\/%]/})
 export const DoubleVerticalBar      = createToken({name: "DoubleVerticalBar", pattern: "||"})
 export const DoubleAmpersand        = createToken({name: "DoubleAmpersand", pattern: "&&"})
 export const NotOperator            = createToken({name: "NotOperator", pattern: "!"})
@@ -69,8 +69,8 @@ export const WhiteSpace = createToken({
 
 // not sure yet about identifier. Doesn't support unicode properly.
 // I don't think these are needed any more
-// export const PathSeparator          = createToken({name: "PathSeparator", pattern: /\./})
-// export const Wildcard               = createToken({name: "Wildcard", pattern: /\*/})
+export const PathSeparator          = createToken({name: "PathSeparator", pattern: /\./})
+export const Wildcard               = createToken({name: "Wildcard", pattern: /\*/})
 
 
 
@@ -79,6 +79,7 @@ export const allTokens = [
   WhiteSpace,
   // "keywords" appear before the Identifier
   Mode,
+  ArithmeticOperator,
   AdditiveOperator,
   Exists,
   LikeRegex,
@@ -110,7 +111,6 @@ export const allTokens = [
   ContextVariable,
   NamedVariable,
   Comma,
-  ArithmeticOperator,
 //  DoubleVerticalBar,
   DoubleAmpersand,
   LeftParen,
