@@ -1,15 +1,14 @@
 import {CstParser} from "chevrotain"
 import {
   allTokens,
+  ArithmeticOperator,
   ContextVariable,
   Flag,
   FlagValue,
   LikeRegex,
   Mode,
-  AdditiveOperator,
   StringLiteral,
-  MultiplicativeOperator,
-  Member, ArithmeticOperator
+  Member
 } from "./tokens"
 
 
@@ -22,11 +21,11 @@ export class JsonPathParser extends CstParser {
 
   jsonPathStatement = this.RULE("jsonPathStmt", () => {
     this.OPTION(() => this.CONSUME(Mode))
-    this.SUBRULE(this.arithmeticExpression)
+    this.SUBRULE(this.wff)
   })
 
 
-  arithmeticExpression = this.RULE("arithmeticExpression", () => {
+  wff = this.RULE("wff", () => {
     this.SUBRULE(this.accessorExpression, { LABEL: "left" })
     this.MANY(() => {
         this.CONSUME(ArithmeticOperator)
@@ -37,7 +36,7 @@ export class JsonPathParser extends CstParser {
 
 
   // this will grow, need to stop it here to write some tests
-  accessorExpression = this.RULE("accessExp", () => {
+  accessorExpression = this.RULE("accessorExp", () => {
     this.CONSUME(ContextVariable)
   })
 

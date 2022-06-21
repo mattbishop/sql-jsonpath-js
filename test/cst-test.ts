@@ -24,7 +24,7 @@ describe("SQL JSONPath CST", () => {
 
     it("parses context item without a mode", () => {
       const actual = parseJsonPath("$")
-      expect(actual).to.have.nested.property("children.arithmeticExpression[0].children.left[0].children.ContextVariable")
+      expect(actual).to.have.nested.property("children.wff[0].children.left[0].children.ContextVariable")
     })
 
     it("parses lax mode", () => {
@@ -41,16 +41,16 @@ describe("SQL JSONPath CST", () => {
   describe("wff tests", () => {
     it("adds two contextsVariables", () => {
       const actual = parseJsonPath("$ + $")
-      expect(actual).to.have.nested.property("children.arithmeticExpression[0].children.left[0].children.ContextVariable")
-      expect(actual).to.nested.include({"children.arithmeticExpression[0].children.ArithmeticOperator[0].image": "+"})
-      expect(actual).to.have.nested.property("children.arithmeticExpression[0].children.right[0].children.ContextVariable")
+      expect(actual).to.have.nested.property("children.wff[0].children.left[0].children.ContextVariable")
+      expect(actual).to.nested.include({"children.wff[0].children.ArithmeticOperator[0].image": "+"})
+      expect(actual).to.have.nested.property("children.wff[0].children.right[0].children.ContextVariable")
     })
 
     it("multiplies two contextsVariables", () => {
       const actual = parseJsonPath("$ * $")
-      expect(actual).to.have.nested.property("children.arithmeticExpression[0].children.left[0].children.ContextVariable")
-      expect(actual).to.nested.include({"children.arithmeticExpression[0].children.ArithmeticOperator[0].image": "*"})
-      expect(actual).to.have.nested.property("children.arithmeticExpression[0].children.right[0].children.ContextVariable")
+      expect(actual).to.have.nested.property("children.wff[0].children.left[0].children.ContextVariable")
+      expect(actual).to.nested.include({"children.wff[0].children.ArithmeticOperator[0].image": "*"})
+      expect(actual).to.have.nested.property("children.wff[0].children.right[0].children.ContextVariable")
     })
   })
 
