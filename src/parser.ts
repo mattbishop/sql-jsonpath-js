@@ -8,7 +8,8 @@ import {
   LikeRegex,
   Mode,
   StringLiteral,
-  Member
+  Member,
+  NamedVariable
 } from "./tokens"
 
 
@@ -37,7 +38,10 @@ export class JsonPathParser extends CstParser {
 
   // this will grow, need to stop it here to write some tests
   accessorExpression = this.RULE("accessorExp", () => {
-    this.CONSUME(ContextVariable)
+    this.OR([
+      { ALT: () => this.CONSUME(NamedVariable) },
+      { ALT: () => this.CONSUME(ContextVariable) }
+    ])
   })
 
 

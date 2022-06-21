@@ -2,10 +2,12 @@ import {createToken, Lexer} from "chevrotain";
 
 export const Mode                   = createToken({name: "Mode", pattern: /lax|strict/})
 export const ContextVariable        = createToken({name: "ContextVariable", pattern: "$"})
-export const NamedVariable          = createToken({name: "NamedVariable", pattern: /\$[a-zA-Z]\w*/})
+// matches SQL standard
+export const NamedVariable          = createToken({name: "NamedVariable", pattern: /\$[a-zA-Z][\w#@$]{0,255}/})
 
 export const ItemMethod             = createToken({name: "ItemMethod", pattern: /\.(?:type|size|double|ceiling|floor|abs|datetime|keyvalue)\(\)/})
 export const WildcardMember         = createToken({name: "WildcardMember", pattern: ".*"})
+
 // first char is '.' so the rest can be the unicode ID character set
 export const Member = createToken({
   name: "Member",
@@ -108,8 +110,8 @@ export const allTokens = [
   StringLiteral,
   ComparisonOperator,
   NotOperator,
-  ContextVariable,
   NamedVariable,
+  ContextVariable,
   Comma,
 //  DoubleVerticalBar,
   DoubleAmpersand,
