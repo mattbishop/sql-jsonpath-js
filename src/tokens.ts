@@ -9,12 +9,13 @@ export const ItemMethod             = createToken({name: "ItemMethod", pattern: 
 export const WildcardMember         = createToken({name: "WildcardMember", pattern: ".*"})
 
 // first char is '.' so the rest can be the unicode ID character set
+// define outside of function for performance benefit (according to Chevrotain).
+const memberPattern = /\.\p{ID_Start}\p{ID_Continue}*/uy
 export const Member = createToken({
   name: "Member",
   pattern: (text, offset) => {
-    const re = /\.\p{ID_Start}\p{ID_Continue}*/uy
-    re.lastIndex = offset
-    return re.exec(text)
+    memberPattern.lastIndex = offset
+    return memberPattern.exec(text)
   },
   start_chars_hint: ["."],
   line_breaks: false

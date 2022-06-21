@@ -4,6 +4,7 @@ import {Lexer} from "chevrotain"
 import {newJsonPathVisitor} from "./visitor";
 import {SqlJsonPath, SqlJsonPathStatement} from "./json-path";
 
+// IMultiModeLexerDefinition
 const JsonPathLexer = new Lexer(allTokens)
 const parser = new JsonPathParser()
 const visitor = newJsonPathVisitor(parser.getBaseCstVisitorConstructor())
