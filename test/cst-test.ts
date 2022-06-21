@@ -54,6 +54,12 @@ describe("SQL JSONPath CST", () => {
       const actual = parseJsonPath("$m@#x")
       expect(actual).to.have.nested.include({"children.wff[0].children.left[0].children.NamedVariable[0].image": "$m@#x"})
     })
+
+    // todo @ is not allowed in root expressions. Must be in a filter expression.
+    it("parses filter value", () => {
+      const actual = parseJsonPath("@")
+      expect(actual).to.have.nested.property("children.wff[0].children.left[0].children.FilterValue")
+    })
   })
 
   describe("wff tests", () => {
@@ -65,11 +71,18 @@ describe("SQL JSONPath CST", () => {
       expect(actual).to.have.nested.property("children.wff[0].children.right[0].children.NamedVariable")
     })
 
-    it("multiplies two contextsVariables", () => {
-      const actual = parseJsonPath("$ * $")
-      expect(actual).to.have.nested.property("children.wff[0].children.left[0].children.ContextVariable")
+    it("multiplies MemberVariable and ContextVariable with no whitespace", () => {
+      const actual = parseJsonPath("$bling*$")
+      expect(actual).to.have.nested.property("children.wff[0].children.left[0].children.NamedVariable")
       expect(actual).to.nested.include({"children.wff[0].children.ArithmeticOperator[0].image": "*"})
       expect(actual).to.have.nested.property("children.wff[0].children.right[0].children.ContextVariable")
+    })
+
+    it("divides MemberVariable and FilterValue with no whitespace", () => {
+      const actual = parseJsonPath("$bling/@")
+      expect(actual).to.have.nested.property("children.wff[0].children.left[0].children.NamedVariable")
+      expect(actual).to.nested.include({"children.wff[0].children.ArithmeticOperator[0].image": "/"})
+      expect(actual).to.have.nested.property("children.wff[0].children.right[0].children.FilterValue")
     })
   })
 

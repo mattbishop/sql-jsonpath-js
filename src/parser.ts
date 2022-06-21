@@ -3,6 +3,7 @@ import {
   allTokens,
   ArithmeticOperator,
   ContextVariable,
+  FilterValue,
   Flag,
   FlagValue,
   LikeRegex,
@@ -40,7 +41,9 @@ export class JsonPathParser extends CstParser {
   accessorExpression = this.RULE("accessorExp", () => {
     this.OR([
       { ALT: () => this.CONSUME(NamedVariable) },
-      { ALT: () => this.CONSUME(ContextVariable) }
+      { ALT: () => this.CONSUME(ContextVariable) },
+      // todo can we say this must be in the filter state to match? The BNF is too accepting here.
+      { ALT: () => this.CONSUME(FilterValue) }
     ])
   })
 
