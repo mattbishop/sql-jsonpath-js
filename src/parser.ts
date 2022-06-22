@@ -2,15 +2,15 @@ import {CstParser} from "chevrotain"
 import {
   allTokens,
   ArithmeticOperator,
-  ContextVariable,
-  FilterValue,
   Flag,
   FlagValue,
   LikeRegex,
   Mode,
   StringLiteral,
   Member,
-  NamedVariable
+  LeftParen,
+  RightParen,
+  Variable
 } from "./tokens"
 
 
@@ -37,19 +37,35 @@ export class JsonPathParser extends CstParser {
   })
 
 
-  // this will grow, need to stop it here to write some tests
   accessorExpression = this.RULE("accessorExp", () => {
     this.OR([
-      { ALT: () => this.CONSUME(NamedVariable) },
-      { ALT: () => this.CONSUME(ContextVariable) },
-      // todo can we say this must be in the filter state to match? The BNF is too accepting here.
-      { ALT: () => this.CONSUME(FilterValue) }
+      { ALT: () => this.SUBRULE(this.pathPrimary) },
+/* Can't refer to yourself, I have to move this into a separate rule and call SUBRULE
+      { ALT: () => {
+          this.SUBRULE(this.accessorExpression)
+          this.CONSUME(this.accessorOp)
+        }
+      }
+*/
+    ])
+  })
+
+  pathPrimary = this.RULE("primary", () => {
+    this.OR([
+//      { ALT: () => this.SUBRULE(this.pathLiteral) },
+      { ALT: () => this.CONSUME(Variable) },
+      { ALT: () => {
+          this.CONSUME(LeftParen)
+          this.SUBRULE(this.wff)
+          this.CONSUME(RightParen)
+        }
+      }
     ])
   })
 
 
 
-  unaryExpression = this.RULE("unaryExpression", () => {
+  unaryExpression = this.RULE("unaryExp", () => {
     this.OR([
       { ALT: () => this.SUBRULE(this.accessorExpression, {LABEL: "ul"}) },
       { ALT: () => {

@@ -42,7 +42,7 @@ Note: The atomic values in the SQL/JSON path language are written the same as in
 <JSON path named variable> ::=
             <dollar sign> <JSON path identifier>
 ```
-Note: Identifiers are ECMAScript identifier names, but may not start with <dollar sign>
+Note: Identifiers are ECMAScript identifier names, but may not start with <dollar sign>. They follow the SQL object naming standard.
 
 
 ```

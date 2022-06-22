@@ -1,10 +1,8 @@
 import {createToken, Lexer} from "chevrotain";
 
 export const Mode                   = createToken({name: "Mode", pattern: /lax|strict/})
-export const ContextVariable        = createToken({name: "ContextVariable", pattern: "$"})
-// matches SQL standard
-export const NamedVariable          = createToken({name: "NamedVariable", pattern: /\$[a-zA-Z][\w#@$]{0,255}/})
-
+// Both context and named variables. Named variables match SQL standard for alias names.
+export const Variable               = createToken({name: "Variable", pattern: /\$(?:[a-zA-Z][\w#@$]{0,255})?/})
 export const ItemMethod             = createToken({name: "ItemMethod", pattern: /\.(?:type|size|double|ceiling|floor|abs|datetime|keyvalue)\(\)/})
 export const WildcardMember         = createToken({name: "WildcardMember", pattern: ".*"})
 
@@ -23,7 +21,7 @@ export const Member = createToken({
 
 
 // arrays
-export const WildcardArray          = createToken({name: "WildcardArray", pattern: /\[\*]/})
+export const WildcardArray          = createToken({name: "WildcardArray", pattern: "[*]"})
 export const LeftSquareBracket      = createToken({name: "LeftSquareBracket", pattern: "["})
 export const RightSquareBracket     = createToken({name: "RightSquareBracket", pattern: "]"})
 export const Last                   = createToken({name: "Last", pattern: "last"})
@@ -70,10 +68,9 @@ export const WhiteSpace = createToken({
   group: Lexer.SKIPPED
 })
 
-// not sure yet about identifier. Doesn't support unicode properly.
 // I don't think these are needed any more
-export const PathSeparator          = createToken({name: "PathSeparator", pattern: /\./})
-export const Wildcard               = createToken({name: "Wildcard", pattern: /\*/})
+export const PathSeparator          = createToken({name: "PathSeparator", pattern: "."})
+export const Wildcard               = createToken({name: "Wildcard", pattern: "*"})
 
 
 
@@ -111,8 +108,7 @@ export const allTokens = [
   StringLiteral,
   ComparisonOperator,
   NotOperator,
-  NamedVariable,
-  ContextVariable,
+  Variable,
   Comma,
 //  DoubleVerticalBar,
   DoubleAmpersand,
