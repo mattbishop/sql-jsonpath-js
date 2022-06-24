@@ -1,4 +1,5 @@
-import {createToken, Lexer} from "chevrotain";
+import {ITokenConfig} from "@chevrotain/types"
+import {createToken, Lexer, TokenType} from "chevrotain"
 
 export const Mode                   = createToken({name: "Mode", pattern: /lax|strict/})
 // Both context and named variables. Named variables match SQL standard for alias names.
@@ -7,16 +8,10 @@ export const ItemMethod             = createToken({name: "ItemMethod", pattern: 
 export const WildcardMember         = createToken({name: "WildcardMember", pattern: ".*"})
 
 // first char is '.' so the rest can be the unicode ID character set
-// define outside of function for performance benefit (according to Chevrotain).
-const memberPattern = /\.\p{ID_Start}\p{ID_Continue}*/uy
-export const Member = createToken({
-  name: "Member",
-  pattern: (text, offset) => {
-    memberPattern.lastIndex = offset
-    return memberPattern.exec(text)
-  },
-  start_chars_hint: ["."],
-  line_breaks: false
+export const Member = createRegexToken({
+  name:             "Member",
+  pattern:          /\.\p{ID_Start}\p{ID_Continue}*/uy,
+  start_chars_hint: ["."]
 })
 
 
@@ -42,20 +37,25 @@ export const IsUnknown              = createToken({name: "IsUnknown", pattern: "
 
 // lexical
 export const Comma                  = createToken({name: "Comma", pattern: ","})
-// SQL JSON Path has stricter number declarations than JS. for instance, +10 is not legal, nor is 2. without a trailing 0.
-export const Integer                = createToken({name: "Integer", pattern: /-?[1-9]\d*|0/})
-export const Number                 = createToken({name: "Number", pattern: /(?:-?(?:0\.\d+|[1-9]\d*\.\d+|[1-9]\d*|0))(?:[eE]-?[1-9]\d*)?/})
-export const StringLiteral          = createToken({name: "StringLiteral", pattern: /"(?:""|[^"])*"/})
+// SQL JSON Path has stricter number declarations than JS. for instance, +10 is not legal, nor is '2.' without a trailing '0'.
+export const Integer                = createToken({name: "Integer", pattern: /0|-?[1-9]\d*/})
+export const NumberLiteral          = createToken({name: "Number", pattern: /-?(?:0(?:\.\d+)?|[1-9]\d*(?:\.\d+)?)(?:[eE]-?[1-9]\d*)?/})
+
+// JSON string pattern, using unicode; {C} character class defined: https://www.regular-expressions.info/unicode.html#category
+export const StringLiteral = createRegexToken({
+  name:             "String",
+  pattern:          /"(?:[^"\\\p{C}]|(?:\\(?:["\\/bfnrt]|u[a-fA-F\d]{4})))*"/uy,
+  start_chars_hint: ["\""]
+})
+
+export const BooleanLiteral         = createToken({name: "Boolean", pattern: /true|false/})
+export const NullLiteral            = createToken({name: "Null", pattern: "null"})
 export const ArithmeticOperator     = createToken({name: "ArithmeticOperator", pattern: /[+\-*\/%]/})
 export const AdditiveOperator       = createToken({name: "AddOp", pattern: /[+-]/})
-export const MultiplicativeOperator = createToken({name: "MultOp", pattern: /[*\/%]/})
 export const DoubleVerticalBar      = createToken({name: "DoubleVerticalBar", pattern: "||"})
 export const DoubleAmpersand        = createToken({name: "DoubleAmpersand", pattern: "&&"})
 export const NotOperator            = createToken({name: "NotOperator", pattern: "!"})
 export const ComparisonOperator     = createToken({name: "ComparisonOperator", pattern: /==|!=|<>|>=|<=|<|>/})
-export const Null                   = createToken({name: "Null", pattern: "null"})
-export const True                   = createToken({name: "True", pattern: "true"})
-export const False                  = createToken({name: "False", pattern: "false"})
 export const LeftParen              = createToken({name: "LeftParen", pattern: "("})
 export const RightParen             = createToken({name: "RightParen", pattern: ")"})
 export const Identifier             = createToken({name: "Identifier", pattern: /[_a-zA-Z]\w*/})
@@ -79,8 +79,6 @@ export const allTokens = [
   WhiteSpace,
   // "keywords" appear before the Identifier
   Mode,
-  ArithmeticOperator,
-  AdditiveOperator,
   Exists,
   LikeRegex,
   Flag,
@@ -90,9 +88,12 @@ export const allTokens = [
   StartsWith,
   To,
   Last,
-  Null,
-  True,
-  False,
+  NullLiteral,
+  BooleanLiteral,
+  NumberLiteral,
+  StringLiteral,
+  ArithmeticOperator,
+  AdditiveOperator,
   ItemMethod,
   WildcardMember,
   // this one is after the other tokens that start with '.'
@@ -104,8 +105,6 @@ export const allTokens = [
   // The Identifier must appear after the keywords because all keywords are valid identifiers.
   // Identifier,
   Integer,
-  Number,
-  StringLiteral,
   ComparisonOperator,
   NotOperator,
   Variable,
@@ -118,3 +117,20 @@ export const allTokens = [
   FilterValue
 ]
 
+function createRegexToken(configIn: ITokenConfig): TokenType {
+  const {pattern: regex, ...config} = configIn
+  if (!regex || !(regex instanceof RegExp)) {
+    throw new Error(`{pattern} must be a regular expression: regex`)
+  }
+  if (!regex.flags.includes("y")) {
+    throw new Error(`regex must be sticky ("y" flag): ${regex.source}`)
+  }
+  return createToken({
+    ...config,
+    pattern: (text, offset) => {
+      regex.lastIndex = offset
+      return regex.exec(text)
+    },
+    line_breaks: false
+  })
+}

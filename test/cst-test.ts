@@ -38,7 +38,7 @@ describe("SQL JSONPath CST", () => {
     })
   })
 
-  describe("Context variable tests", () => {
+  describe("Variable tests", () => {
 
     const expectedPrefix = "children.wff[0].children.left[0].children.primary[0].children.Variable"
 
@@ -55,6 +55,86 @@ describe("SQL JSONPath CST", () => {
     it("parses named variable with extra characters", () => {
       const actual = parseJsonPath("$m3@#x")
       expect(actual).to.have.nested.include({[`${expectedPrefix}[0].image`]: "$m3@#x"})
+    })
+  })
+
+  describe("Literal tests", () => {
+
+    const cstPrefix = "children.wff[0].children.left[0].children.primary[0].children.literal[0].children"
+
+    it("parses zero", () => {
+      const actual = parseJsonPath("0")
+      expect(actual).to.have.nested.include({[`${cstPrefix}.Number[0].image`]: "0"})
+    })
+
+    it("parses positive integer number", () => {
+      const actual = parseJsonPath("100")
+      expect(actual).to.have.nested.include({[`${cstPrefix}.Number[0].image`]: "100"})
+    })
+
+    it("parses negative integer number", () => {
+      const actual = parseJsonPath("-95")
+      expect(actual).to.have.nested.include({[`${cstPrefix}.Number[0].image`]: "-95"})
+    })
+
+    it("parses decimal number", () => {
+      const actual = parseJsonPath("-758.004")
+      expect(actual).to.have.nested.include({[`${cstPrefix}.Number[0].image`]: "-758.004"})
+    })
+
+    it("parses exponent number", () => {
+      const actual = parseJsonPath("-2.2e-33")
+      expect(actual).to.have.nested.include({[`${cstPrefix}.Number[0].image`]: "-2.2e-33"})
+    })
+
+    it("parses empty string", () => {
+      const actual = parseJsonPath("\"\"")
+      expect(actual).to.have.nested.include({[`${cstPrefix}.String[0].image`]: "\"\""})
+    })
+
+    it("parses sentence string", () => {
+      const actual = parseJsonPath("\"The quick, brown fox jumped over the lazy dog!\"")
+      expect(actual).to.have.nested.include({[`${cstPrefix}.String[0].image`]: "\"The quick, brown fox jumped over the lazy dog!\""})
+    })
+
+    it("parses unicode string", () => {
+      const actual = parseJsonPath("\"ब्राउन फक्स\"")
+      expect(actual).to.have.nested.include({[`${cstPrefix}.String[0].image`]: "\"ब्राउन फक्स\""})
+    })
+
+    it("parses emoji string", () => {
+      const actual = parseJsonPath("\"🟫🦊\"")
+      expect(actual).to.have.nested.include({[`${cstPrefix}.String[0].image`]: "\"🟫🦊\""})
+    })
+
+    it("parses string with quoted term", () => {
+      const actual = parseJsonPath('"Pete \\"Maverick\\" Pilot"')
+      expect(actual).to.have.nested.include({[`${cstPrefix}.String[0].image`]: '"Pete \\"Maverick\\" Pilot"'})
+    })
+
+    it("parses string with multiple escaped quotes", () => {
+      const actual = parseJsonPath('"\\"\\"\\""')
+      expect(actual).to.have.nested.include({[`${cstPrefix}.String[0].image`]: '"\\"\\"\\""'})
+    })
+
+    it("parses string with escaped invisible characters", () => {
+      const actual = parseJsonPath('"\\t\\r\\n\\b\\\\"')
+      expect(actual).to.have.nested.include({[`${cstPrefix}.String[0].image`]: '"\\t\\r\\n\\b\\\\"'})
+    })
+
+    it("parses exponent boolean true", () => {
+      const actual = parseJsonPath("true")
+      expect(actual).to.have.nested.include({[`${cstPrefix}.Boolean[0].image`]: "true"})
+    })
+
+    it("parses exponent boolean false", () => {
+      const actual = parseJsonPath("false")
+      expect(actual).to.have.nested.include({[`${cstPrefix}.Boolean[0].image`]: "false"})
+    })
+
+    it("parses null", () => {
+      const actual = parseJsonPath("null")
+      expect(actual).to.have.nested.property(`${cstPrefix}.Null`)
     })
   })
 

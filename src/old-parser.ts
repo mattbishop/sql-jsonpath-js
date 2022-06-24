@@ -13,7 +13,7 @@ import {
   RightParen,
   LeftParen,
   NotOperator,
-  ContextVariable,
+  Variable,
   PathSeparator,
   RightSquareBracket,
   StartFilterExpression,
@@ -46,7 +46,7 @@ export class OldJsonPathParser extends CstParser {
   })
 
   contextQuery = this.RULE("contextQuery", () => {
-    this.CONSUME(ContextVariable)
+    this.CONSUME(Variable)
     this.OPTION(() => {
       this.CONSUME(PathSeparator)
       this.SUBRULE(this.pathQuery, { LABEL: "path" })

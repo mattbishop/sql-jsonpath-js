@@ -362,8 +362,8 @@ NOTE: equality operators have the same precedence as inequality comparision oper
    2. A <JSON path identifier> that begins with a <dollar sign> is a <JSON path named variable>.
    3. Otherwise, a <JSON path identifier> is a <JSON path key name>.
 5) The value of a <JSON path literal> is determined as follows:
-   4. The value of a <JSON path numeric literal> JPNL is the value of the <signed numeric literal> whose characters are identical to JPNL.
-   5. The value of a <JSON path string literal> JPSL is an SQL character string whose character set is Unicode and whose characters are the ones enclosed by single or double quotation marks (but excluding these delimiters) in JPSL after replacing any escape sequences by their unescaped equivalents.
-   6. The value of null is the SQL/JSON null.
-   7. The value of true is True.
-   8. The value of false is False.
+   1. The value of a <JSON path numeric literal> JPNL is the value of the <signed numeric literal> whose characters are identical to JPNL.
+   2. The value of a <JSON path string literal> JPSL is an SQL character string whose character set is Unicode and whose characters are the ones enclosed by single or double quotation marks (but excluding these delimiters) in JPSL after replacing any escape sequences by their unescaped equivalents. This is not the same as a JSON string.
+   3. The value of null is the SQL/JSON null.
+   4. The value of true is True.
+   5. The value of false is False.

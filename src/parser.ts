@@ -2,10 +2,13 @@ import {CstParser} from "chevrotain"
 import {
   allTokens,
   ArithmeticOperator,
+  BooleanLiteral,
   Flag,
   FlagValue,
   LikeRegex,
   Mode,
+  NullLiteral,
+  NumberLiteral,
   StringLiteral,
   Member,
   LeftParen,
@@ -52,7 +55,7 @@ export class JsonPathParser extends CstParser {
 
   pathPrimary = this.RULE("primary", () => {
     this.OR([
-//      { ALT: () => this.SUBRULE(this.pathLiteral) },
+      { ALT: () => this.SUBRULE(this.pathLiteral) },
       { ALT: () => this.CONSUME(Variable) },
       { ALT: () => {
           this.CONSUME(LeftParen)
@@ -63,6 +66,23 @@ export class JsonPathParser extends CstParser {
     ])
   })
 
+  /*
+    The value of a <JSON path literal> is determined as follows:
+
+    1. The value of a <JSON path numeric literal> JPNL is the value of the <signed numeric literal> whose characters are identical to JPNL.
+    2. The value of a <JSON path string literal> JPSL is an SQL character string whose character set is Unicode and whose characters are the ones enclosed by single or double quotation marks (but excluding these delimiters) in JPSL after replacing any escape sequences by their unescaped equivalents.
+    3. The value of null is the SQL/JSON null.
+    4. The value of true is True.
+    5. The value of false is False.
+   */
+  pathLiteral = this.RULE("literal", () => {
+    this.OR([
+      { ALT: () => this.CONSUME(NumberLiteral) },
+      { ALT: () => this.CONSUME(StringLiteral) },
+      { ALT: () => this.CONSUME(BooleanLiteral) },
+      { ALT: () => this.CONSUME(NullLiteral) },
+    ])
+  })
 
 
   unaryExpression = this.RULE("unaryExp", () => {
