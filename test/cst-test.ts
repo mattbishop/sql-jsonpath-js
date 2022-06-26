@@ -155,6 +155,23 @@ describe("SQL JSONPath CST", () => {
       expect(actual).to.nested.include({[`${expectedPrefix}.ArithmeticOperator[0].image`]: "*"})
       expect(actual).to.have.nested.property(`${expectedPrefix}.right[0].children.primary[0].children.Variable`)
     })
+
+    it("scopes with parentheses", () => {
+      const actual = parseJsonPath("($)")
+      const expectedPrefix = "children.wff[0].children.left[0].children.primary[0]"
+      expect(actual).to.have.nested.property(`${expectedPrefix}.children.LeftParen`)
+      expect(actual).to.have.nested.property(`${expectedPrefix}.${expectedPrefix}.children.Variable`)
+      expect(actual).to.have.nested.property(`${expectedPrefix}.children.RightParen`)
+    })
+
+    it("scopes with nested parentheses", () => {
+      const actual = parseJsonPath("(($))")
+      const expectedPrefix = "children.wff[0].children.left[0].children.primary[0]"
+      expect(actual).to.have.nested.property(`${expectedPrefix}.children.LeftParen`)
+      expect(actual).to.have.nested.property(`${expectedPrefix}.${expectedPrefix}.children.LeftParen`)
+      expect(actual).to.have.nested.property(`${expectedPrefix}.${expectedPrefix}.${expectedPrefix}.children.Variable`)
+      expect(actual).to.have.nested.property(`${expectedPrefix}.${expectedPrefix}.children.RightParen`)
+    })
   })
 
   describe("Member tests", () => {
