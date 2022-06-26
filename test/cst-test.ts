@@ -40,21 +40,21 @@ describe("SQL JSONPath CST", () => {
 
   describe("Variable tests", () => {
 
-    const expectedPrefix = "children.wff[0].children.left[0].children.primary[0].children.Variable"
+    const cstPrefix = "children.wff[0].children.left[0].children.primary[0].children.Variable"
 
     it("parses context variable", () => {
       const actual = parseJsonPath("$")
-      expect(actual).to.have.nested.property(expectedPrefix)
+      expect(actual).to.have.nested.property(cstPrefix)
     })
 
     it("parses named variable with word characters", () => {
       const actual = parseJsonPath("$book")
-      expect(actual).to.have.nested.include({[`${expectedPrefix}[0].image`]: "$book"})
+      expect(actual).to.have.nested.include({[`${cstPrefix}[0].image`]: "$book"})
     })
 
     it("parses named variable with extra characters", () => {
       const actual = parseJsonPath("$m3@#x")
-      expect(actual).to.have.nested.include({[`${expectedPrefix}[0].image`]: "$m3@#x"})
+      expect(actual).to.have.nested.include({[`${cstPrefix}[0].image`]: "$m3@#x"})
     })
   })
 
@@ -140,28 +140,28 @@ describe("SQL JSONPath CST", () => {
 
   describe("wff tests", () => {
 
-    const expectedPrefix = "children.wff[0].children"
+    const cstPrefix = "children.wff[0].children"
 
     it("adds ContextVariable and MemberVariable", () => {
       const actual = parseJsonPath("$ + $car")
-      expect(actual).to.have.nested.property(`${expectedPrefix}.left[0].children.primary[0].children.Variable`)
-      expect(actual).to.nested.include({[`${expectedPrefix}.ArithmeticOperator[0].image`]: "+"})
-      expect(actual).to.have.nested.property(`${expectedPrefix}.right[0].children.primary[0].children.Variable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.left[0].children.primary[0].children.Variable`)
+      expect(actual).to.nested.include({[`${cstPrefix}.ArithmeticOperator[0].image`]: "+"})
+      expect(actual).to.have.nested.property(`${cstPrefix}.right[0].children.primary[0].children.Variable`)
     })
 
     it("multiplies MemberVariable and ContextVariable with no whitespace", () => {
       const actual = parseJsonPath("$bling*$")
-      expect(actual).to.have.nested.property(`${expectedPrefix}.left[0].children.primary[0].children.Variable`)
-      expect(actual).to.nested.include({[`${expectedPrefix}.ArithmeticOperator[0].image`]: "*"})
-      expect(actual).to.have.nested.property(`${expectedPrefix}.right[0].children.primary[0].children.Variable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.left[0].children.primary[0].children.Variable`)
+      expect(actual).to.nested.include({[`${cstPrefix}.ArithmeticOperator[0].image`]: "*"})
+      expect(actual).to.have.nested.property(`${cstPrefix}.right[0].children.primary[0].children.Variable`)
     })
 
     it("scopes with parentheses", () => {
       const actual = parseJsonPath("($)")
-      const expectedPrefix = "children.wff[0].children.left[0].children.primary[0]"
-      expect(actual).to.have.nested.property(`${expectedPrefix}.children.LeftParen`)
-      expect(actual).to.have.nested.property(`${expectedPrefix}.${expectedPrefix}.children.Variable`)
-      expect(actual).to.have.nested.property(`${expectedPrefix}.children.RightParen`)
+      const cstPrefix = "children.wff[0].children.left[0].children.primary[0]"
+      expect(actual).to.have.nested.property(`${cstPrefix}.children.LeftParen`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.${cstPrefix}.children.Variable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.children.RightParen`)
     })
 
     it("scopes with nested parentheses", () => {
@@ -174,15 +174,37 @@ describe("SQL JSONPath CST", () => {
     })
   })
 
-  describe("Member tests", () => {
-    it("parses ASCII member names", () => {
-      const actual = parseJsonPath(".matt", () => parser.memberRule())
-      expect(actual).to.nested.include({"children.Member[0].image": ".matt"})
+  describe("Accessor expression tests", () => {
+    const cstPrefix = "children.wff[0].children.left[0].children"
+
+    it("ASCII member names", () => {
+      const actual = parseJsonPath("$.matt")
+      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.Variable`)
+      expect(actual).to.nested.include({[`${cstPrefix}.accessorOp[0].children.Member[0].image`]: ".matt"})
     })
 
-    it("parses Emoji member names", () => {
-      const actual = parseJsonPath(".ಠ_ಠ", () => parser.memberRule())
-      expect(actual).to.nested.include({"children.Member[0].image": ".ಠ_ಠ"})
+    it("Emoji member names", () => {
+      const actual = parseJsonPath("$.ಠ_ಠ")
+      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.Variable`)
+      expect(actual).to.nested.include({[`${cstPrefix}.accessorOp[0].children.Member[0].image`]: ".ಠ_ಠ"})
+    })
+
+    it("Wildcard member", () => {
+      const actual = parseJsonPath("$.*")
+      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.Variable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.accessorOp[0].children.WildcardMember`)
+    })
+
+    it("Wildcard array", () => {
+      const actual = parseJsonPath("$[*]")
+      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.Variable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.accessorOp[0].children.WildcardArray`)
+    })
+
+    it("item method", () => {
+      const actual = parseJsonPath("$.size()")
+      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.Variable`)
+      expect(actual).to.nested.include({[`${cstPrefix}.accessorOp[0].children.ItemMethod[0].image`]: ".size()"})
     })
   })
 

@@ -5,6 +5,7 @@ import {
   BooleanLiteral,
   Flag,
   FlagValue,
+  ItemMethod,
   LikeRegex,
   Mode,
   NullLiteral,
@@ -13,7 +14,9 @@ import {
   Member,
   LeftParen,
   RightParen,
-  Variable
+  Variable,
+  WildcardArray,
+  WildcardMember
 } from "./tokens"
 
 
@@ -40,19 +43,6 @@ export class JsonPathParser extends CstParser {
   })
 
 
-  accessorExpression = this.RULE("accessorExp", () => {
-    this.OR([
-      { ALT: () => this.SUBRULE(this.pathPrimary) },
-/* Can't refer to yourself, I have to move this into a separate rule and call SUBRULE
-      { ALT: () => {
-          this.SUBRULE(this.accessorExpression)
-          this.CONSUME(this.accessorOp)
-        }
-      }
-*/
-    ])
-  })
-
   pathPrimary = this.RULE("primary", () => {
     this.OR([
       { ALT: () => this.SUBRULE(this.pathLiteral) },
@@ -66,21 +56,46 @@ export class JsonPathParser extends CstParser {
     ])
   })
 
-  /*
-    The value of a <JSON path literal> is determined as follows:
 
-    1. The value of a <JSON path numeric literal> JPNL is the value of the <signed numeric literal> whose characters are identical to JPNL.
-    2. The value of a <JSON path string literal> JPSL is an SQL character string whose character set is Unicode and whose characters are the ones enclosed by single or double quotation marks (but excluding these delimiters) in JPSL after replacing any escape sequences by their unescaped equivalents.
-    3. The value of null is the SQL/JSON null.
-    4. The value of true is True.
-    5. The value of false is False.
-   */
   pathLiteral = this.RULE("literal", () => {
     this.OR([
       { ALT: () => this.CONSUME(NumberLiteral) },
       { ALT: () => this.CONSUME(StringLiteral) },
       { ALT: () => this.CONSUME(BooleanLiteral) },
       { ALT: () => this.CONSUME(NullLiteral) },
+    ])
+  })
+
+
+  accessorExpression = this.RULE("accessorExp", () => {
+    this.SUBRULE(this.pathPrimary)
+    this.OPTION(() => this.SUBRULE(this.accessorOp))
+/*
+    <JSON accessor expression> ::=
+            <JSON path primary>
+          | <JSON accessor expression> <JSON accessor op>
+
+    This matches BNF, but has left recursion. I don't see any actual recursion, but keeping this around until I know for sure.
+    this.OR([
+      { ALT: () => this.SUBRULE(this.pathPrimary) },
+      { ALT: () => {
+          this.SUBRULE(this.accessorExpression)
+          this.SUBRULE2(this.accessorOp)
+        }}
+    ])
+*/
+  })
+
+
+  accessorOp = this.RULE("accessorOp", () => {
+    this.OR([
+      { ALT: () => this.CONSUME(Member) },
+      { ALT: () => this.CONSUME(WildcardMember) },
+      { ALT: () => this.CONSUME(WildcardArray) },
+      { ALT: () => this.CONSUME(ItemMethod) },
+//      { ALT: () => this.SUBRULE(arrayAccessor) },
+// filterExpression seems out of place here, but we'll see.
+//      { ALT: () => this.SUBRULE(filterExpression) },
     ])
   })
 
@@ -95,10 +110,6 @@ export class JsonPathParser extends CstParser {
     ])
   })
 
-  memberRule = this.RULE("member", () => {
-    this.CONSUME(Member)
-  })
-
 
   likeRegex = this.RULE("likeRegex", () => {
     this.CONSUME(LikeRegex)
@@ -108,6 +119,4 @@ export class JsonPathParser extends CstParser {
       this.CONSUME(FlagValue)
     })
   })
-
-
 }
