@@ -7,7 +7,7 @@ import {
   Exists,
   FilterValue,
   Identifier,
-  Integer,
+  NumberLiteral,
   Mode,
   LeftBracket,
   RightParen,
@@ -77,7 +77,7 @@ export class OldJsonPathParser extends CstParser {
       this.SUBRULE(this.conditionalOperator, { LABEL: "operator" })
       this.OR([
         { ALT: () => this.CONSUME(StringLiteral, { LABEL: "stringLiteral" }) },
-        { ALT: () => this.CONSUME(Integer, { LABEL: "number" }) }
+        { ALT: () => this.CONSUME(NumberLiteral, { LABEL: "number" }) }
       ])
     })
   })
@@ -123,7 +123,7 @@ export class OldJsonPathParser extends CstParser {
     ])
     this.OR2([
       { ALT: () => this.SUBRULE1(this.group, { LABEL: "rhs_group" }) },
-      { ALT: () => this.CONSUME1(Integer, { LABEL: "rhs_integer" }) },
+      { ALT: () => this.CONSUME1(NumberLiteral, { LABEL: "rhs_integer" }) },
       { ALT: () => this.CONSUME1(Last, { LABEL: "rhs_last" }) }
     ])
   })
@@ -131,7 +131,7 @@ export class OldJsonPathParser extends CstParser {
   wff = this.RULE("wff", () => {
     this.OR([
       { ALT: () => this.SUBRULE(this.group, { LABEL: "lhs_group" }) },
-      { ALT: () => this.CONSUME(Integer, { LABEL: "lhs_integer" }) },
+      { ALT: () => this.CONSUME(NumberLiteral, { LABEL: "lhs_integer" }) },
       { ALT: () => this.CONSUME(Last, { LABEL: "lhs_last" }) }
     ])
     this.MANY(() => {

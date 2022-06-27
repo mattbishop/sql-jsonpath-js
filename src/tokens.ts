@@ -32,16 +32,16 @@ export const Exists           = createToken({name: "Exists", pattern: /exists\s/
 export const LikeRegex        = createToken({name: "LikeRegex", pattern: /\slike_regex\s/})
 export const Flag             = createToken({name: "Flag", pattern: /\sflag\s/})
 export const FlagValue        = createToken({name: "FlagValue", pattern: /"[imsq]{1,4}"/})
-// doesn't need white space around it
+// Spec calls for whitespace
 export const StartsWith       = createToken({name: "StartsWith", pattern: /\sstarts\s+with\s/})
+// Spec calls for whitespace
 export const IsUnknown        = createToken({name: "IsUnknown", pattern: /\sis\s+unknown/})
 
 
 
 // lexical
 export const Comma                  = createToken({name: "Comma", pattern: ","})
-// SQL JSON Path has stricter number patterns than JS. for instance, +10 is not legal, nor is '2.' without a trailing '0'.
-export const Integer                = createToken({name: "Integer", pattern: /0|-?[1-9]\d*/})
+// SQL JSON Path has a stricter number pattern than JS. for instance, +10 is not legal, nor is '2.' without a trailing '0'.
 export const NumberLiteral          = createToken({name: "Number", pattern: /-?(?:0(?:\.\d+)?|[1-9]\d*(?:\.\d+)?)(?:[eE]-?[1-9]\d*)?/})
 
 // JSON string pattern, using unicode; {Cc} character class defined: https://www.regular-expressions.info/unicode.html#category
@@ -79,13 +79,11 @@ export const Wildcard               = createToken({name: "Wildcard", pattern: "*
 
 // order matters when tokens start with the same matching characters
 export const allTokens = [
-  // "keywords" appear before the Identifier
   Mode,
   Exists,
   LikeRegex,
   Flag,
   FlagValue,
-  // how is this going to work, with the whitespace?
   IsUnknown,
   StartsWith,
   To,
@@ -98,20 +96,14 @@ export const allTokens = [
   AdditiveOperator,
   ItemMethod,
   WildcardMember,
-  // this one is after the other tokens that start with '.'
   Member,
   WildcardArray,
-  // after wildcard array
   LeftBracket,
   RightBracket,
-  // The Identifier must appear after the keywords because all keywords are valid identifiers.
-  // Identifier,
-  Integer,
   ComparisonOperator,
   NotOperator,
   Variable,
   Comma,
-//  DoubleVerticalBar,
   DoubleAmpersand,
   LeftParen,
   RightParen,
@@ -123,7 +115,7 @@ export const allTokens = [
 function createRegexToken(configIn: ITokenConfig): TokenType {
   const {pattern: regex, ...config} = configIn
   if (!regex || !(regex instanceof RegExp)) {
-    throw new Error(`{pattern} must be a regular expression: regex`)
+    throw new Error(`pattern must be a regular expression: ${JSON.stringify(regex)}`)
   }
   if (!regex.flags.includes("y")) {
     throw new Error(`regex must be sticky ("y" flag): ${regex.source}`)
