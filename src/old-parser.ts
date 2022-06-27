@@ -9,14 +9,14 @@ import {
   Identifier,
   Integer,
   Mode,
-  LeftSquareBracket,
+  LeftBracket,
   RightParen,
   LeftParen,
   NotOperator,
   Variable,
   PathSeparator,
-  RightSquareBracket,
-  StartFilterExpression,
+  RightBracket,
+  FilterExpression,
   StringLiteral,
   To,
   Last,
@@ -61,7 +61,7 @@ export class OldJsonPathParser extends CstParser {
   })
 
   filterExpression = this.RULE("filterExpression", () => {
-    this.CONSUME(StartFilterExpression)
+    this.CONSUME(FilterExpression)
     this.CONSUME(LeftParen)
     this.OPTION(() => this.CONSUME(NotOperator))
     this.OR([
@@ -140,7 +140,7 @@ export class OldJsonPathParser extends CstParser {
   })
 
   arrayAccessor = this.RULE("arrayAccessor", () => {
-    this.CONSUME(LeftSquareBracket)
+    this.CONSUME(LeftBracket)
     this.AT_LEAST_ONE_SEP({
       SEP: Comma,
       DEF: () => {
@@ -148,7 +148,7 @@ export class OldJsonPathParser extends CstParser {
           { ALT: () => this.CONSUME(Wildcard, { LABEL: "wildcard" }) },
           { ALT: () => this.SUBRULE(this.wff) }
         ])
-        this.OPTION(() => this.CONSUME(RightSquareBracket))
+        this.OPTION(() => this.CONSUME(RightBracket))
       }
     })
   })

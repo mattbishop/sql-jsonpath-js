@@ -4,47 +4,50 @@ import {createToken, Lexer, TokenType} from "chevrotain"
 export const Mode                   = createToken({name: "Mode", pattern: /lax|strict/})
 // Both context and named variables. Named variables match SQL standard for alias names.
 export const Variable               = createToken({name: "Variable", pattern: /\$(?:[a-zA-Z][\w#@$]{0,255})?/})
-export const ItemMethod             = createToken({name: "ItemMethod", pattern: /\.(?:type|size|double|ceiling|floor|abs|datetime|keyvalue)\(\)/})
-export const WildcardMember         = createToken({name: "WildcardMember", pattern: ".*"})
+export const ItemMethod             = createToken({name: "ItemMethod", pattern: /\.\s*(?:type|size|double|ceiling|floor|abs|datetime|keyvalue)\s*\(\s*\)/})
+export const WildcardMember         = createToken({name: "WildcardMember", pattern: /\.\s*\*/})
 
 // first char is '.' so the rest can be the unicode ID character set
 export const Member = createRegexToken({
   name:             "Member",
-  pattern:          /\.\p{ID_Start}\p{ID_Continue}*/uy,
+  pattern:          /\.\s*\p{ID_Start}\p{ID_Continue}*/uy,
   start_chars_hint: ["."]
 })
 
 
 // arrays
-export const WildcardArray          = createToken({name: "WildcardArray", pattern: "[*]"})
-export const LeftSquareBracket      = createToken({name: "LeftSquareBracket", pattern: "["})
-export const RightSquareBracket     = createToken({name: "RightSquareBracket", pattern: "]"})
-export const Last                   = createToken({name: "Last", pattern: "last"})
-export const To                     = createToken({name: "To", pattern: "to"})
+export const WildcardArray  = createToken({name: "WildcardArray", pattern: /\[\s*\*\s*]/})
+export const LeftBracket    = createToken({name: "LeftBracket", pattern: "["})
+export const RightBracket   = createToken({name: "RightBracket", pattern: "]"})
+export const Last           = createToken({name: "Last", pattern: "last"})
+// Spec calls for whitespace
+export const To             = createToken({name: "To", pattern: /\sto\s/})
 
 
 // predicate
-export const StartFilterExpression  = createToken({name: "StartFilterExpression", pattern: "?"})
-export const FilterValue            = createToken({name: "FilterValue", pattern: "@"})
-export const Exists                 = createToken({name: "Exists", pattern: "exists"})
-export const LikeRegex              = createToken({name: "LikeRegex", pattern: "like_regex"})
-export const Flag                   = createToken({name: "Flag", pattern: "flag"})
-export const FlagValue              = createToken({name: "FlagValue", pattern: /"[imsq]{1,4}"/})
-export const StartsWith             = createToken({name: "StartsWith", pattern: "starts with"})
-export const IsUnknown              = createToken({name: "IsUnknown", pattern: "is unknown"})
+export const FilterExpression = createToken({name: "FilterExpression", pattern: "?"})
+export const FilterValue      = createToken({name: "FilterValue", pattern: "@"})
+// Spec calls for whitespace
+export const Exists           = createToken({name: "Exists", pattern: /exists\s/})
+export const LikeRegex        = createToken({name: "LikeRegex", pattern: /\slike_regex\s/})
+export const Flag             = createToken({name: "Flag", pattern: /\sflag\s/})
+export const FlagValue        = createToken({name: "FlagValue", pattern: /"[imsq]{1,4}"/})
+// doesn't need white space around it
+export const StartsWith       = createToken({name: "StartsWith", pattern: /\sstarts\s+with\s/})
+export const IsUnknown        = createToken({name: "IsUnknown", pattern: /\sis\s+unknown/})
 
 
 
 // lexical
 export const Comma                  = createToken({name: "Comma", pattern: ","})
-// SQL JSON Path has stricter number declarations than JS. for instance, +10 is not legal, nor is '2.' without a trailing '0'.
+// SQL JSON Path has stricter number patterns than JS. for instance, +10 is not legal, nor is '2.' without a trailing '0'.
 export const Integer                = createToken({name: "Integer", pattern: /0|-?[1-9]\d*/})
 export const NumberLiteral          = createToken({name: "Number", pattern: /-?(?:0(?:\.\d+)?|[1-9]\d*(?:\.\d+)?)(?:[eE]-?[1-9]\d*)?/})
 
-// JSON string pattern, using unicode; {C} character class defined: https://www.regular-expressions.info/unicode.html#category
+// JSON string pattern, using unicode; {Cc} character class defined: https://www.regular-expressions.info/unicode.html#category
 export const StringLiteral = createRegexToken({
   name:             "String",
-  pattern:          /"(?:[^"\\\p{C}]|(?:\\(?:["\\/bfnrt]|u[a-fA-F\d]{4})))*"/uy,
+  pattern:          /"(?:[^"\\\p{Cc}]|(?:\\(?:["\\/bfnrt]|u[a-fA-F\d]{4})))*"/uy,
   start_chars_hint: ["\""]
 })
 
@@ -76,7 +79,6 @@ export const Wildcard               = createToken({name: "Wildcard", pattern: "*
 
 // order matters when tokens start with the same matching characters
 export const allTokens = [
-  WhiteSpace,
   // "keywords" appear before the Identifier
   Mode,
   Exists,
@@ -100,8 +102,8 @@ export const allTokens = [
   Member,
   WildcardArray,
   // after wildcard array
-  LeftSquareBracket,
-  RightSquareBracket,
+  LeftBracket,
+  RightBracket,
   // The Identifier must appear after the keywords because all keywords are valid identifiers.
   // Identifier,
   Integer,
@@ -113,8 +115,9 @@ export const allTokens = [
   DoubleAmpersand,
   LeftParen,
   RightParen,
-  StartFilterExpression,
-  FilterValue
+  FilterExpression,
+  FilterValue,
+  WhiteSpace
 ]
 
 function createRegexToken(configIn: ITokenConfig): TokenType {

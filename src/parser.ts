@@ -16,7 +16,12 @@ import {
   RightParen,
   Variable,
   WildcardArray,
-  WildcardMember
+  WildcardMember,
+  LeftBracket,
+  RightBracket,
+  Comma,
+  To,
+  Last
 } from "./tokens"
 
 
@@ -37,7 +42,7 @@ export class JsonPathParser extends CstParser {
     this.SUBRULE(this.accessorExpression, { LABEL: "left" })
     this.MANY(() => {
         this.CONSUME(ArithmeticOperator)
-        this.SUBRULE2(this.accessorExpression, { LABEL: "right" })
+        this.SUBRULE1(this.accessorExpression, { LABEL: "right" })
       }
     )
   })
@@ -46,6 +51,10 @@ export class JsonPathParser extends CstParser {
   pathPrimary = this.RULE("primary", () => {
     this.OR([
       { ALT: () => this.SUBRULE(this.pathLiteral) },
+      // needs to be in "array" mode. Can't put it in subscript as it has to be handled as a wff part.
+      { ALT: () => this.CONSUME(Last) },
+      // Needs to be in "filter" mode
+//      { ALT: () => this.CONSUME(FilterValue) },
       { ALT: () => this.CONSUME(Variable) },
       { ALT: () => {
           this.CONSUME(LeftParen)
@@ -69,7 +78,7 @@ export class JsonPathParser extends CstParser {
 
   accessorExpression = this.RULE("accessorExp", () => {
     this.SUBRULE(this.pathPrimary)
-    this.OPTION(() => this.SUBRULE(this.accessorOp))
+    this.OPTION(() => this.SUBRULE(this.accessor))
 /*
     <JSON accessor expression> ::=
             <JSON path primary>
@@ -80,23 +89,42 @@ export class JsonPathParser extends CstParser {
       { ALT: () => this.SUBRULE(this.pathPrimary) },
       { ALT: () => {
           this.SUBRULE(this.accessorExpression)
-          this.SUBRULE2(this.accessorOp)
+          this.SUBRULE1(this.accessorOp)
         }}
     ])
 */
   })
 
 
-  accessorOp = this.RULE("accessorOp", () => {
+  accessor = this.RULE("accessor", () => {
     this.OR([
       { ALT: () => this.CONSUME(Member) },
       { ALT: () => this.CONSUME(WildcardMember) },
       { ALT: () => this.CONSUME(WildcardArray) },
       { ALT: () => this.CONSUME(ItemMethod) },
-//      { ALT: () => this.SUBRULE(arrayAccessor) },
+      { ALT: () => this.SUBRULE(this.arrayAccessor) }
 // filterExpression seems out of place here, but we'll see.
 //      { ALT: () => this.SUBRULE(filterExpression) },
     ])
+  })
+
+
+  arrayAccessor = this.RULE("array", () => {
+    this.CONSUME(LeftBracket)
+    this.AT_LEAST_ONE_SEP({
+      SEP: Comma,
+      DEF: () => this.SUBRULE(this.subscript)
+    })
+    this.CONSUME(RightBracket)
+  })
+
+
+  subscript = this.RULE("subscript", () => {
+    this.SUBRULE(this.wff)
+    this.OPTION(() => {
+      this.CONSUME(To)
+      this.SUBRULE1(this.wff)
+    })
   })
 
 
@@ -105,7 +133,7 @@ export class JsonPathParser extends CstParser {
       { ALT: () => this.SUBRULE(this.accessorExpression, {LABEL: "ul"}) },
       { ALT: () => {
           this.CONSUME(ArithmeticOperator)
-          this.SUBRULE2(this.unaryExpression, { LABEL: "ur" })
+          this.SUBRULE1(this.unaryExpression, { LABEL: "ur" })
       }}
     ])
   })
