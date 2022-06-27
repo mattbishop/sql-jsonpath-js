@@ -128,17 +128,6 @@ export class JsonPathParser extends CstParser {
   })
 
 
-  unaryExpression = this.RULE("unaryExp", () => {
-    this.OR([
-      { ALT: () => this.SUBRULE(this.accessorExpression, {LABEL: "ul"}) },
-      { ALT: () => {
-          this.CONSUME(ArithmeticOperator)
-          this.SUBRULE1(this.unaryExpression, { LABEL: "ur" })
-      }}
-    ])
-  })
-
-
   likeRegex = this.RULE("likeRegex", () => {
     this.CONSUME(LikeRegex)
     this.CONSUME(StringLiteral, { LABEL: "pattern" })
