@@ -148,7 +148,7 @@ describe("SQL JSONPath CST", () => {
     const cstPrefix = "children.wff[0].children"
 
     it("adds ContextVariable and MemberVariable", () => {
-      const actual = parseJsonPath("$ + $car")
+      const actual = parseJsonPath("$\n+\r$car")
       expect(actual).to.have.nested.property(`${cstPrefix}.left[0].children.primary[0].children.Variable`)
       expect(actual).to.nested.include({[`${cstPrefix}.ArithmeticOperator[0].image`]: "+"})
       expect(actual).to.have.nested.property(`${cstPrefix}.right[0].children.primary[0].children.Variable`)
@@ -219,7 +219,7 @@ describe("SQL JSONPath CST", () => {
     })
 
     it("Wildcard array with spaces", () => {
-      const actual = parseJsonPath("$[ * ]")
+      const actual = parseJsonPath("$[ *\n]")
       expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.Variable`)
       expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.WildcardArray`)
     })

@@ -41,9 +41,10 @@ export const IsUnknown        = createToken({name: "IsUnknown", pattern: /\sis\s
 
 // lexical
 export const Comma                  = createToken({name: "Comma", pattern: ","})
+export const NullLiteral            = createToken({name: "Null", pattern: "null"})
+export const BooleanLiteral         = createToken({name: "Boolean", pattern: /true|false/})
 // SQL JSON Path has a stricter number pattern than JS. for instance, +10 is not legal, nor is '2.' without a trailing '0'.
 export const NumberLiteral          = createToken({name: "Number", pattern: /-?(?:0(?:\.\d+)?|[1-9]\d*(?:\.\d+)?)(?:[eE]-?[1-9]\d*)?/})
-
 // JSON string pattern, using unicode; {Cc} character class defined: https://www.regular-expressions.info/unicode.html#category
 export const StringLiteral = createRegexToken({
   name:             "String",
@@ -51,8 +52,6 @@ export const StringLiteral = createRegexToken({
   start_chars_hint: ["\""]
 })
 
-export const BooleanLiteral         = createToken({name: "Boolean", pattern: /true|false/})
-export const NullLiteral            = createToken({name: "Null", pattern: "null"})
 export const ArithmeticOperator     = createToken({name: "ArithmeticOperator", pattern: /[+\-*\/%]/})
 export const AdditiveOperator       = createToken({name: "AddOp", pattern: /[+-]/})
 export const DoubleVerticalBar      = createToken({name: "DoubleVerticalBar", pattern: "||"})
@@ -66,8 +65,6 @@ export const Identifier             = createToken({name: "Identifier", pattern: 
 export const WhiteSpace = createToken({
   name: "WhiteSpace",
   pattern: /\s+/,
-  // may not be needed, but better to be explicit
-  line_breaks: true,
   group: Lexer.SKIPPED
 })
 
