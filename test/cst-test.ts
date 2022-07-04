@@ -24,7 +24,7 @@ describe("SQL JSONPath CST", () => {
 
     it("parses context variable without a mode", () => {
       const actual = parseJsonPath("$")
-      expect(actual).to.have.nested.property("children.wff[0].children.left[0].children.primary[0].children.Variable")
+      expect(actual).to.have.nested.property("children.wff[0].children.left[0].children.primary[0].children.ContextVariable")
     })
 
     it("parses lax mode", () => {
@@ -40,21 +40,21 @@ describe("SQL JSONPath CST", () => {
 
   describe("Variable tests", () => {
 
-    const cstPrefix = "children.wff[0].children.left[0].children.primary[0].children.Variable"
+    const cstPrefix = "children.wff[0].children.left[0].children.primary[0].children"
 
     it("parses context variable", () => {
       const actual = parseJsonPath("$")
-      expect(actual).to.have.nested.property(cstPrefix)
+      expect(actual).to.have.nested.property(`${cstPrefix}.ContextVariable`)
     })
 
     it("parses named variable with word characters", () => {
       const actual = parseJsonPath("$book")
-      expect(actual).to.have.nested.include({[`${cstPrefix}[0].image`]: "$book"})
+      expect(actual).to.have.nested.include({[`${cstPrefix}.NamedVariable[0].image`]: "$book"})
     })
 
     it("parses named variable with extra characters", () => {
       const actual = parseJsonPath("$m3@#x")
-      expect(actual).to.have.nested.include({[`${cstPrefix}[0].image`]: "$m3@#x"})
+      expect(actual).to.have.nested.include({[`${cstPrefix}.NamedVariable[0].image`]: "$m3@#x"})
     })
   })
 
@@ -149,23 +149,23 @@ describe("SQL JSONPath CST", () => {
 
     it("adds ContextVariable and MemberVariable", () => {
       const actual = parseJsonPath("$\n+\r$car")
-      expect(actual).to.have.nested.property(`${cstPrefix}.left[0].children.primary[0].children.Variable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.left[0].children.primary[0].children.ContextVariable`)
       expect(actual).to.nested.include({[`${cstPrefix}.ArithmeticOperator[0].image`]: "+"})
-      expect(actual).to.have.nested.property(`${cstPrefix}.right[0].children.primary[0].children.Variable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.right[0].children.primary[0].children.NamedVariable`)
     })
 
     it("multiplies MemberVariable and ContextVariable with no whitespace", () => {
       const actual = parseJsonPath("$bling*$")
-      expect(actual).to.have.nested.property(`${cstPrefix}.left[0].children.primary[0].children.Variable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.left[0].children.primary[0].children.NamedVariable`)
       expect(actual).to.nested.include({[`${cstPrefix}.ArithmeticOperator[0].image`]: "*"})
-      expect(actual).to.have.nested.property(`${cstPrefix}.right[0].children.primary[0].children.Variable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.right[0].children.primary[0].children.ContextVariable`)
     })
 
     it("scopes with parentheses", () => {
       const actual = parseJsonPath("($)")
       const cstPrefix = "children.wff[0].children.left[0].children.primary[0]"
       expect(actual).to.have.nested.property(`${cstPrefix}.children.LeftParen`)
-      expect(actual).to.have.nested.property(`${cstPrefix}.${cstPrefix}.children.Variable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.${cstPrefix}.children.ContextVariable`)
       expect(actual).to.have.nested.property(`${cstPrefix}.children.RightParen`)
     })
 
@@ -174,7 +174,7 @@ describe("SQL JSONPath CST", () => {
       const expectedPrefix = "children.wff[0].children.left[0].children.primary[0]"
       expect(actual).to.have.nested.property(`${expectedPrefix}.children.LeftParen`)
       expect(actual).to.have.nested.property(`${expectedPrefix}.${expectedPrefix}.children.LeftParen`)
-      expect(actual).to.have.nested.property(`${expectedPrefix}.${expectedPrefix}.${expectedPrefix}.children.Variable`)
+      expect(actual).to.have.nested.property(`${expectedPrefix}.${expectedPrefix}.${expectedPrefix}.children.ContextVariable`)
       expect(actual).to.have.nested.property(`${expectedPrefix}.${expectedPrefix}.children.RightParen`)
     })
   })
@@ -184,55 +184,55 @@ describe("SQL JSONPath CST", () => {
 
     it("ASCII member names", () => {
       const actual = parseJsonPath("$.matt")
-      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.Variable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
       expect(actual).to.nested.include({[`${cstPrefix}.accessor[0].children.Member[0].image`]: ".matt"})
     })
 
     it("Unicode member names", () => {
       const actual = parseJsonPath("$.ಠ_ಠ")
-      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.Variable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
       expect(actual).to.nested.include({[`${cstPrefix}.accessor[0].children.Member[0].image`]: ".ಠ_ಠ"})
     })
 
     it("Member names with spaces", () => {
       const actual = parseJsonPath("$. クッキー")
-      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.Variable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
       expect(actual).to.nested.include({[`${cstPrefix}.accessor[0].children.Member[0].image`]: ". クッキー"})
     })
 
     it("Wildcard member", () => {
       const actual = parseJsonPath("$.*")
-      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.Variable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
       expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.WildcardMember`)
     })
 
     it("Wildcard member with spaces", () => {
       const actual = parseJsonPath("$ . *")
-      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.Variable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
       expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.WildcardMember`)
     })
 
     it("Wildcard array", () => {
       const actual = parseJsonPath("$[*]")
-      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.Variable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
       expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.WildcardArray`)
     })
 
     it("Wildcard array with spaces", () => {
       const actual = parseJsonPath("$[ *\n]")
-      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.Variable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
       expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.WildcardArray`)
     })
 
     it("item method", () => {
       const actual = parseJsonPath("$.size()")
-      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.Variable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
       expect(actual).to.nested.include({[`${cstPrefix}.accessor[0].children.ItemMethod[0].image`]: ".size()"})
     })
 
     it("item method with spaces", () => {
       const actual = parseJsonPath("$.  keyvalue\t(\r)")
-      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.Variable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
       expect(actual).to.nested.include({[`${cstPrefix}.accessor[0].children.ItemMethod[0].image`]: ".  keyvalue\t(\r)"})
     })
   })
@@ -242,7 +242,7 @@ describe("SQL JSONPath CST", () => {
 
     it("accesses last element", () => {
       const actual = parseJsonPath("$[last]")
-      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.Variable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
       expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.array[0].children.LeftBracket`)
       expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.array[0].children.subscript[0].${cstPrefix}.primary[0].children.Last`)
       expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.array[0].children.RightBracket`)
@@ -250,7 +250,7 @@ describe("SQL JSONPath CST", () => {
 
     it("accesses range of elements with 'to'", () => {
       const actual = parseJsonPath("$[4 to last]")
-      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.Variable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
       expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.array[0].children.LeftBracket`)
       expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.array[0].children.subscript[0].${cstPrefix}.primary[0].children.literal[0].children.Number`)
       expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.array[0].children.subscript[0].children.To`)
@@ -260,7 +260,7 @@ describe("SQL JSONPath CST", () => {
 
     it("accesses comma-separated list of elements", () => {
       const actual = parseJsonPath("$[1, 3, 5]")
-      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.Variable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
       expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.array[0].children.LeftBracket`)
       expect(actual).to.nested.include({[`${cstPrefix}.accessor[0].children.array[0].children.subscript[0].${cstPrefix}.primary[0].children.literal[0].children.Number[0].image`]: "1"})
       expect(actual).to.nested.include({[`${cstPrefix}.accessor[0].children.array[0].children.subscript[1].${cstPrefix}.primary[0].children.literal[0].children.Number[0].image`]: "3"})

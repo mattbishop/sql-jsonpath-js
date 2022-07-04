@@ -14,14 +14,16 @@ import {
   Member,
   LeftParen,
   RightParen,
-  Variable,
+  ContextVariable,
+  NamedVariable,
   WildcardArray,
   WildcardMember,
   LeftBracket,
   RightBracket,
   Comma,
   To,
-  Last
+  Last,
+  FilterValue
 } from "./tokens"
 
 
@@ -50,12 +52,11 @@ export class JsonPathParser extends CstParser {
 
   pathPrimary = this.RULE("primary", () => {
     this.OR([
-      { ALT: () => this.SUBRULE(this.pathLiteral) },
-      // needs to be in "array" mode. Can't put it in subscript as it has to be handled as a wff part.
+      { ALT: () => this.CONSUME(NamedVariable) },
+      { ALT: () => this.CONSUME(ContextVariable) },
+      { ALT: () => this.CONSUME(FilterValue) },
       { ALT: () => this.CONSUME(Last) },
-      // Needs to be in "filter" mode
-//      { ALT: () => this.CONSUME(FilterValue) },
-      { ALT: () => this.CONSUME(Variable) },
+      { ALT: () => this.SUBRULE(this.pathLiteral) },
       { ALT: () => {
           this.CONSUME(LeftParen)
           this.SUBRULE(this.wff)
@@ -102,9 +103,8 @@ export class JsonPathParser extends CstParser {
       { ALT: () => this.CONSUME(WildcardMember) },
       { ALT: () => this.CONSUME(WildcardArray) },
       { ALT: () => this.CONSUME(ItemMethod) },
-      { ALT: () => this.SUBRULE(this.arrayAccessor) }
-// filterExpression seems out of place here, but we'll see.
-//      { ALT: () => this.SUBRULE(filterExpression) },
+      { ALT: () => this.SUBRULE(this.arrayAccessor) },
+      // { ALT: () => this.SUBRULE(this.filterExpression) }
     ])
   })
 
