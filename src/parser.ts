@@ -23,7 +23,13 @@ import {
   Comma,
   To,
   Last,
-  FilterValue
+  FilterValue,
+  PredicateStart,
+  StartsWith,
+  ComparisonOperator,
+  Exists,
+  IsUnknown,
+  NotOperator
 } from "./tokens"
 
 
@@ -104,7 +110,7 @@ export class JsonPathParser extends CstParser {
       { ALT: () => this.CONSUME(WildcardArray) },
       { ALT: () => this.CONSUME(ItemMethod) },
       { ALT: () => this.SUBRULE(this.arrayAccessor) },
-      // { ALT: () => this.SUBRULE(this.filterExpression) }
+      { ALT: () => this.SUBRULE(this.filterExpression) }
     ])
   })
 
@@ -125,6 +131,87 @@ export class JsonPathParser extends CstParser {
       this.CONSUME(To)
       this.SUBRULE1(this.wff)
     })
+  })
+
+
+  filterExpression = this.RULE("filter", () => {
+    this.CONSUME(PredicateStart)
+    this.SUBRULE(this.predicate)
+    this.CONSUME(RightParen)
+  })
+
+
+
+  negation = this.RULE("negation", () => {
+    this.OR([
+      { ALT: () => this.SUBRULE(this.predicate) },
+      { ALT: () => {
+          this.CONSUME(NotOperator)
+          this.SUBRULE(this.delimitedPredicate)
+        }
+      }
+    ])
+  })
+
+
+  delimitedPredicate = this.RULE("delimitedPredicate", () => {
+    this.OR([
+      { ALT: () => this.SUBRULE(this.exists) },
+      { ALT: () => this.SUBRULE(this.scopedPredicate) }
+    ])
+  })
+
+
+  predicate = this.RULE("predicate", () => {
+    this.OR([
+      { ALT: () => this.SUBRULE(this.likeRegex) },
+      // IGNORE_AMBIGUITIES because we are in a filter expression.
+      { ALT: () => this.SUBRULE(this.isUnknown), IGNORE_AMBIGUITIES: true },
+      { ALT: () => this.SUBRULE(this.delimitedPredicate), IGNORE_AMBIGUITIES: true },
+      { ALT: () => {
+          this.SUBRULE(this.wff)
+          this.OR1([
+             { ALT: () => this.SUBRULE(this.startsWith) },
+             { ALT: () => this.SUBRULE(this.comparison) },
+          ])
+        }
+      }
+    ])
+  })
+
+
+  scopedPredicate = this.RULE("scopedPredicate", () => {
+    this.CONSUME(LeftParen)
+    this.SUBRULE(this.predicate)
+    this.CONSUME(RightParen)
+  })
+
+
+  isUnknown = this.RULE("isUnknown", () => {
+    this.SUBRULE(this.scopedPredicate)
+    this.CONSUME(IsUnknown)
+  })
+
+
+  exists = this.RULE("exists", () => {
+    this.CONSUME(Exists)
+    this.SUBRULE(this.wff)
+    this.CONSUME(RightParen)
+  })
+
+
+  startsWith = this.RULE("startsWith", () => {
+    this.CONSUME(StartsWith)
+    this.OR([
+      { ALT: () => this.CONSUME(StringLiteral) },
+      { ALT: () => this.CONSUME(NamedVariable) }
+    ])
+  })
+
+
+  comparison = this.RULE("comparison", () => {
+    this.CONSUME(ComparisonOperator)
+    this.SUBRULE1(this.wff)
   })
 
 

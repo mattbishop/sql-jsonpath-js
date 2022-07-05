@@ -271,6 +271,22 @@ describe("SQL JSONPath CST", () => {
     })
   })
 
+  describe("Predicate tests", () => {
+    const cstPrefix = "children.wff[0].children.left[0].children"
+
+    it("exists", () => {
+      const actual = parseJsonPath("$ ? (exists(@))")
+      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
+
+      const filterPrefix = `${cstPrefix}.accessor[0].children.filter[0].children`
+      expect(actual).to.have.nested.property(`${filterPrefix}.PredicateStart`)
+      expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.delimitedPredicate[0].children.exists[0].children.Exists`)
+      expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.delimitedPredicate[0].children.exists[0].${cstPrefix}.primary[0].children.FilterValue`)
+      expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.delimitedPredicate[0].children.exists[0].children.RightParen`)
+      expect(actual).to.have.nested.property(`${filterPrefix}.RightParen`)
+    })
+  })
+
   describe("Filter tests", () => {
 
     describe("like_regex tests", () => {
