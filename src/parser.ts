@@ -4,7 +4,6 @@ import {
   ArithmeticOperator,
   BooleanLiteral,
   Flag,
-  FlagValue,
   ItemMethod,
   LikeRegex,
   Mode,
@@ -57,6 +56,7 @@ export class JsonPathParser extends CstParser {
 
 
   pathPrimary = this.RULE("primary", () => {
+    // todo more than 3 alts so cache them: https://chevrotain.io/docs/guide/performance.html#caching-arrays-of-alternatives
     this.OR([
       { ALT: () => this.CONSUME(NamedVariable) },
       { ALT: () => this.CONSUME(ContextVariable) },
@@ -73,6 +73,7 @@ export class JsonPathParser extends CstParser {
   })
 
 
+  // todo more than 3 alts so cache them: https://chevrotain.io/docs/guide/performance.html#caching-arrays-of-alternatives
   pathLiteral = this.RULE("literal", () => {
     this.OR([
       { ALT: () => this.CONSUME(NumberLiteral) },
@@ -103,6 +104,7 @@ export class JsonPathParser extends CstParser {
   })
 
 
+  // todo more than 3 alts so cache them: https://chevrotain.io/docs/guide/performance.html#caching-arrays-of-alternatives
   accessor = this.RULE("accessor", () => {
     this.OR([
       { ALT: () => this.CONSUME(Member) },
@@ -162,6 +164,7 @@ export class JsonPathParser extends CstParser {
   })
 
 
+  // todo more than 3 alts so cache them: https://chevrotain.io/docs/guide/performance.html#caching-arrays-of-alternatives
   predicate = this.RULE("predicate", () => {
     this.OR([
       { ALT: () => this.SUBRULE(this.likeRegex) },
@@ -220,7 +223,8 @@ export class JsonPathParser extends CstParser {
     this.CONSUME(StringLiteral, { LABEL: "pattern" })
     this.OPTION(() => {
       this.CONSUME(Flag)
-      this.CONSUME(FlagValue)
+      // /"[imsq]{1,4}"/
+      this.CONSUME1(StringLiteral)
     })
   })
 }

@@ -32,7 +32,6 @@ export const FilterValue      = createToken({name: "FilterValue", pattern: "@"})
 export const Exists           = createToken({name: "Exists", pattern: /exists\s?\(/})
 export const LikeRegex        = createToken({name: "LikeRegex", pattern: /\slike_regex\s/})
 export const Flag             = createToken({name: "Flag", pattern: /\sflag\s/})
-export const FlagValue        = createToken({name: "FlagValue", pattern: /"[imsq]{1,4}"/})
 // Spec calls for whitespace
 export const StartsWith       = createToken({name: "StartsWith", pattern: /\sstarts\s+with\s/})
 // Spec calls for whitespace
@@ -81,7 +80,6 @@ export const allTokens = [
   Exists,
   LikeRegex,
   Flag,
-  FlagValue,
   IsUnknown,
   StartsWith,
   To,
