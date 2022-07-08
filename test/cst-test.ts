@@ -13,8 +13,8 @@ function parseJsonPath(statement: string, parserPart = () => parser.jsonPathStat
   const cst = parserPart()
   if (parser.errors?.length) {
     console.error(parser.errors)
+    throw(parser.errors[0])
   }
-  expect(parser.errors).to.be.empty
   return cst
 }
 
@@ -188,6 +188,10 @@ describe("SQL JSONPath CST", () => {
       expect(actual).to.nested.include({[`${cstPrefix}.accessor[0].children.Member[0].image`]: ".matt"})
     })
 
+    it("$ start member name not allowed", () => {
+      expect(() => parseJsonPath("$.$matt")).to.throw("expecting EOF but found: $matt")
+    })
+
     it("Unicode member names", () => {
       const actual = parseJsonPath("$.ಠ_ಠ")
       expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
@@ -283,6 +287,20 @@ describe("SQL JSONPath CST", () => {
       expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.delimitedPredicate[0].children.exists[0].children.Exists`)
       expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.delimitedPredicate[0].children.exists[0].${cstPrefix}.primary[0].children.FilterValue`)
       expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.delimitedPredicate[0].children.exists[0].children.RightParen`)
+      expect(actual).to.have.nested.property(`${filterPrefix}.RightParen`)
+    })
+
+    it("is unknown", () => {
+      const actual = parseJsonPath("$ ? ((@.max > 1) is unknown)")
+      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
+
+      const filterPrefix = `${cstPrefix}.accessor[0].children.filter[0].children`
+      expect(actual).to.have.nested.property(`${filterPrefix}.PredicateStart`)
+      expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.isUnknown[0].children.IsUnknown`)
+      expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.isUnknown[0].children.scopedPredicate[0].children.predicate[0].${cstPrefix}.primary[0].children.FilterValue`)
+      expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.isUnknown[0].children.scopedPredicate[0].children.predicate[0].${cstPrefix}.accessor[0].children.Member`)
+      expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.isUnknown[0].children.scopedPredicate[0].children.predicate[0].children.comparison[0].children.ComparisonOperator`)
+      expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.isUnknown[0].children.scopedPredicate[0].children.predicate[0].children.comparison[0].${cstPrefix}.primary[0].children.literal[0].children.Number`)
       expect(actual).to.have.nested.property(`${filterPrefix}.RightParen`)
     })
   })
