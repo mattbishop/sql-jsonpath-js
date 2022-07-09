@@ -57,7 +57,7 @@ export const AdditiveOperator       = createToken({name: "AddOp", pattern: /[+-]
 export const DoubleVerticalBar      = createToken({name: "DoubleVerticalBar", pattern: "||"})
 export const DoubleAmpersand        = createToken({name: "DoubleAmpersand", pattern: "&&"})
 export const NotOperator            = createToken({name: "NotOperator", pattern: "!"})
-export const ComparisonOperator     = createToken({name: "ComparisonOperator", pattern: /==|!=|>=|<=|<|>/})
+export const ComparisonOperator     = createToken({name: "ComparisonOperator", pattern: /==|!=|>=|<=|<>|<|>/})
 export const LeftParen              = createToken({name: "LeftParen", pattern: "("})
 export const RightParen             = createToken({name: "RightParen", pattern: ")"})
 export const Identifier             = createToken({name: "Identifier", pattern: /[_a-zA-Z]\w*/})
