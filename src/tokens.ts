@@ -11,7 +11,8 @@ export const WildcardMember         = createToken({name: "WildcardMember", patte
 // first char is '.' so the rest can be the unicode ID character set
 export const Member = createRegexToken({
   name:             "Member",
-  pattern:          /\.\s*\p{ID_Start}\p{ID_Continue}*/uy,
+  // quoted string pattern identical to StringLiteral
+  pattern:          /\.\s*(?:(?:\p{ID_Start}\p{ID_Continue}*)|(?:"(?:[^"\\\p{Cc}]|(?:\\(?:["\\/bfnrt]|u[a-fA-F\d]{4})))*"))/uy,
   start_chars_hint: ["."]
 })
 

@@ -198,6 +198,12 @@ describe("SQL JSONPath CST", () => {
       expect(actual).to.nested.include({[`${cstPrefix}.accessor[0].children.Member[0].image`]: ".ಠ_ಠ"})
     })
 
+    it("Quoted member names", () => {
+      const actual = parseJsonPath("$.\"first name\"")
+      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
+      expect(actual).to.nested.include({[`${cstPrefix}.accessor[0].children.Member[0].image`]: ".\"first name\""})
+    })
+
     it("Member names with spaces", () => {
       const actual = parseJsonPath("$. クッキー")
       expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
