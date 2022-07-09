@@ -7,10 +7,10 @@ import {allTokens} from "../src/tokens"
 const JsonPathLexer = new Lexer(allTokens, { ensureOptimizations: true })
 const parser = new JsonPathParser()
 
-function parseJsonPath(statement: string, parserPart = () => parser.jsonPathStatement()) {
+function parseJsonPath(statement: string) {
   const lexingResult = JsonPathLexer.tokenize(statement)
   parser.input = lexingResult.tokens
-  const cst = parserPart()
+  const cst = parser.jsonPathStatement()
   if (parser.errors?.length) {
     console.error(parser.errors)
     throw(parser.errors[0])
@@ -283,7 +283,6 @@ describe("SQL JSONPath CST", () => {
       const actual = parseJsonPath("$ ? (@ starts with \"m\")")
       expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
 
-      const filterPrefix = `${cstPrefix}.accessor[0].children.filter[0].children`
       expect(actual).to.have.nested.property(`${filterPrefix}.PredicateStart`)
       expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].${cstPrefix}.primary[0].children.FilterValue`)
       expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.startsWith[0].children.StartsWith`)
@@ -306,7 +305,6 @@ describe("SQL JSONPath CST", () => {
       const actual = parseJsonPath("$ ? ((@.max > 1) is unknown)")
       expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
 
-      const filterPrefix = `${cstPrefix}.accessor[0].children.filter[0].children`
       expect(actual).to.have.nested.property(`${filterPrefix}.PredicateStart`)
       expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.isUnknown[0].children.IsUnknown`)
       expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.isUnknown[0].children.scopedPredicate[0].children.predicate[0].${cstPrefix}.primary[0].children.FilterValue`)
@@ -315,26 +313,30 @@ describe("SQL JSONPath CST", () => {
       expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.isUnknown[0].children.scopedPredicate[0].children.predicate[0].children.comparison[0].${cstPrefix}.primary[0].children.literal[0].children.Number`)
       expect(actual).to.have.nested.property(`${filterPrefix}.RightParen`)
     })
-  })
 
-  describe("Filter tests", () => {
+    describe("like_regex", () => {
+      it("without flag", () => {
+        const actual = parseJsonPath("$ ? (@ like_regex \"\d+\")")
+        expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
 
-    describe("like_regex tests", () => {
-      it("parses without flags", () => {
-        const actual = parseJsonPath(" like_regex \".+\"", () => parser.likeRegex())
-        expect(actual).to.nested.include({
-          "children.LikeRegex[0].image": " like_regex ",
-          "children.pattern[0].image": "\".+\""
-        })
+        expect(actual).to.have.nested.property(`${filterPrefix}.PredicateStart`)
+        expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].${cstPrefix}.primary[0].children.FilterValue`)
+        expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.likeRegex[0].children.LikeRegex`)
+        expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.likeRegex[0].children.Pattern`)
+        expect(actual).to.have.nested.property(`${filterPrefix}.RightParen`)
       })
 
-      it("parses with flags", () => {
-        const actual = parseJsonPath(" like_regex \".+\" flag \"i\"", () => parser.likeRegex())
-        expect(actual).to.nested.include({
-          "children.LikeRegex[0].image": " like_regex ",
-          "children.pattern[0].image": "\".+\"",
-          "children.String[0].image": "\"i\""
-        })
+      it("with flag", () => {
+        const actual = parseJsonPath("$ ? (@ like_regex \"\d+\" flag \"m\")")
+        expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
+
+        expect(actual).to.have.nested.property(`${filterPrefix}.PredicateStart`)
+        expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].${cstPrefix}.primary[0].children.FilterValue`)
+        expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.likeRegex[0].children.LikeRegex`)
+        expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.likeRegex[0].children.Pattern`)
+        expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.likeRegex[0].children.Flag`)
+        expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.likeRegex[0].children.FlagValue`)
+        expect(actual).to.have.nested.property(`${filterPrefix}.RightParen`)
       })
     })
   })

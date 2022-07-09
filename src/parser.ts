@@ -167,15 +167,15 @@ export class JsonPathParser extends CstParser {
   // todo more than 3 alts so cache them: https://chevrotain.io/docs/guide/performance.html#caching-arrays-of-alternatives
   predicate = this.RULE("predicate", () => {
     this.OR([
-      { ALT: () => this.SUBRULE(this.likeRegex) },
       // IGNORE_AMBIGUITIES because we are in a filter expression.
       { ALT: () => this.SUBRULE(this.isUnknown), IGNORE_AMBIGUITIES: true },
       { ALT: () => this.SUBRULE(this.delimitedPredicate), IGNORE_AMBIGUITIES: true },
       { ALT: () => {
           this.SUBRULE(this.wff)
           this.OR1([
-             { ALT: () => this.SUBRULE(this.startsWith) },
-             { ALT: () => this.SUBRULE(this.comparison) },
+            { ALT: () => this.SUBRULE(this.likeRegex) },
+            { ALT: () => this.SUBRULE(this.startsWith) },
+            { ALT: () => this.SUBRULE(this.comparison) },
           ])
         }
       }
@@ -220,11 +220,11 @@ export class JsonPathParser extends CstParser {
 
   likeRegex = this.RULE("likeRegex", () => {
     this.CONSUME(LikeRegex)
-    this.CONSUME(StringLiteral, { LABEL: "pattern" })
+    this.CONSUME(StringLiteral, { LABEL: "Pattern" })
     this.OPTION(() => {
       this.CONSUME(Flag)
       // /"[imsq]{1,4}"/
-      this.CONSUME1(StringLiteral)
+      this.CONSUME1(StringLiteral, {LABEL: "FlagValue"})
     })
   })
 }
