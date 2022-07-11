@@ -281,11 +281,16 @@ describe("SQL JSONPath CST", () => {
     })
 
     it("accesses members at array element", () => {
-      const actual = parseJsonPath("$[1].apple ? (@ starts with \"a\")")
+      const actual = parseJsonPath("$[$.things[*] ? (@ == true)]")
+
+      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.array[0].children.subscript[0].${cstPrefix}.primary[0].children.ContextVariable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.array[0].children.subscript[0].${cstPrefix}.accessor[0].children.Member`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.array[0].children.subscript[0].${cstPrefix}.accessor[1].children.WildcardArray`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.array[0].children.subscript[0].${cstPrefix}.accessor[2].children.filter`)
     })
   })
 
-  // todo: '$ starts with "m"' is a valid JSONPath expression
   describe("Predicate tests", () => {
     const cstPrefix = "children.wff[0].children.left[0].children"
     const filterPrefix = `${cstPrefix}.accessor[0].children.filter[0].children`
@@ -357,8 +362,8 @@ describe("SQL JSONPath CST", () => {
         expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
 
         expect(actual).to.have.nested.property(`${filterPrefix}.PredicateStart`)
-
         expect(actual).to.have.nested.property(`${filterPrefix}.RightParen`)
+        expect(actual).to.have.nested.property(`${cstPrefix}.accessor[1].children.ItemMethod`)
       })
     })
   })
