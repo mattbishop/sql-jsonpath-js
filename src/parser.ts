@@ -35,9 +35,9 @@ import {
 export class JsonPathParser extends CstParser {
   constructor() {
     super(allTokens)
-
     this.performSelfAnalysis()
   }
+
 
   jsonPathStatement = this.RULE("jsonPathStmt", () => {
     this.OPTION(() => this.CONSUME(Mode))
@@ -55,6 +55,13 @@ export class JsonPathParser extends CstParser {
   })
 
 
+  scopedWff = this.RULE("scopedWff", () => {
+    this.CONSUME(LeftParen)
+    this.SUBRULE(this.wff)
+    this.CONSUME(RightParen)
+  })
+
+
   pathPrimary = this.RULE("primary", () => {
     // todo more than 3 alts so cache them: https://chevrotain.io/docs/guide/performance.html#caching-arrays-of-alternatives
     this.OR([
@@ -63,12 +70,7 @@ export class JsonPathParser extends CstParser {
       { ALT: () => this.CONSUME(FilterValue) },
       { ALT: () => this.CONSUME(Last) },
       { ALT: () => this.SUBRULE(this.pathLiteral) },
-      { ALT: () => {
-          this.CONSUME(LeftParen)
-          this.SUBRULE(this.wff)
-          this.CONSUME(RightParen)
-        }
-      }
+      { ALT: () => this.SUBRULE(this.scopedWff) }
     ])
   })
 
@@ -86,22 +88,10 @@ export class JsonPathParser extends CstParser {
 
   accessorExpression = this.RULE("accessorExp", () => {
     this.SUBRULE(this.pathPrimary)
-    this.OPTION(() => this.SUBRULE(this.accessor))
-/*
-    <JSON accessor expression> ::=
-            <JSON path primary>
-          | <JSON accessor expression> <JSON accessor op>
-
-    This matches BNF, but has left recursion. I don't see any actual recursion, but keeping this around until I know for sure.
-    this.OR([
-      { ALT: () => this.SUBRULE(this.pathPrimary) },
-      { ALT: () => {
-          this.SUBRULE(this.accessorExpression)
-          this.SUBRULE1(this.accessorOp)
-        }}
-    ])
-*/
-  })
+      this.MANY(() => {
+        this.SUBRULE(this.accessor)
+      })
+    })
 
 
   // todo more than 3 alts so cache them: https://chevrotain.io/docs/guide/performance.html#caching-arrays-of-alternatives
@@ -109,10 +99,10 @@ export class JsonPathParser extends CstParser {
     this.OR([
       { ALT: () => this.CONSUME(Member) },
       { ALT: () => this.CONSUME(WildcardMember) },
-      { ALT: () => this.CONSUME(WildcardArray) },
-      { ALT: () => this.CONSUME(ItemMethod) },
       { ALT: () => this.SUBRULE(this.arrayAccessor) },
-      { ALT: () => this.SUBRULE(this.filterExpression) }
+      { ALT: () => this.CONSUME(WildcardArray) },
+      { ALT: () => this.SUBRULE(this.filterExpression) },
+      { ALT: () => this.CONSUME(ItemMethod) }
     ])
   })
 

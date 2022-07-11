@@ -164,18 +164,18 @@ describe("SQL JSONPath CST", () => {
     it("scopes with parentheses", () => {
       const actual = parseJsonPath("($)")
       const cstPrefix = "children.wff[0].children.left[0].children.primary[0]"
-      expect(actual).to.have.nested.property(`${cstPrefix}.children.LeftParen`)
-      expect(actual).to.have.nested.property(`${cstPrefix}.${cstPrefix}.children.ContextVariable`)
-      expect(actual).to.have.nested.property(`${cstPrefix}.children.RightParen`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.children.scopedWff[0].children.LeftParen`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.children.scopedWff[0].${cstPrefix}.children.ContextVariable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.children.scopedWff[0].children.RightParen`)
     })
 
     it("scopes with nested parentheses", () => {
       const actual = parseJsonPath("(($))")
-      const expectedPrefix = "children.wff[0].children.left[0].children.primary[0]"
-      expect(actual).to.have.nested.property(`${expectedPrefix}.children.LeftParen`)
-      expect(actual).to.have.nested.property(`${expectedPrefix}.${expectedPrefix}.children.LeftParen`)
-      expect(actual).to.have.nested.property(`${expectedPrefix}.${expectedPrefix}.${expectedPrefix}.children.ContextVariable`)
-      expect(actual).to.have.nested.property(`${expectedPrefix}.${expectedPrefix}.children.RightParen`)
+      const cstPrefix = "children.wff[0].children.left[0].children.primary[0]"
+      expect(actual).to.have.nested.property(`${cstPrefix}.children.scopedWff[0].children.LeftParen`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.children.scopedWff[0].${cstPrefix}.children.scopedWff[0].children.LeftParen`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.children.scopedWff[0].${cstPrefix}.children.scopedWff[0].${cstPrefix}.children.ContextVariable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.children.scopedWff[0].${cstPrefix}.children.scopedWff[0].children.RightParen`)
     })
   })
 
@@ -279,8 +279,13 @@ describe("SQL JSONPath CST", () => {
       expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.array[0].children.Comma[1]`)
       expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.array[0].children.RightBracket`)
     })
+
+    it("accesses members at array element", () => {
+      const actual = parseJsonPath("$[1].apple ? (@ starts with \"a\")")
+    })
   })
 
+  // todo: '$ starts with "m"' is a valid JSONPath expression
   describe("Predicate tests", () => {
     const cstPrefix = "children.wff[0].children.left[0].children"
     const filterPrefix = `${cstPrefix}.accessor[0].children.filter[0].children`
@@ -342,6 +347,17 @@ describe("SQL JSONPath CST", () => {
         expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.likeRegex[0].children.Pattern`)
         expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.likeRegex[0].children.Flag`)
         expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.likeRegex[0].children.FlagValue`)
+        expect(actual).to.have.nested.property(`${filterPrefix}.RightParen`)
+      })
+    })
+
+    describe("accessor after predicate", () => {
+      it("calls method after predicate", () => {
+        const actual = parseJsonPath("$ ? (@ <> 2).keyvalue()")
+        expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
+
+        expect(actual).to.have.nested.property(`${filterPrefix}.PredicateStart`)
+
         expect(actual).to.have.nested.property(`${filterPrefix}.RightParen`)
       })
     })
