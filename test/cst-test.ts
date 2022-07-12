@@ -234,6 +234,13 @@ describe("SQL JSONPath CST", () => {
       expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.WildcardArray`)
     })
 
+    it("wildcard member array", () => {
+      const actual = parseJsonPath("$.*[1]")
+      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.WildcardMember`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.accessor[1].children.array[0].children.subscript[0].${cstPrefix}.primary[0].children.literal[0].children.Number`)
+    })
+
     it("item method", () => {
       const actual = parseJsonPath("$.size()")
       expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
