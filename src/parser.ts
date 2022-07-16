@@ -1,7 +1,6 @@
 import {CstParser} from "chevrotain"
 import {
   allTokens,
-  ArithmeticOperator,
   BooleanLiteral,
   Flag,
   ItemMethod,
@@ -28,7 +27,9 @@ import {
   ComparisonOperator,
   Exists,
   IsUnknown,
-  NotOperator
+  NotOperator,
+  BinaryOperator,
+  UnaryOperator
 } from "./tokens"
 
 
@@ -39,17 +40,25 @@ export class JsonPathParser extends CstParser {
   }
 
 
-  jsonPathStatement = this.RULE("jsonPathStmt", () => {
+  jsonPathStatement = this.RULE("statement", () => {
     this.OPTION(() => this.CONSUME(Mode))
     this.SUBRULE(this.wff)
   })
 
 
+/*
+<JSON path wff> ::= <JSON additive expression>
+
+<JSON additive expression> ::=
+            <JSON multiplicative expression>
+          | <JSON additive expression> <plus sign> <JSON multiplicative expression>
+          | <JSON additive expression> <minus sign> <JSON multiplicative expression>
+ */
   wff = this.RULE("wff", () => {
-    this.SUBRULE(this.accessorExpression, { LABEL: "left" })
+    this.SUBRULE(this.binaryExpression, { LABEL: "left" })
     this.MANY(() => {
-        this.CONSUME(ArithmeticOperator)
-        this.SUBRULE1(this.accessorExpression, { LABEL: "right" })
+        this.CONSUME(UnaryOperator)
+        this.SUBRULE1(this.binaryExpression, { LABEL: "right" })
       }
     )
   })
@@ -59,6 +68,41 @@ export class JsonPathParser extends CstParser {
     this.CONSUME(LeftParen)
     this.SUBRULE(this.wff)
     this.CONSUME(RightParen)
+  })
+
+
+  /*
+<JSON unary expression> ::=
+            <JSON accessor expression>
+          | <plus sign> <JSON unary expression>
+          | <minus sign> <JSON unary expression>
+ */
+  unaryExpression = this.RULE("unary", () => {
+    // this supports expressions like '-$.count' where the operator comes first.
+    this.OR([
+      { ALT: () => this.SUBRULE(this.accessorExpression) },
+      { ALT: () => {
+          this.CONSUME(UnaryOperator)
+          this.SUBRULE(this.unaryExpression)
+        }
+      }
+    ])
+  })
+
+
+  /*
+  <JSON multiplicative expression> ::=
+            <JSON unary expression>
+          | <JSON multiplicative expression> <asterisk> <JSON unary expression>
+          | <JSON multiplicative expression> <solidus> <JSON unary expression>
+          | <JSON multiplicative expression> <percent> <JSON unary expression>
+   */
+  binaryExpression = this.RULE("binary", () => {
+    this.SUBRULE(this.unaryExpression, { LABEL: "left" })
+    this.MANY( () => {
+      this.CONSUME(BinaryOperator)
+      this.SUBRULE(this.binaryExpression, { LABEL: "right" })
+    })
   })
 
 
@@ -86,9 +130,9 @@ export class JsonPathParser extends CstParser {
   })
 
 
-  accessorExpression = this.RULE("accessorExp", () => {
+  accessorExpression = this.RULE("accessExp", () => {
     this.SUBRULE(this.pathPrimary)
-      this.MANY(() => {
+    this.MANY(() => {
         this.SUBRULE(this.accessor)
       })
     })

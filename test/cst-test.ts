@@ -7,12 +7,14 @@ import {allTokens} from "../src/tokens"
 const JsonPathLexer = new Lexer(allTokens, { ensureOptimizations: true })
 const parser = new JsonPathParser()
 
-function parseJsonPath(statement: string) {
+function parseJsonPath(statement: string, logError: boolean = true) {
   const lexingResult = JsonPathLexer.tokenize(statement)
   parser.input = lexingResult.tokens
   const cst = parser.jsonPathStatement()
   if (parser.errors?.length) {
-    console.error(parser.errors)
+    if (logError) {
+      console.error(parser.errors)
+    }
     throw(parser.errors[0])
   }
   return cst
@@ -24,7 +26,7 @@ describe("SQL JSONPath CST", () => {
 
     it("parses context variable without a mode", () => {
       const actual = parseJsonPath("$")
-      expect(actual).to.have.nested.property("children.wff[0].children.left[0].children.primary[0].children.ContextVariable")
+      expect(actual).to.have.nested.property("children.wff[0].children.left[0].children.left[0].children.accessExp[0].children.primary[0].children.ContextVariable")
     })
 
     it("parses lax mode", () => {
@@ -40,7 +42,7 @@ describe("SQL JSONPath CST", () => {
 
   describe("Variable tests", () => {
 
-    const cstPrefix = "children.wff[0].children.left[0].children.primary[0].children"
+    const cstPrefix = "children.wff[0].children.left[0].children.left[0].children.accessExp[0].children.primary[0].children"
 
     it("parses context variable", () => {
       const actual = parseJsonPath("$")
@@ -60,7 +62,7 @@ describe("SQL JSONPath CST", () => {
 
   describe("Literal tests", () => {
 
-    const cstPrefix = "children.wff[0].children.left[0].children.primary[0].children.literal[0].children"
+    const cstPrefix = "children.wff[0].children.left[0].children.left[0].children.accessExp[0].children.primary[0].children.literal[0].children"
 
     it("parses zero", () => {
       const actual = parseJsonPath("0")
@@ -149,113 +151,108 @@ describe("SQL JSONPath CST", () => {
 
     it("adds ContextVariable and MemberVariable", () => {
       const actual = parseJsonPath("$\n+\r$car")
-      expect(actual).to.have.nested.property(`${cstPrefix}.left[0].children.primary[0].children.ContextVariable`)
-      expect(actual).to.nested.include({[`${cstPrefix}.ArithmeticOperator[0].image`]: "+"})
-      expect(actual).to.have.nested.property(`${cstPrefix}.right[0].children.primary[0].children.NamedVariable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.left[0].children.left[0].children.accessExp[0].children.primary[0].children.ContextVariable`)
+      expect(actual).to.nested.include({[`${cstPrefix}.UnaryOperator[0].image`]: "+"})
+      expect(actual).to.have.nested.property(`${cstPrefix}.right[0].children.left[0].children.accessExp[0].children.primary[0].children.NamedVariable`)
     })
 
     it("multiplies MemberVariable and ContextVariable with no whitespace", () => {
       const actual = parseJsonPath("$bling*$")
-      expect(actual).to.have.nested.property(`${cstPrefix}.left[0].children.primary[0].children.NamedVariable`)
-      expect(actual).to.nested.include({[`${cstPrefix}.ArithmeticOperator[0].image`]: "*"})
-      expect(actual).to.have.nested.property(`${cstPrefix}.right[0].children.primary[0].children.ContextVariable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.left[0].children.left[0].children.accessExp[0].children.primary[0].children.NamedVariable`)
+      expect(actual).to.nested.include({[`${cstPrefix}.left[0].children.BinaryOperator[0].image`]: "*"})
+      expect(actual).to.have.nested.property(`${cstPrefix}.left[0].children.right[0].children.left[0].children.accessExp[0].children.primary[0].children.ContextVariable`)
     })
 
     it("scopes with parentheses", () => {
       const actual = parseJsonPath("($)")
-      const cstPrefix = "children.wff[0].children.left[0].children.primary[0]"
-      expect(actual).to.have.nested.property(`${cstPrefix}.children.scopedWff[0].children.LeftParen`)
-      expect(actual).to.have.nested.property(`${cstPrefix}.children.scopedWff[0].${cstPrefix}.children.ContextVariable`)
-      expect(actual).to.have.nested.property(`${cstPrefix}.children.scopedWff[0].children.RightParen`)
+      const scopedPrefix = `${cstPrefix}.left[0].children.left[0].children.accessExp[0].children.primary[0].children.scopedWff[0]`
+      expect(actual).to.have.nested.property(`${scopedPrefix}.children.LeftParen`)
+      expect(actual).to.have.nested.property(`${scopedPrefix}.${cstPrefix}.left[0].children.left[0].children.accessExp[0].children.primary[0].children.ContextVariable`)
+      expect(actual).to.have.nested.property(`${scopedPrefix}.children.RightParen`)
     })
 
     it("scopes with nested parentheses", () => {
       const actual = parseJsonPath("(($))")
-      const cstPrefix = "children.wff[0].children.left[0].children.primary[0]"
-      expect(actual).to.have.nested.property(`${cstPrefix}.children.scopedWff[0].children.LeftParen`)
-      expect(actual).to.have.nested.property(`${cstPrefix}.children.scopedWff[0].${cstPrefix}.children.scopedWff[0].children.LeftParen`)
-      expect(actual).to.have.nested.property(`${cstPrefix}.children.scopedWff[0].${cstPrefix}.children.scopedWff[0].${cstPrefix}.children.ContextVariable`)
-      expect(actual).to.have.nested.property(`${cstPrefix}.children.scopedWff[0].${cstPrefix}.children.scopedWff[0].children.RightParen`)
+      const scopedPrefix = `${cstPrefix}.left[0].children.left[0].children.accessExp[0].children.primary[0].children.scopedWff[0]`
+      expect(actual).to.have.nested.property(`${scopedPrefix}.children.LeftParen`)
+      expect(actual).to.have.nested.property(`${scopedPrefix}.${scopedPrefix}.children.LeftParen`)
+      expect(actual).to.have.nested.property(`${scopedPrefix}.${scopedPrefix}.${cstPrefix}.left[0].children.left[0].children.accessExp[0].children.primary[0].children.ContextVariable`)
+      expect(actual).to.have.nested.property(`${scopedPrefix}.${scopedPrefix}.children.RightParen`)
+    })
+
+    it("negates values", () => {
+      const actual = parseJsonPath("-$.readings.floor()")
+      const actual2 = parseJsonPath("-($.readings.size() * ($a + $b))")
+      const actual3 = parseJsonPath("$a + $b * $ / $d")
     })
   })
 
   describe("Accessor expression tests", () => {
-    const cstPrefix = "children.wff[0].children.left[0].children"
+    const cstPrefix = "children.wff[0].children.left[0].children.left[0].children.accessExp[0].children"
 
     it("ASCII member names", () => {
       const actual = parseJsonPath("$.matt")
-      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
       expect(actual).to.nested.include({[`${cstPrefix}.accessor[0].children.Member[0].image`]: ".matt"})
     })
 
     it("$ start member name not allowed", () => {
-      expect(() => parseJsonPath("$.$matt")).to.throw("expecting EOF but found: $matt")
+      expect(() => parseJsonPath("$.$matt", false)).to.throw("expecting EOF but found: $matt")
     })
 
     it("Unicode member names", () => {
       const actual = parseJsonPath("$.ಠ_ಠ")
-      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
       expect(actual).to.nested.include({[`${cstPrefix}.accessor[0].children.Member[0].image`]: ".ಠ_ಠ"})
     })
 
     it("Quoted member names", () => {
       const actual = parseJsonPath("$.\"first name\"")
-      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
       expect(actual).to.nested.include({[`${cstPrefix}.accessor[0].children.Member[0].image`]: ".\"first name\""})
     })
 
     it("Member names with spaces", () => {
       const actual = parseJsonPath("$. クッキー")
-      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
       expect(actual).to.nested.include({[`${cstPrefix}.accessor[0].children.Member[0].image`]: ". クッキー"})
     })
 
     it("Wildcard member", () => {
       const actual = parseJsonPath("$.*")
-      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
       expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.WildcardMember`)
     })
 
     it("Wildcard member with spaces", () => {
       const actual = parseJsonPath("$ . *")
-      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
       expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.WildcardMember`)
     })
 
     it("Wildcard array", () => {
       const actual = parseJsonPath("$[*]")
-      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
       expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.WildcardArray`)
     })
 
     it("Wildcard array with spaces", () => {
       const actual = parseJsonPath("$[ *\n]")
-      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
       expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.WildcardArray`)
     })
 
     it("wildcard member array", () => {
       const actual = parseJsonPath("$.*[1]")
-      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
       expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.WildcardMember`)
       expect(actual).to.have.nested.property(`${cstPrefix}.accessor[1].children.array[0].children.subscript[0].${cstPrefix}.primary[0].children.literal[0].children.Number`)
     })
 
     it("item method", () => {
       const actual = parseJsonPath("$.size()")
-      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
       expect(actual).to.nested.include({[`${cstPrefix}.accessor[0].children.ItemMethod[0].image`]: ".size()"})
     })
 
     it("item method with spaces", () => {
       const actual = parseJsonPath("$.  keyvalue\t(\r)")
-      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
       expect(actual).to.nested.include({[`${cstPrefix}.accessor[0].children.ItemMethod[0].image`]: ".  keyvalue\t(\r)"})
     })
   })
 
   describe("Array tests", () => {
-    const cstPrefix = "children.wff[0].children.left[0].children"
+    const cstPrefix = "children.wff[0].children.left[0].children.left[0].children.accessExp[0].children"
 
     it("accesses last element", () => {
       const actual = parseJsonPath("$[last]")
@@ -299,7 +296,7 @@ describe("SQL JSONPath CST", () => {
   })
 
   describe("Predicate tests", () => {
-    const cstPrefix = "children.wff[0].children.left[0].children"
+    const cstPrefix = "children.wff[0].children.left[0].children.left[0].children.accessExp[0].children"
     const filterPrefix = `${cstPrefix}.accessor[0].children.filter[0].children`
 
     it("starts with", () => {

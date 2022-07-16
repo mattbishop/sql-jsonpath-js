@@ -53,6 +53,8 @@ export const StringLiteral    = createRegexToken({
   start_chars_hint: ["\""]
 })
 
+export const UnaryOperator          = createToken({name: "UnaryOperator", pattern: /[+\-]/})
+export const BinaryOperator         = createToken({name: "BinaryOperator", pattern: /[*\/%]/})
 export const ArithmeticOperator     = createToken({name: "ArithmeticOperator", pattern: /[+\-*\/%]/})
 export const AdditiveOperator       = createToken({name: "AddOp", pattern: /[+-]/})
 export const DoubleVerticalBar      = createToken({name: "DoubleVerticalBar", pattern: "||"})
@@ -89,6 +91,8 @@ export const allTokens = [
   BooleanLiteral,
   NumberLiteral,
   StringLiteral,
+  UnaryOperator,
+  BinaryOperator,
   ArithmeticOperator,
   AdditiveOperator,
   ItemMethod,
