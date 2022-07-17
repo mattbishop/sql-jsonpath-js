@@ -184,6 +184,9 @@ describe("SQL JSONPath CST", () => {
       const actual = parseJsonPath("-$.readings.floor()")
       const actual2 = parseJsonPath("-($.readings.size() * ($a + $b))")
       const actual3 = parseJsonPath("$a + $b * $ / $d")
+      const actual4 = parseJsonPath("$ ? ($.a == 1 || @.b==2 && @.c == 3)")
+// bug fails
+//      const actual5 = parseJsonPath("$ ? ($.a == 1 || (@.b==2 && @.c == 3))")
     })
   })
 
@@ -298,15 +301,17 @@ describe("SQL JSONPath CST", () => {
   describe("Predicate tests", () => {
     const cstPrefix = "children.wff[0].children.left[0].children.left[0].children.accessExp[0].children"
     const filterPrefix = `${cstPrefix}.accessor[0].children.filter[0].children`
+    const predSubpath = "pathPredicate[0].children.negation[0].children.predicate[0]"
+    const predPrefix = `${filterPrefix}.${predSubpath}`
 
     it("starts with", () => {
       const actual = parseJsonPath("$ ? (@ starts with \"m\")")
       expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
 
       expect(actual).to.have.nested.property(`${filterPrefix}.PredicateStart`)
-      expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].${cstPrefix}.primary[0].children.FilterValue`)
-      expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.startsWith[0].children.StartsWith`)
-      expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.startsWith[0].children.String`)
+      expect(actual).to.have.nested.property(`${predPrefix}.${cstPrefix}.primary[0].children.FilterValue`)
+      expect(actual).to.have.nested.property(`${predPrefix}.children.startsWith[0].children.StartsWith`)
+      expect(actual).to.have.nested.property(`${predPrefix}.children.startsWith[0].children.String`)
       expect(actual).to.have.nested.property(`${filterPrefix}.RightParen`)
     })
 
@@ -315,9 +320,9 @@ describe("SQL JSONPath CST", () => {
       expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
 
       expect(actual).to.have.nested.property(`${filterPrefix}.PredicateStart`)
-      expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.delimitedPredicate[0].children.exists[0].children.Exists`)
-      expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.delimitedPredicate[0].children.exists[0].${cstPrefix}.primary[0].children.FilterValue`)
-      expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.delimitedPredicate[0].children.exists[0].children.RightParen`)
+      expect(actual).to.have.nested.property(`${predPrefix}.children.delimitedPredicate[0].children.exists[0].children.Exists`)
+      expect(actual).to.have.nested.property(`${predPrefix}.children.delimitedPredicate[0].children.exists[0].${cstPrefix}.primary[0].children.FilterValue`)
+      expect(actual).to.have.nested.property(`${predPrefix}.children.delimitedPredicate[0].children.exists[0].children.RightParen`)
       expect(actual).to.have.nested.property(`${filterPrefix}.RightParen`)
     })
 
@@ -326,11 +331,11 @@ describe("SQL JSONPath CST", () => {
       expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
 
       expect(actual).to.have.nested.property(`${filterPrefix}.PredicateStart`)
-      expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.isUnknown[0].children.IsUnknown`)
-      expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.isUnknown[0].children.scopedPredicate[0].children.predicate[0].${cstPrefix}.primary[0].children.FilterValue`)
-      expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.isUnknown[0].children.scopedPredicate[0].children.predicate[0].${cstPrefix}.accessor[0].children.Member`)
-      expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.isUnknown[0].children.scopedPredicate[0].children.predicate[0].children.comparison[0].children.ComparisonOperator`)
-      expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.isUnknown[0].children.scopedPredicate[0].children.predicate[0].children.comparison[0].${cstPrefix}.primary[0].children.literal[0].children.Number`)
+      expect(actual).to.have.nested.property(`${predPrefix}.children.isUnknown[0].children.IsUnknown`)
+      expect(actual).to.have.nested.property(`${predPrefix}.children.isUnknown[0].children.scopedPredicate[0].children.${predSubpath}.${cstPrefix}.primary[0].children.FilterValue`)
+      expect(actual).to.have.nested.property(`${predPrefix}.children.isUnknown[0].children.scopedPredicate[0].children.${predSubpath}.${cstPrefix}.accessor[0].children.Member`)
+      expect(actual).to.have.nested.property(`${predPrefix}.children.isUnknown[0].children.scopedPredicate[0].children.${predSubpath}.children.comparison[0].children.ComparisonOperator`)
+      expect(actual).to.have.nested.property(`${predPrefix}.children.isUnknown[0].children.scopedPredicate[0].children.${predSubpath}.children.comparison[0].${cstPrefix}.primary[0].children.literal[0].children.Number`)
       expect(actual).to.have.nested.property(`${filterPrefix}.RightParen`)
     })
 
@@ -340,9 +345,9 @@ describe("SQL JSONPath CST", () => {
         expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
 
         expect(actual).to.have.nested.property(`${filterPrefix}.PredicateStart`)
-        expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].${cstPrefix}.primary[0].children.FilterValue`)
-        expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.likeRegex[0].children.LikeRegex`)
-        expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.likeRegex[0].children.Pattern`)
+        expect(actual).to.have.nested.property(`${predPrefix}.${cstPrefix}.primary[0].children.FilterValue`)
+        expect(actual).to.have.nested.property(`${predPrefix}.children.likeRegex[0].children.LikeRegex`)
+        expect(actual).to.have.nested.property(`${predPrefix}.children.likeRegex[0].children.Pattern`)
         expect(actual).to.have.nested.property(`${filterPrefix}.RightParen`)
       })
 
@@ -351,11 +356,11 @@ describe("SQL JSONPath CST", () => {
         expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
 
         expect(actual).to.have.nested.property(`${filterPrefix}.PredicateStart`)
-        expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].${cstPrefix}.primary[0].children.FilterValue`)
-        expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.likeRegex[0].children.LikeRegex`)
-        expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.likeRegex[0].children.Pattern`)
-        expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.likeRegex[0].children.Flag`)
-        expect(actual).to.have.nested.property(`${filterPrefix}.predicate[0].children.likeRegex[0].children.FlagValue`)
+        expect(actual).to.have.nested.property(`${predPrefix}.${cstPrefix}.primary[0].children.FilterValue`)
+        expect(actual).to.have.nested.property(`${predPrefix}.children.likeRegex[0].children.LikeRegex`)
+        expect(actual).to.have.nested.property(`${predPrefix}.children.likeRegex[0].children.Pattern`)
+        expect(actual).to.have.nested.property(`${predPrefix}.children.likeRegex[0].children.Flag`)
+        expect(actual).to.have.nested.property(`${predPrefix}.children.likeRegex[0].children.FlagValue`)
         expect(actual).to.have.nested.property(`${filterPrefix}.RightParen`)
       })
     })

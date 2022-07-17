@@ -57,8 +57,7 @@ export const UnaryOperator          = createToken({name: "UnaryOperator", patter
 export const BinaryOperator         = createToken({name: "BinaryOperator", pattern: /[*\/%]/})
 export const ArithmeticOperator     = createToken({name: "ArithmeticOperator", pattern: /[+\-*\/%]/})
 export const AdditiveOperator       = createToken({name: "AddOp", pattern: /[+-]/})
-export const DoubleVerticalBar      = createToken({name: "DoubleVerticalBar", pattern: "||"})
-export const DoubleAmpersand        = createToken({name: "DoubleAmpersand", pattern: "&&"})
+export const LogicOperator          = createToken({name: "LogicOperator", pattern: /\|\||&&/})
 export const NotOperator            = createToken({name: "NotOperator", pattern: "!"})
 export const ComparisonOperator     = createToken({name: "ComparisonOperator", pattern: /==|!=|>=|<=|<>|<|>/})
 export const LeftParen              = createToken({name: "LeftParen", pattern: "("})
@@ -106,7 +105,7 @@ export const allTokens = [
   NamedVariable,
   ContextVariable,
   Comma,
-  DoubleAmpersand,
+  LogicOperator,
   LeftParen,
   RightParen,
   PredicateStart,

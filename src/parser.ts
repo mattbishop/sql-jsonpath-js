@@ -29,7 +29,8 @@ import {
   IsUnknown,
   NotOperator,
   BinaryOperator,
-  UnaryOperator
+  UnaryOperator,
+  LogicOperator
 } from "./tokens"
 
 
@@ -169,24 +170,14 @@ export class JsonPathParser extends CstParser {
     })
   })
 
-
+/*
+<JSON filter expression> ::=
+          <question mark> <left paren> <JSON path predicate> <right paren>
+ */
   filterExpression = this.RULE("filter", () => {
     this.CONSUME(PredicateStart)
-    this.SUBRULE(this.predicate)
+    this.SUBRULE(this.pathPredicate)
     this.CONSUME(RightParen)
-  })
-
-
-
-  negation = this.RULE("negation", () => {
-    this.OR([
-      { ALT: () => this.SUBRULE(this.predicate) },
-      { ALT: () => {
-          this.CONSUME(NotOperator)
-          this.SUBRULE(this.delimitedPredicate)
-        }
-      }
-    ])
   })
 
 
@@ -219,8 +210,34 @@ export class JsonPathParser extends CstParser {
 
   scopedPredicate = this.RULE("scopedPredicate", () => {
     this.CONSUME(LeftParen)
-    this.SUBRULE(this.predicate)
+    this.SUBRULE(this.pathPredicate)
     this.CONSUME(RightParen)
+  })
+
+
+  /*
+<JSON boolean negation> ::=
+              <JSON predicate primary>
+            | <exclamation mark> <JSON delimited predicate>
+   */
+  negation = this.RULE("negation", () => {
+    this.OR([
+      { ALT: () => this.SUBRULE(this.predicate) },
+      { ALT: () => {
+          this.CONSUME(NotOperator)
+          this.SUBRULE(this.delimitedPredicate)
+        }
+      }
+    ])
+  })
+
+
+  pathPredicate = this.RULE("pathPredicate", () => {
+    this.SUBRULE(this.negation)
+    this.MANY(() => {
+      this.CONSUME(LogicOperator)
+      this.SUBRULE1(this.negation)
+    })
   })
 
 
