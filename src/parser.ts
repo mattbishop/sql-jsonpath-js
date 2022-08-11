@@ -192,8 +192,7 @@ export class JsonPathParser extends CstParser {
   // todo more than 3 alts so cache them: https://chevrotain.io/docs/guide/performance.html#caching-arrays-of-alternatives
   predicate = this.RULE("predicate", () => {
     this.OR([
-      // IGNORE_AMBIGUITIES because we are in a filter expression.
-      { ALT: () => this.SUBRULE(this.isUnknown), IGNORE_AMBIGUITIES: true },
+      // IGNORE_AMBIGUITIES because we are in a filter expression, but might not be ok in the end.
       { ALT: () => this.SUBRULE(this.delimitedPredicate), IGNORE_AMBIGUITIES: true },
       { ALT: () => {
           this.SUBRULE(this.wff)
@@ -212,6 +211,7 @@ export class JsonPathParser extends CstParser {
     this.CONSUME(LeftParen)
     this.SUBRULE(this.pathPredicate)
     this.CONSUME(RightParen)
+    this.OPTION(() => this.CONSUME(IsUnknown))
   })
 
 
@@ -238,12 +238,6 @@ export class JsonPathParser extends CstParser {
       this.CONSUME(LogicOperator)
       this.SUBRULE1(this.negation)
     })
-  })
-
-
-  isUnknown = this.RULE("isUnknown", () => {
-    this.SUBRULE(this.scopedPredicate)
-    this.CONSUME(IsUnknown)
   })
 
 
