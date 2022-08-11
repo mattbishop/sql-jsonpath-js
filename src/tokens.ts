@@ -30,7 +30,7 @@ export const To               = createToken({name: "To", pattern: /\sto\s/})
 export const PredicateStart   = createToken({name: "PredicateStart", pattern: /\?\s?\(/})
 export const FilterValue      = createToken({name: "FilterValue", pattern: "@"})
 // Spec calls for whitespace
-export const Exists           = createToken({name: "Exists", pattern: /exists\s?\(/})
+export const Exists           = createToken({name: "Exists", pattern: "exists"})
 export const LikeRegex        = createToken({name: "LikeRegex", pattern: /\slike_regex\s/})
 export const Flag             = createToken({name: "Flag", pattern: /\sflag\s/})
 // Spec calls for whitespace

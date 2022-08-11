@@ -321,8 +321,9 @@ describe("SQL JSONPath CST", () => {
 
       expect(actual).to.have.nested.property(`${filterPrefix}.PredicateStart`)
       expect(actual).to.have.nested.property(`${predPrefix}.children.delimitedPredicate[0].children.exists[0].children.Exists`)
-      expect(actual).to.have.nested.property(`${predPrefix}.children.delimitedPredicate[0].children.exists[0].${cstPrefix}.primary[0].children.FilterValue`)
-      expect(actual).to.have.nested.property(`${predPrefix}.children.delimitedPredicate[0].children.exists[0].children.RightParen`)
+      expect(actual).to.have.nested.property(`${predPrefix}.children.delimitedPredicate[0].children.exists[0].children.scopedWff[0].children.LeftParen`)
+      expect(actual).to.have.nested.property(`${predPrefix}.children.delimitedPredicate[0].children.exists[0].children.scopedWff[0].${cstPrefix}.primary[0].children.FilterValue`)
+      expect(actual).to.have.nested.property(`${predPrefix}.children.delimitedPredicate[0].children.exists[0].children.scopedWff[0].children.RightParen`)
       expect(actual).to.have.nested.property(`${filterPrefix}.RightParen`)
     })
 

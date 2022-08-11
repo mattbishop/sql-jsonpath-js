@@ -249,8 +249,7 @@ export class JsonPathParser extends CstParser {
 
   exists = this.RULE("exists", () => {
     this.CONSUME(Exists)
-    this.SUBRULE(this.wff)
-    this.CONSUME(RightParen)
+    this.SUBRULE(this.scopedWff)
   })
 
 
