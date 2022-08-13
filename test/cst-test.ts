@@ -152,14 +152,14 @@ describe("SQL JSONPath CST", () => {
     it("adds ContextVariable and MemberVariable", () => {
       const actual = parseJsonPath("$\n+\r$car")
       expect(actual).to.have.nested.property(`${cstPrefix}.left[0].children.left[0].children.accessExp[0].children.primary[0].children.ContextVariable`)
-      expect(actual).to.nested.include({[`${cstPrefix}.UnaryOperator[0].image`]: "+"})
+      expect(actual).to.nested.include({[`${cstPrefix}.UnaryOp[0].image`]: "+"})
       expect(actual).to.have.nested.property(`${cstPrefix}.right[0].children.left[0].children.accessExp[0].children.primary[0].children.NamedVariable`)
     })
 
     it("multiplies MemberVariable and ContextVariable with no whitespace", () => {
       const actual = parseJsonPath("$bling*$")
       expect(actual).to.have.nested.property(`${cstPrefix}.left[0].children.left[0].children.accessExp[0].children.primary[0].children.NamedVariable`)
-      expect(actual).to.nested.include({[`${cstPrefix}.left[0].children.BinaryOperator[0].image`]: "*"})
+      expect(actual).to.nested.include({[`${cstPrefix}.left[0].children.BinaryOp[0].image`]: "*"})
       expect(actual).to.have.nested.property(`${cstPrefix}.left[0].children.right[0].children.left[0].children.accessExp[0].children.primary[0].children.ContextVariable`)
     })
 
@@ -185,8 +185,9 @@ describe("SQL JSONPath CST", () => {
       const actual = parseJsonPath("-$.readings.floor()")
       const actual2 = parseJsonPath("-($.readings.size() * ($a + $b))")
       const actual3 = parseJsonPath("$a + $b * $ / $d")
-      const actual4 = parseJsonPath("$ ? (($.a == 1 || @.b==2) && @.c == 3)")
-      const actual5 = parseJsonPath("$ ? ($.a==1 || (@.b==2 && @.c==3))")
+      const actual4 = parseJsonPath("$ ? (---$.a > 0)")
+      const actual5 = parseJsonPath("$ ? (($.a == 1 || @.b==2) && @.c == 3)")
+      const actual6 = parseJsonPath("$ ? ($.a==1 || (@.b==2 && @.c==3))")
     })
   })
 
@@ -301,7 +302,7 @@ describe("SQL JSONPath CST", () => {
   describe("Predicate tests", () => {
     const cstPrefix = "children.wff[0].children.left[0].children.left[0].children.accessExp[0].children"
     const filterPrefix = `${cstPrefix}.accessor[0].children.filter[0].children`
-    const predSubpath = "pathPredicate[0].children.negation[0].children.predicate[0]"
+    const predSubpath = "pathPred[0].children.neg[0].children.pred[0]"
     const predPrefix = `${filterPrefix}.${predSubpath}`
 
     it("starts with", () => {
@@ -320,10 +321,10 @@ describe("SQL JSONPath CST", () => {
       expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
 
       expect(actual).to.have.nested.property(`${filterPrefix}.PredicateStart`)
-      expect(actual).to.have.nested.property(`${predPrefix}.children.delimitedPredicate[0].children.exists[0].children.Exists`)
-      expect(actual).to.have.nested.property(`${predPrefix}.children.delimitedPredicate[0].children.exists[0].children.scopedWff[0].children.LeftParen`)
-      expect(actual).to.have.nested.property(`${predPrefix}.children.delimitedPredicate[0].children.exists[0].children.scopedWff[0].${cstPrefix}.primary[0].children.FilterValue`)
-      expect(actual).to.have.nested.property(`${predPrefix}.children.delimitedPredicate[0].children.exists[0].children.scopedWff[0].children.RightParen`)
+      expect(actual).to.have.nested.property(`${predPrefix}.children.delPred[0].children.exists[0].children.Exists`)
+      expect(actual).to.have.nested.property(`${predPrefix}.children.delPred[0].children.exists[0].children.scopedWff[0].children.LeftParen`)
+      expect(actual).to.have.nested.property(`${predPrefix}.children.delPred[0].children.exists[0].children.scopedWff[0].${cstPrefix}.primary[0].children.FilterValue`)
+      expect(actual).to.have.nested.property(`${predPrefix}.children.delPred[0].children.exists[0].children.scopedWff[0].children.RightParen`)
       expect(actual).to.have.nested.property(`${filterPrefix}.RightParen`)
     })
 
@@ -332,11 +333,11 @@ describe("SQL JSONPath CST", () => {
       expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
 
       expect(actual).to.have.nested.property(`${filterPrefix}.PredicateStart`)
-      expect(actual).to.have.nested.property(`${predPrefix}.children.delimitedPredicate[0].children.scopedPredicate[0].children.IsUnknown`)
-      expect(actual).to.have.nested.property(`${predPrefix}.children.delimitedPredicate[0].children.scopedPredicate[0].children.${predSubpath}.${cstPrefix}.primary[0].children.FilterValue`)
-      expect(actual).to.have.nested.property(`${predPrefix}.children.delimitedPredicate[0].children.scopedPredicate[0].children.${predSubpath}.${cstPrefix}.accessor[0].children.Member`)
-      expect(actual).to.have.nested.property(`${predPrefix}.children.delimitedPredicate[0].children.scopedPredicate[0].children.${predSubpath}.children.comparison[0].children.ComparisonOperator`)
-      expect(actual).to.have.nested.property(`${predPrefix}.children.delimitedPredicate[0].children.scopedPredicate[0].children.${predSubpath}.children.comparison[0].${cstPrefix}.primary[0].children.literal[0].children.Number`)
+      expect(actual).to.have.nested.property(`${predPrefix}.children.delPred[0].children.scopedPred[0].children.IsUnknown`)
+      expect(actual).to.have.nested.property(`${predPrefix}.children.delPred[0].children.scopedPred[0].children.${predSubpath}.${cstPrefix}.primary[0].children.FilterValue`)
+      expect(actual).to.have.nested.property(`${predPrefix}.children.delPred[0].children.scopedPred[0].children.${predSubpath}.${cstPrefix}.accessor[0].children.Member`)
+      expect(actual).to.have.nested.property(`${predPrefix}.children.delPred[0].children.scopedPred[0].children.${predSubpath}.children.comparison[0].children.CompOp`)
+      expect(actual).to.have.nested.property(`${predPrefix}.children.delPred[0].children.scopedPred[0].children.${predSubpath}.children.comparison[0].${cstPrefix}.primary[0].children.literal[0].children.Number`)
       expect(actual).to.have.nested.property(`${filterPrefix}.RightParen`)
     })
 

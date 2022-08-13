@@ -53,13 +53,12 @@ export const StringLiteral    = createRegexToken({
   start_chars_hint: ["\""]
 })
 
-export const UnaryOperator          = createToken({name: "UnaryOperator", pattern: /[+\-]/})
-export const BinaryOperator         = createToken({name: "BinaryOperator", pattern: /[*\/%]/})
-export const ArithmeticOperator     = createToken({name: "ArithmeticOperator", pattern: /[+\-*\/%]/})
-export const AdditiveOperator       = createToken({name: "AddOp", pattern: /[+-]/})
-export const LogicOperator          = createToken({name: "LogicOperator", pattern: /\|\||&&/})
-export const NotOperator            = createToken({name: "NotOperator", pattern: "!"})
-export const ComparisonOperator     = createToken({name: "ComparisonOperator", pattern: /==|!=|>=|<=|<>|<|>/})
+export const UnaryOperator          = createToken({name: "UnaryOp", pattern: /[+-]/})
+export const BinaryOperator         = createToken({name: "BinaryOp", pattern: /[*\/%]/})
+export const ArithmeticOperator     = createToken({name: "MathOp", pattern: /[+\-*\/%]/})
+export const LogicOperator          = createToken({name: "LogicOp", pattern: /\|\||&&/})
+export const NotOperator            = createToken({name: "NotOp", pattern: "!"})
+export const ComparisonOperator     = createToken({name: "CompOp", pattern: /==|!=|>=|<=|<>|<|>/})
 export const LeftParen              = createToken({name: "LeftParen", pattern: "("})
 export const RightParen             = createToken({name: "RightParen", pattern: ")"})
 export const Identifier             = createToken({name: "Identifier", pattern: /[_a-zA-Z]\w*/})
@@ -93,7 +92,6 @@ export const allTokens = [
   UnaryOperator,
   BinaryOperator,
   ArithmeticOperator,
-  AdditiveOperator,
   ItemMethod,
   WildcardMember,
   Member,

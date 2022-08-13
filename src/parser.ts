@@ -41,7 +41,7 @@ export class JsonPathParser extends CstParser {
   }
 
 
-  jsonPathStatement = this.RULE("statement", () => {
+  jsonPathStatement = this.RULE("stmt", () => {
     this.OPTION(() => this.CONSUME(Mode))
     this.SUBRULE(this.wff)
   })
@@ -181,7 +181,7 @@ export class JsonPathParser extends CstParser {
   })
 
 
-  delimitedPredicate = this.RULE("delimitedPredicate", () => {
+  delimitedPredicate = this.RULE("delPred", () => {
     this.OR([
       { ALT: () => this.SUBRULE(this.exists) },
       { ALT: () => this.SUBRULE(this.scopedPredicate) }
@@ -190,7 +190,7 @@ export class JsonPathParser extends CstParser {
 
 
   // todo more than 3 alts so cache them: https://chevrotain.io/docs/guide/performance.html#caching-arrays-of-alternatives
-  predicate = this.RULE("predicate", () => {
+  predicate = this.RULE("pred", () => {
     this.OR([
       // IGNORE_AMBIGUITIES because we are in a filter expression, but might not be ok in the end.
       { ALT: () => this.SUBRULE(this.delimitedPredicate), IGNORE_AMBIGUITIES: true },
@@ -207,7 +207,7 @@ export class JsonPathParser extends CstParser {
   })
 
 
-  scopedPredicate = this.RULE("scopedPredicate", () => {
+  scopedPredicate = this.RULE("scopedPred", () => {
     this.CONSUME(LeftParen)
     this.SUBRULE(this.pathPredicate)
     this.CONSUME(RightParen)
@@ -220,7 +220,7 @@ export class JsonPathParser extends CstParser {
               <JSON predicate primary>
             | <exclamation mark> <JSON delimited predicate>
    */
-  negation = this.RULE("negation", () => {
+  negation = this.RULE("neg", () => {
     this.OR([
       { ALT: () => this.SUBRULE(this.predicate) },
       { ALT: () => {
@@ -232,7 +232,7 @@ export class JsonPathParser extends CstParser {
   })
 
 
-  pathPredicate = this.RULE("pathPredicate", () => {
+  pathPredicate = this.RULE("pathPred", () => {
     this.SUBRULE(this.negation)
     this.MANY(() => {
       this.CONSUME(LogicOperator)
