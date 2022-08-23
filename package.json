@@ -16,7 +16,7 @@
     "url": "https://github.com/mattbishop/sql-jsonpath-js"
   },
   "dependencies": {
-    "chevrotain": "10.1.2"
+    "chevrotain": "10.3.0"
   },
   "devDependencies": {
     "@types/chai": "4.3.3",
