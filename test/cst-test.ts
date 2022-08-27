@@ -180,14 +180,31 @@ describe("SQL JSONPath CST", () => {
       expect(actual).to.have.nested.property(`${scopedPrefix}.${scopedPrefix}.children.RightParen`)
     })
 
-    // todo these aren't actual tests
-    it("negates values", () => {
+    it("unary ops with accessors", () => {
       const actual = parseJsonPath("-$.readings.floor()")
-      const actual2 = parseJsonPath("-($.readings.size() * ($a + $b))")
-      const actual3 = parseJsonPath("$a + $b * $ / $d")
-      const actual4 = parseJsonPath("$ ? (---$.a > 0)")
-      const actual5 = parseJsonPath("$ ? (($.a == 1 || @.b==2) && @.c == 3)")
-      const actual6 = parseJsonPath("$ ? ($.a==1 || (@.b==2 && @.c==3))")
+      expect(actual).to.nested.include({[`${cstPrefix}.left[0].children.left[0].children.UnaryOp[0].image`]: "-"})
+      const actual2 = parseJsonPath("-($.readings.size())")
+      expect(actual2).to.nested.include({[`${cstPrefix}.left[0].children.left[0].children.UnaryOp[0].image`]: "-"})
+      expect(actual2).to.have.nested.property(`${cstPrefix}.left[0].children.left[0].children.unary[0].children.accessExp`)
+    })
+
+    it("multiple unary/binary ops", () => {
+      const actual = parseJsonPath("$a + $b * $ / $d")
+      expect(actual).to.nested.include({[`${cstPrefix}.left[0].children.left[0].children.accessExp[0].children.primary[0].children.NamedVariable[0].image`]: "$a"})
+      expect(actual).to.nested.include({[`${cstPrefix}.UnaryOp[0].image`]: "+"})
+      expect(actual).to.nested.include({[`${cstPrefix}.right[0].children.left[0].children.accessExp[0].children.primary[0].children.NamedVariable[0].image`]: "$b"})
+      expect(actual).to.nested.include({[`${cstPrefix}.right[0].children.BinaryOp[0].image`]: "*"})
+      expect(actual).to.have.nested.property(`${cstPrefix}.right[0].children.right[0].children.left[0].children.accessExp[0].children.primary[0].children.ContextVariable`)
+      expect(actual).to.nested.include({[`${cstPrefix}.right[0].children.right[0].children.BinaryOp[0].image`]: "/"})
+      expect(actual).to.nested.include({[`${cstPrefix}.right[0].children.right[0].children.right[0].children.left[0].children.accessExp[0].children.primary[0].children.NamedVariable[0].image`]: "$d"})
+    })
+
+    it("multiple negations", () => {
+      const actual = parseJsonPath("---$.a")
+      expect(actual).to.nested.include({[`${cstPrefix}.left[0].children.left[0].children.UnaryOp[0].image`]: "-"})
+      expect(actual).to.nested.include({[`${cstPrefix}.left[0].children.left[0].children.unary[0].children.UnaryOp[0].image`]: "-"})
+      expect(actual).to.nested.include({[`${cstPrefix}.left[0].children.left[0].children.unary[0].children.unary[0].children.UnaryOp[0].image`]: "-"})
+      expect(actual).to.have.nested.property(`${cstPrefix}.left[0].children.left[0].children.unary[0].children.unary[0].children.unary[0].children.accessExp`)
     })
   })
 
@@ -304,6 +321,11 @@ describe("SQL JSONPath CST", () => {
     const filterPrefix = `${cstPrefix}.accessor[0].children.filter[0].children`
     const predSubpath = "pathPred[0].children.neg[0].children.pred[0]"
     const predPrefix = `${filterPrefix}.${predSubpath}`
+
+    it("combines predicates", () => {
+      const actual = parseJsonPath("$ ? (($.a == 1 || @.b==2) && @.c == 3)")
+      const actual2 = parseJsonPath("$ ? ($.a==1 || (@.b==2 && @.c==3))")
+    })
 
     it("starts with", () => {
       const actual = parseJsonPath("$ ? (@ starts with \"m\")")
