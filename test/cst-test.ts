@@ -330,6 +330,12 @@ describe("SQL JSONPath CST", () => {
       expect(actual).to.nested.include({[`${predPrefix.replace("neg[0]", "neg[1]")}.children.delPred[0].children.scopedPred[0].children.pathPred[0].children.LogicOp[0].image`]: "&&"})
     })
 
+    it("allows multiple filter statements", () => {
+      const actual = parseJsonPath("$ ? ($.a==1) ? (@.b==2 && @.c==3)")
+      expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.filter`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.accessor[1].children.filter`)
+    })
+
     it("starts with", () => {
       const actual = parseJsonPath("$ ? (@ starts with \"m\")")
       expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
