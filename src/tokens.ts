@@ -55,24 +55,17 @@ export const StringLiteral    = createRegexToken({
 
 export const UnaryOperator          = createToken({name: "UnaryOp", pattern: /[+-]/})
 export const BinaryOperator         = createToken({name: "BinaryOp", pattern: /[*\/%]/})
-export const ArithmeticOperator     = createToken({name: "MathOp", pattern: /[+\-*\/%]/})
 export const LogicOperator          = createToken({name: "LogicOp", pattern: /\|\||&&/})
 export const NotOperator            = createToken({name: "NotOp", pattern: "!"})
 export const ComparisonOperator     = createToken({name: "CompOp", pattern: /==|!=|>=|<=|<>|<|>/})
 export const LeftParen              = createToken({name: "LeftParen", pattern: "("})
 export const RightParen             = createToken({name: "RightParen", pattern: ")"})
-export const Identifier             = createToken({name: "Identifier", pattern: /[_a-zA-Z]\w*/})
 
 export const WhiteSpace = createToken({
   name: "WhiteSpace",
   pattern: /\s+/,
   group: Lexer.SKIPPED
 })
-
-// I don't think these are needed any more
-export const PathSeparator          = createToken({name: "PathSeparator", pattern: "."})
-export const Wildcard               = createToken({name: "Wildcard", pattern: "*"})
-
 
 
 // order matters when tokens start with the same matching characters
@@ -91,7 +84,6 @@ export const allTokens = [
   StringLiteral,
   UnaryOperator,
   BinaryOperator,
-  ArithmeticOperator,
   ItemMethod,
   WildcardMember,
   Member,
@@ -108,8 +100,9 @@ export const allTokens = [
   RightParen,
   PredicateStart,
   FilterValue,
-  WhiteSpace
+  WhiteSpace // not used in any rules; ignored
 ]
+
 
 function createRegexToken(configIn: ITokenConfig): TokenType {
   const {pattern: regex, ...config} = configIn
