@@ -323,14 +323,16 @@ describe("SQL JSONPath CST", () => {
     const predPrefix = `${filterPrefix}.${predSubpath}`
 
     it("combines predicates", () => {
-      const actual = parseJsonPath("$ ? (($.a == 1 || @.b==2) && @.c == 3)")
-      const actual2 = parseJsonPath("$ ? ($.a==1 || (@.b==2 && @.c==3))")
+      const actual = parseJsonPath("$ ? ($.a==1 || (@.b==2 && @.c==3))")
+      expect(actual).to.nested.include({[`${filterPrefix}.pathPred[0].children.LogicOp[0].image`]: "||"})
+      expect(actual).to.have.nested.property(`${predPrefix}.${cstPrefix}.primary[0].children.ContextVariable`)
+      expect(actual).to.nested.include({[`${predPrefix}.${cstPrefix}.accessor[0].children.Member[0].image`]: ".a"})
+      expect(actual).to.nested.include({[`${predPrefix.replace("neg[0]", "neg[1]")}.children.delPred[0].children.scopedPred[0].children.pathPred[0].children.LogicOp[0].image`]: "&&"})
     })
 
     it("starts with", () => {
       const actual = parseJsonPath("$ ? (@ starts with \"m\")")
       expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
-
       expect(actual).to.have.nested.property(`${filterPrefix}.PredicateStart`)
       expect(actual).to.have.nested.property(`${predPrefix}.${cstPrefix}.primary[0].children.FilterValue`)
       expect(actual).to.have.nested.property(`${predPrefix}.children.startsWith[0].children.StartsWith`)
@@ -341,7 +343,6 @@ describe("SQL JSONPath CST", () => {
     it("exists", () => {
       const actual = parseJsonPath("$ ? (exists(@))")
       expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
-
       expect(actual).to.have.nested.property(`${filterPrefix}.PredicateStart`)
       expect(actual).to.have.nested.property(`${predPrefix}.children.delPred[0].children.exists[0].children.Exists`)
       expect(actual).to.have.nested.property(`${predPrefix}.children.delPred[0].children.exists[0].children.scopedWff[0].children.LeftParen`)
@@ -353,7 +354,6 @@ describe("SQL JSONPath CST", () => {
     it("is unknown", () => {
       const actual = parseJsonPath("$ ? ((@.max > 1) is unknown)")
       expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
-
       expect(actual).to.have.nested.property(`${filterPrefix}.PredicateStart`)
       expect(actual).to.have.nested.property(`${predPrefix}.children.delPred[0].children.scopedPred[0].children.IsUnknown`)
       expect(actual).to.have.nested.property(`${predPrefix}.children.delPred[0].children.scopedPred[0].children.${predSubpath}.${cstPrefix}.primary[0].children.FilterValue`)
@@ -367,7 +367,6 @@ describe("SQL JSONPath CST", () => {
       it("without flag", () => {
         const actual = parseJsonPath("$ ? (@ like_regex \"\d+\")")
         expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
-
         expect(actual).to.have.nested.property(`${filterPrefix}.PredicateStart`)
         expect(actual).to.have.nested.property(`${predPrefix}.${cstPrefix}.primary[0].children.FilterValue`)
         expect(actual).to.have.nested.property(`${predPrefix}.children.likeRegex[0].children.LikeRegex`)
@@ -378,7 +377,6 @@ describe("SQL JSONPath CST", () => {
       it("with flag", () => {
         const actual = parseJsonPath("$ ? (@ like_regex \"\d+\" flag \"m\")")
         expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
-
         expect(actual).to.have.nested.property(`${filterPrefix}.PredicateStart`)
         expect(actual).to.have.nested.property(`${predPrefix}.${cstPrefix}.primary[0].children.FilterValue`)
         expect(actual).to.have.nested.property(`${predPrefix}.children.likeRegex[0].children.LikeRegex`)
@@ -393,7 +391,6 @@ describe("SQL JSONPath CST", () => {
       it("calls method after predicate", () => {
         const actual = parseJsonPath("$ ? (@ <> 2).keyvalue()")
         expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
-
         expect(actual).to.have.nested.property(`${filterPrefix}.PredicateStart`)
         expect(actual).to.have.nested.property(`${filterPrefix}.RightParen`)
         expect(actual).to.have.nested.property(`${cstPrefix}.accessor[1].children.ItemMethod`)
