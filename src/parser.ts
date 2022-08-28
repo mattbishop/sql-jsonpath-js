@@ -7,6 +7,7 @@ import {
   ComparisonOperator,
   ContextVariable,
   Exists,
+  FilterStart,
   FilterValue,
   Flag,
   ItemMethod,
@@ -22,7 +23,6 @@ import {
   NotOperator,
   NullLiteral,
   NumberLiteral,
-  PredicateStart,
   RightBracket,
   RightParen,
   StartsWith,
@@ -41,6 +41,14 @@ export class JsonPathParser extends CstParser {
   }
 
 
+  /*
+    <JSON path expression> ::=
+          <JSON path mode> <JSON path wff>
+
+    <JSON path mode> ::=
+            strict
+          | lax
+   */
   jsonPathStatement = this.RULE("stmt", () => {
     this.OPTION(() => this.CONSUME(Mode))
     this.SUBRULE(this.wff)
@@ -48,9 +56,9 @@ export class JsonPathParser extends CstParser {
 
 
 /*
-<JSON path wff> ::= <JSON additive expression>
+    <JSON path wff> ::= <JSON additive expression>
 
-<JSON additive expression> ::=
+    <JSON additive expression> ::=
             <JSON multiplicative expression>
           | <JSON additive expression> <plus sign> <JSON multiplicative expression>
           | <JSON additive expression> <minus sign> <JSON multiplicative expression>
@@ -73,7 +81,7 @@ export class JsonPathParser extends CstParser {
 
 
   /*
-<JSON unary expression> ::=
+    <JSON unary expression> ::=
             <JSON accessor expression>
           | <plus sign> <JSON unary expression>
           | <minus sign> <JSON unary expression>
@@ -92,7 +100,7 @@ export class JsonPathParser extends CstParser {
 
 
   /*
-  <JSON multiplicative expression> ::=
+    <JSON multiplicative expression> ::=
             <JSON unary expression>
           | <JSON multiplicative expression> <asterisk> <JSON unary expression>
           | <JSON multiplicative expression> <solidus> <JSON unary expression>
@@ -107,6 +115,18 @@ export class JsonPathParser extends CstParser {
   })
 
 
+  /*
+    <JSON path primary> ::=
+            <JSON path literal>
+          | <JSON path variable>
+          | <left paren> <JSON path wff> <right paren>
+
+    <JSON path variable> ::=
+            <JSON path context variable>
+          | <JSON path named variable>
+          | <at sign>
+          | <JSON last subscript>
+   */
   pathPrimary = this.RULE("primary", () => {
     // todo more than 3 alts so cache them: https://chevrotain.io/docs/guide/performance.html#caching-arrays-of-alternatives
     this.OR([
@@ -131,6 +151,11 @@ export class JsonPathParser extends CstParser {
   })
 
 
+  /*
+    <JSON accessor expression> ::=
+            <JSON path primary>
+          | <JSON accessor expression> <JSON accessor op>
+   */
   accessorExpression = this.RULE("accessExp", () => {
     this.SUBRULE(this.pathPrimary)
     this.MANY(() => {
@@ -139,6 +164,15 @@ export class JsonPathParser extends CstParser {
     })
 
 
+  /*
+    <JSON accessor op> ::=
+            <JSON member accessor>
+          | <JSON wildcard member accessor>
+          | <JSON array accessor>
+          | <JSON wildcard array accessor>
+          | <JSON filter expression>
+          | <JSON item method>
+   */
   // todo more than 3 alts so cache them: https://chevrotain.io/docs/guide/performance.html#caching-arrays-of-alternatives
   accessor = this.RULE("accessor", () => {
     this.OR([
@@ -152,6 +186,13 @@ export class JsonPathParser extends CstParser {
   })
 
 
+  /*
+    <JSON array accessor> ::=
+          <left bracket> <JSON subscript list> <right bracket>
+
+    <JSON subscript list> ::=
+          <JSON subscript> [ { <comma> <JSON subscript> }... ]
+   */
   arrayAccessor = this.RULE("array", () => {
     this.CONSUME(LeftBracket)
     this.AT_LEAST_ONE_SEP({
@@ -162,6 +203,11 @@ export class JsonPathParser extends CstParser {
   })
 
 
+  /*
+    <JSON subscript> ::=
+            <JSON path wff>
+          | <JSON path wff> to <JSON path wff>
+   */
   subscript = this.RULE("subscript", () => {
     this.SUBRULE(this.wff)
     this.OPTION(() => {
@@ -170,17 +216,23 @@ export class JsonPathParser extends CstParser {
     })
   })
 
-/*
-<JSON filter expression> ::=
+
+  /*
+    <JSON filter expression> ::=
           <question mark> <left paren> <JSON path predicate> <right paren>
  */
   filterExpression = this.RULE("filter", () => {
-    this.CONSUME(PredicateStart)
+    this.CONSUME(FilterStart)
     this.SUBRULE(this.pathPredicate)
-    this.CONSUME(RightParen)
+    this.CONSUME(RightParen, {LABEL: "FilterEnd"})
   })
 
 
+  /*
+    <JSON delimited predicate> ::=
+            <JSON exists path predicate>
+          | <left paren> <JSON path predicate> <right paren>
+   */
   delimitedPredicate = this.RULE("delPred", () => {
     this.OR([
       { ALT: () => this.SUBRULE(this.exists) },
@@ -189,6 +241,17 @@ export class JsonPathParser extends CstParser {
   })
 
 
+  /*
+    <JSON predicate primary> ::=
+            <JSON delimited predicate>
+          | <JSON non-delimited predicate>
+
+    <JSON non-delimited predicate> ::=
+            <JSON comparison predicate>
+          | <JSON like_regex predicate>
+          | <JSON starts with predicate>
+          | <JSON unknown predicate>
+   */
   // todo more than 3 alts so cache them: https://chevrotain.io/docs/guide/performance.html#caching-arrays-of-alternatives
   predicate = this.RULE("pred", () => {
     this.OR([
@@ -207,18 +270,23 @@ export class JsonPathParser extends CstParser {
   })
 
 
+  /*
+    <JSON unknown predicate> ::=
+          <right paren> <JSON path predicate> <left paren> is unknown
+   */
   scopedPredicate = this.RULE("scopedPred", () => {
     this.CONSUME(LeftParen)
     this.SUBRULE(this.pathPredicate)
     this.CONSUME(RightParen)
+    // parsing here eliminates an ambiguity
     this.OPTION(() => this.CONSUME(IsUnknown))
   })
 
 
   /*
-<JSON boolean negation> ::=
-              <JSON predicate primary>
-            | <exclamation mark> <JSON delimited predicate>
+    <JSON boolean negation> ::=
+            <JSON predicate primary>
+          | <exclamation mark> <JSON delimited predicate>
    */
   negation = this.RULE("neg", () => {
     this.OR([
@@ -232,6 +300,7 @@ export class JsonPathParser extends CstParser {
   })
 
 
+  // No BNF, but examples use this pattern
   pathPredicate = this.RULE("pathPred", () => {
     this.SUBRULE(this.negation)
     this.MANY(() => {
@@ -241,27 +310,49 @@ export class JsonPathParser extends CstParser {
   })
 
 
+  /*
+    <JSON exists path predicate> ::=
+          exists <left paren> <JSON path wff> <right paren>
+   */
   exists = this.RULE("exists", () => {
     this.CONSUME(Exists)
     this.SUBRULE(this.scopedWff)
   })
 
 
+  /*
+    <JSON starts with predicate> ::=
+          <JSON starts with whole> starts with <JSON starts with initial>
+
+    <JSON starts with whole> ::=
+          <JSON path wff>
+
+    <JSON starts with initial> ::=
+          <JSON path wff>
+   */
   startsWith = this.RULE("startsWith", () => {
     this.CONSUME(StartsWith)
-    this.OR([
-      { ALT: () => this.CONSUME(StringLiteral) },
-      { ALT: () => this.CONSUME(NamedVariable) }
-    ])
+    this.SUBRULE(this.wff)
   })
 
 
+  // No BNF available for this rule
   comparison = this.RULE("comparison", () => {
     this.CONSUME(ComparisonOperator)
-    this.SUBRULE1(this.wff)
+    this.SUBRULE(this.wff)
   })
 
 
+  /*
+    <JSON like_regex predicate> ::=
+          <JSON path wff> like_regex <JSON like_regex pattern> [ flag <JSON like_regex flags> ]
+
+    <JSON like_regex pattern> ::=
+          <JSON path string literal>
+
+    <JSON like_regex flags> ::=
+          <JSON path string literal>
+   */
   likeRegex = this.RULE("likeRegex", () => {
     this.CONSUME(LikeRegex)
     this.CONSUME(StringLiteral, { LABEL: "Pattern" })

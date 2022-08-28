@@ -8,7 +8,11 @@ export const NamedVariable          = createToken({name: "NamedVariable", patter
 export const ItemMethod             = createToken({name: "ItemMethod", pattern: /\.\s*(?:type|size|double|ceiling|floor|abs|datetime|keyvalue)\s*\(\s*\)/})
 export const WildcardMember         = createToken({name: "WildcardMember", pattern: /\.\s*\*/})
 
-// first char is '.' so the rest can be the unicode ID character set
+/*
+  <JSON member accessor> ::=
+            <period> <JSON path key name>
+          | <period> <JSON path string literal>
+ */
 export const Member = createRegexToken({
   name:             "Member",
   // quoted string pattern identical to StringLiteral
@@ -27,7 +31,7 @@ export const To               = createToken({name: "To", pattern: /\sto\s/})
 
 
 // filter expressions
-export const PredicateStart   = createToken({name: "PredicateStart", pattern: /\?\s?\(/})
+export const FilterStart      = createToken({name: "FilterStart", pattern: /\?\s?\(/})
 export const FilterValue      = createToken({name: "FilterValue", pattern: "@"})
 // Spec calls for whitespace
 export const Exists           = createToken({name: "Exists", pattern: "exists"})
@@ -98,15 +102,16 @@ export const allTokens = [
   LogicOperator,
   LeftParen,
   RightParen,
-  PredicateStart,
+  FilterStart,
   FilterValue,
   WhiteSpace // not used in any rules; ignored
 ]
 
 
+// Used to create Tokens with Regex patterns that Chevrotain cannot handle, like unicode patterns.
 function createRegexToken(configIn: ITokenConfig): TokenType {
   const {pattern: regex, ...config} = configIn
-  if (!regex || !(regex instanceof RegExp)) {
+  if (!(regex instanceof RegExp)) {
     throw new Error(`pattern must be a regular expression: ${JSON.stringify(regex)}`)
   }
   if (!regex.flags.includes("y")) {
