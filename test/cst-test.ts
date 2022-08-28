@@ -393,6 +393,20 @@ describe("SQL JSONPath CST", () => {
       })
     })
 
+    describe("datetime", () => {
+      it("datetime()", () => {
+        const actual = parseJsonPath("$.datetime()")
+        expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
+        expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.DatetimeMethod`)
+      })
+
+      it("datetime(\"template\")", () => {
+        const actual = parseJsonPath("$.datetime(\"YYYY\")")
+        expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
+        expect(actual).to.nested.include({[`${cstPrefix}.accessor[0].children.DatetimeMethod[0].image`]: ".datetime(\"YYYY\")"})
+      })
+    })
+
     describe("accessor after predicate", () => {
       it("calls method after predicate", () => {
         const actual = parseJsonPath("$ ? (@ <> 2).keyvalue()")

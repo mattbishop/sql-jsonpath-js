@@ -6,6 +6,7 @@ import {
   Comma,
   ComparisonOperator,
   ContextVariable,
+  DatetimeMethod,
   Exists,
   FilterStart,
   FilterValue,
@@ -181,7 +182,8 @@ export class JsonPathParser extends CstParser {
       { ALT: () => this.SUBRULE(this.arrayAccessor) },
       { ALT: () => this.CONSUME(WildcardArray) },
       { ALT: () => this.SUBRULE(this.filterExpression) },
-      { ALT: () => this.CONSUME(ItemMethod) }
+      { ALT: () => this.CONSUME(ItemMethod) },
+      { ALT: () => this.CONSUME(DatetimeMethod) }
     ])
   })
 

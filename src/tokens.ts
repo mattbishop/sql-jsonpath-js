@@ -5,7 +5,8 @@ export const Mode                   = createToken({name: "Mode", pattern: /lax|s
 export const ContextVariable        = createToken({name: "ContextVariable", pattern: "$"})
 // Named Variables match SQL standard for alias names.
 export const NamedVariable          = createToken({name: "NamedVariable", pattern: /\$(?:[a-zA-Z][\w#@$]{0,255})+/})
-export const ItemMethod             = createToken({name: "ItemMethod", pattern: /\.\s*(?:type|size|double|ceiling|floor|abs|datetime|keyvalue)\s*\(\s*\)/})
+export const ItemMethod             = createToken({name: "ItemMethod", pattern: /\.\s*(?:type|size|double|ceiling|floor|abs|keyvalue)\s*\(\s*\)/})
+export const DatetimeMethod         = createToken({name: "DatetimeMethod", pattern: /\.\s*datetime\s*\(\s*(?:"[^"]+")?\s*\)/})
 export const WildcardMember         = createToken({name: "WildcardMember", pattern: /\.\s*\*/})
 
 /*
@@ -89,6 +90,7 @@ export const allTokens = [
   UnaryOperator,
   BinaryOperator,
   ItemMethod,
+  DatetimeMethod,
   WildcardMember,
   Member,
   WildcardArray,
