@@ -42,12 +42,15 @@ Note: The atomic values in the SQL/JSON path language are written the same as in
 <JSON path named variable> ::=
             <dollar sign> <JSON path identifier>
 ```
-Note: Identifiers are ECMAScript identifier names, but may not start with <dollar sign>
+Note: Identifiers are ECMAScript identifier names, but may not start with <dollar sign>. They follow the SQL object naming standard.
 
 
 ```
 <JSON last subscript> ::=
           last
+```
+
+```
 <JSON accessor expression> ::=
             <JSON path primary>
           | <JSON accessor expression> <JSON accessor op>
@@ -100,7 +103,7 @@ NOTE: Unlike ECMAScript, SQL/JSON path language does not provide a member access
 <JSON filter expression> ::=
           <question mark> <left paren> <JSON path predicate> <right paren>
 ```
-NOTE: unlike ECMAScript, predicates are not expressions; instead they form a separate language that can only be invoked within a <JSON filter expression>.
+NOTE: unlike ECMAScript, predicates are not expressions; instead they form a separate language that can only be invoked within a <JSON filter expression>
 
 ```
 <JSON item method> ::=
@@ -190,7 +193,7 @@ NOTE: comparison operators are not left associative, unlike ECMAScript.
           | <less than or equals operator>
           | <greater than or equals operator>
 ```
-NOTE nnn: equality operators have the same precedence as inequality comparision operators, unlike ECMAScript.
+NOTE: equality operators have the same precedence as inequality comparision operators, unlike ECMAScript.
 
 ```
 <JSON like_regex predicate> ::=
@@ -222,7 +225,7 @@ NOTE nnn: equality operators have the same precedence as inequality comparision 
 
 ```
 <JSON unknown predicate> ::=
-          <right paren> <JSON path predicte> <left paren> is unknown
+          <left paren> <JSON path predicte> <right paren> is unknown
 ```
 
 ```
@@ -347,20 +350,20 @@ NOTE nnn: equality operators have the same precedence as inequality comparision 
    9. NOTE: It follows that SQL/JSON path language is case-sensitive in both identifiers and key words. Unlike SQL, there are no “quoted” identifiers, and there is no automatic conversion of any identifiers to uppercase.
 3) SQL/JSON grammar is stated with BNF non-terminals enclosed in angle brackets < >. The following corrrespondences between SQL/JSON BNF non-terminals and ECMAScript BNF non-terminals applies:
 
-   | SQL/JSON Path | ECMAScript |
+   | SQL/JSON Path               | ECMAScript |
    | ------------- | ---------- |
-   | <JSON path literal> | Literal |
-   | <JSON path numeric literal> | NumericLiteral |
-   | <JSON path string literal> | StringLiteral |
-   | <JSON path identifier> | Identifier |
+   | `<JSON path literal>`        | Literal |
+   | `<JSON path numeric literal>` | NumericLiteral |
+   | `<JSON path string literal>`  | StringLiteral |
+   | `<JSON path identifier>`      | Identifier |
 
-4) A <JSON path identifier> is classified as follows: Case:
+5) A <JSON path identifier> is classified as follows: Case:
    1. A <JSON path identifier> that is a <dollar sign> is a <JSON path context variable>.
    2. A <JSON path identifier> that begins with a <dollar sign> is a <JSON path named variable>.
    3. Otherwise, a <JSON path identifier> is a <JSON path key name>.
-5) The value of a <JSON path literal> is determined as follows:
-   4. The value of a <JSON path numeric literal> JPNL is the value of the <signed numeric literal> whose characters are identical to JPNL.
-   5. The value of a <JSON path string literal> JPSL is an SQL character string whose character set is Unicode and whose characters are the ones enclosed by single or double quotation marks (but excluding these delimiters) in JPSL after replacing any escape sequences by their unescaped equivalents.
-   6. The value of null is the SQL/JSON null.
-   7. The value of true is True.
-   8. The value of false is False.
+6) The value of a <JSON path literal> is determined as follows:
+   1. The value of a <JSON path numeric literal> JPNL is the value of the <signed numeric literal> whose characters are identical to JPNL.
+   2. The value of a <JSON path string literal> JPSL is an SQL character string whose character set is Unicode and whose characters are the ones enclosed by single or double quotation marks (but excluding these delimiters) in JPSL after replacing any escape sequences by their unescaped equivalents. This is not the same as a JSON string.
+   3. The value of null is the SQL/JSON null.
+   4. The value of true is True.
+   5. The value of false is False.
