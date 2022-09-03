@@ -1,3 +1,4 @@
+import {CodegenContext, newCodegenVisitor} from "./codegen-visitor"
 import {JsonPathParser} from "./parser";
 import {allTokens} from "./tokens";
 import {Lexer} from "chevrotain"
@@ -5,12 +6,34 @@ import {newJsonPathVisitor} from "./visitor";
 import {SqlJsonPath, SqlJsonPathStatement} from "./json-path";
 
 
-const JsonPathLexer = new Lexer(allTokens)
+const jsonPathLexer = new Lexer(allTokens)
 const parser = new JsonPathParser()
-const visitor = newJsonPathVisitor(parser.getBaseCstVisitorConstructor())
+
+const origVisitor = newJsonPathVisitor(parser.getBaseCstVisitorConstructor())
+const codegenVisitor = newCodegenVisitor(parser.getBaseCstVisitorConstructor())
+
+
+export function generateFunctionSource(text: string): CodegenContext {
+  const {tokens, errors} = jsonPathLexer.tokenize(text)
+
+  if (errors?.length) {
+    console.error(`Cannot tokenize "${text}": ${JSON.stringify(errors)}`)
+    throw errors[0]
+  }
+  parser.input = tokens
+
+  const cst = parser.jsonPathStatement()
+  if (parser?.errors.length) {
+    console.error(`Parsing errors detected: ${JSON.stringify(parser.errors)}`)
+    throw parser.errors[0]
+  }
+
+  return codegenVisitor.visit(cst)
+}
+
 
 export function compile(text: string): SqlJsonPath {
-  const lexingResult = JsonPathLexer.tokenize(text)
+  const lexingResult = jsonPathLexer.tokenize(text)
 
   // "input" is a setter which will reset the parser's state.
   parser.input = lexingResult.tokens
@@ -20,7 +43,8 @@ export function compile(text: string): SqlJsonPath {
     throw new Error(`sad sad panda, Parsing errors detected: ${parser.errors[0]}`)
   }
 
-  const statement = visitor.visit(cst) as SqlJsonPathStatement
+
+  const statement = origVisitor.visit(cst) as SqlJsonPathStatement
   return {
     statement,
     exists,

@@ -20,7 +20,7 @@ export function newJsonPathVisitor(constr: { new(...args: any[]): ICstVisitor<an
   return new class JsonPathVisitor extends constr {
     constructor() {
       super()
-      this.validateVisitor()
+      // this.validateVisitor()
     }
 
     jsonPathStatement(ctx: any): SqlJsonPathStatement {
