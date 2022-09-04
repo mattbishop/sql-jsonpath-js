@@ -109,22 +109,41 @@ describe("Codegen tests", () => {
         expect(() => fn([])).to.throw()
       })
 
-      it("keyvalue()", () => {
-        const actual = generateFunctionSource("$ .keyvalue (  )")
-        expect(actual.source).to.equal(`return this.keyvalue($)`)
-        const fn = createFunction(actual.source)
-        const id = 0
-        const kvActual = fn({a: 1, b: true, c: "see", d: {z: -9}})
-        expect(kvActual).to.deep.equal([
-          {id, key: "a", value: 1},
-          {id, key: "b", value: true},
-          {id, key: "c", value: "see"},
-          {id, key: "d", value: {z: -9}}
-        ])
-        expect(() => fn("77.4")).to.throw()
-        expect(() => fn(true)).to.throw()
-        expect(() => fn(100)).to.throw()
-        expect(() => fn([])).to.throw()
+      describe("keyvalue()", () => {
+        it("lax keyvalue", () => {
+          const actual = generateFunctionSource("$ .keyvalue (  )")
+          expect(actual.source).to.equal(`return this.keyvalue($,true)`)
+          const fn = createFunction(actual.source)
+          const kvActual = fn([{a: 1, b: true, c: "see", d: {z: -9}}, {"m": 1}])
+          expect(kvActual).to.deep.equal([
+            {id: 0, key: "a", value: 1},
+            {id: 0, key: "b", value: true},
+            {id: 0, key: "c", value: "see"},
+            {id: 0, key: "d", value: {z: -9}},
+            {id: 1, key: "m", value: 1}
+          ])
+          expect(() => fn("77.4")).to.throw()
+          expect(() => fn(true)).to.throw()
+          expect(() => fn(100)).to.throw()
+        })
+
+        it("strict keyvalue", () => {
+          const actual = generateFunctionSource("strict $ .keyvalue (  )")
+          expect(actual.source).to.equal(`return this.keyvalue($,false)`)
+          const fn = createFunction(actual.source)
+          const id = 0
+          const kvActual = fn({a: 1, b: true, c: "see", d: {z: -9}})
+          expect(kvActual).to.deep.equal([
+            {id, key: "a", value: 1},
+            {id, key: "b", value: true},
+            {id, key: "c", value: "see"},
+            {id, key: "d", value: {z: -9}}
+          ])
+          expect(() => fn("77.4")).to.throw()
+          expect(() => fn(true)).to.throw()
+          expect(() => fn(100)).to.throw()
+          expect(() => fn([])).to.throw()
+        })
       })
     })
   })

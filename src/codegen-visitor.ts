@@ -65,12 +65,23 @@ export const itemMethodFns = {
     return Math.abs(primary)
   },
 
-  keyvalue(primary: any): KeyValue[] {
-    if (this.type(primary) !== "object") {
-      throw new Error(`${primary} must be an object, found ${JSON.stringify(primary)}.`)
+  keyvalue(primary: any, lax: boolean): KeyValue[] {
+    if (typeof primary !== "object") {
+      throw new Error(`${primary} must be an object or array of objects (only in lax mode), found ${JSON.stringify(primary)}.`)
     }
-    // the ID is used to rebuild the object array from the KV array when an array of objects is consumed.
-    const id = 0
+    if (Array.isArray(primary)) {
+      if (!lax) {
+        throw new Error(`${primary} must be an object but is an array (in strict mode), found ${JSON.stringify(primary)}.`)
+      }
+      return primary.reduce((acc, row, id) => {
+        acc.push(...this._toKV(row, id))
+        return acc
+      }, [] as KeyValue[])
+    }
+    return this._toKV(primary, 0)
+  },
+
+  _toKV(primary: object, id: number): KeyValue[] {
     return Object.entries(primary).map(([key, value]) => ({id, key, value}))
   }
 }
@@ -219,7 +230,7 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
             methodImpl = `this.abs(${primary})`
             break
           case "keyvalue" :
-            methodImpl = `this.keyvalue(${primary})`
+            methodImpl = `this.keyvalue(${primary},${ctx.lax})`
             break
         }
         if (methodImpl) {
