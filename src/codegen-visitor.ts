@@ -18,6 +18,48 @@ export type CodegenContext = {
   source: string
 }
 
+export const itemMethodFns = {
+  type(primary: any): string {
+    return Array.isArray(primary) ? 'array' : typeof primary
+  },
+
+  size(primary: any): number {
+    return Array.isArray(primary) ? primary.length : 1
+  },
+
+  double(primary: any): number {
+    if (typeof primary !== 'number' && typeof primary !== 'string') {
+      throw new Error(`${primary} must be a number or string, found ${JSON.stringify(primary)}.`);
+    }
+    const n = Number(primary)
+    if (Number.isNaN(n)) {
+      throw new Error(`${primary} is not a representation of a number.`)
+    }
+    return n
+  },
+
+  ceiling(primary: any): number {
+    if (typeof primary !== 'number') {
+      throw new Error(`${primary} must be a number, found ${JSON.stringify(primary)}.`);
+    }
+    return Math.ceil(primary)
+  },
+
+  floor(primary: any): number {
+    if (typeof primary !== 'number') {
+      throw new Error(`${primary} must be a number, found ${JSON.stringify(primary)}.`);
+    }
+    return Math.floor(primary)
+  },
+
+  abs(primary: any): number {
+    if (typeof primary !== 'number') {
+      throw new Error(`${primary} must be a number, found ${JSON.stringify(primary)}.`);
+    }
+    return Math.abs(primary)
+  }
+}
+
 
 /**
  * Construct a new Visitor that generates a JS function to execute the JsonPath query.
@@ -49,11 +91,11 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
       const mode = Mode ? Mode[0].image : "lax"
       let ctx: CodegenContext = {
         lax:    mode === "lax",
-        source: "yield "
+        source: ""
       }
 
       ctx = this.visit(node.wff, ctx)
-      ctx.source = `return function* ($, $$) { ${ctx.source} }`
+      ctx.source = `return ${ctx.source}`
       return ctx
     }
 
@@ -84,8 +126,12 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
     accessExp(node: AccessExpCstChildren, ctx: CodegenContext): CodegenContext {
       const {primary, accessor} = node
 
+      const origSource = ctx.source
+      ctx.source = ""
       ctx = this.visit(primary, ctx)
-      return this.maybeVisit(accessor, ctx)
+      ctx = this.maybeVisit(accessor, ctx)
+      ctx.source = origSource + ctx.source
+      return ctx
     }
 
     primary(node: PrimaryCstChildren, ctx: CodegenContext): CodegenContext {
@@ -122,7 +168,51 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
 
     accessor(node: AccessorCstChildren, ctx: CodegenContext): CodegenContext {
       const {array, filter, DatetimeMethod, ItemMethod, Member, WildcardArray, WildcardMember} = node
-      // this is where mode starts mattering
+      const primary = ctx.source
+      if (ItemMethod) {
+        /*
+          type|size|double|ceiling|floor|abs|keyvalue
+
+          $.type()       ->    typeof $
+          $.size()       ->    Array.isArray($) ? $.length : 1
+          $.double()     ->    Turns a string / number into a Number
+          $.ceiling()    ->    Math.ceil($)
+          $.floor()      ->    Math.floor($)
+          $.abs()        ->    Math.abs($)
+
+          $.keyvalue()   ->    ??
+          $.datetime()   ->    new Date($)
+         */
+        let methodImpl = ""
+        const methodMatch = /\w+/.exec(ItemMethod[0].image)
+        if (methodMatch === null) {
+          throw new Error(`method ${ItemMethod[0].image} cannot be found`)
+        }
+        const methodName = methodMatch[0]
+        switch (methodName) {
+          case "size" :
+            methodImpl = `this.size(${primary})`
+            break
+          case "type" :
+            methodImpl = `this.type(${primary})`
+            break
+          case "double" :
+            methodImpl = `this.double(${primary})`
+            break
+          case "ceiling" :
+            methodImpl = `this.ceiling(${primary})`
+            break
+          case "floor" :
+            methodImpl = `this.floor(${primary})`
+            break
+          case "abs" :
+            methodImpl = `this.abs(${primary})`
+            break
+        }
+        if (methodImpl) {
+          ctx.source = methodImpl
+        }
+      }
       return ctx
     }
   }
