@@ -1,13 +1,23 @@
-import {ITokenConfig} from "@chevrotain/types"
+import {CustomPatternMatcherReturn, ITokenConfig} from "@chevrotain/types"
 import {createToken, Lexer, TokenType} from "chevrotain"
 
 export const Mode                   = createToken({name: "Mode", pattern: /lax|strict/})
 export const ContextVariable        = createToken({name: "ContextVariable", pattern: "$"})
 // Named Variables match SQL standard for alias names.
 export const NamedVariable          = createToken({name: "NamedVariable", pattern: /\$(?:[a-zA-Z][\w#@$]{0,255})+/})
-export const ItemMethod             = createToken({name: "ItemMethod", pattern: /\.\s*(?:type|size|double|ceiling|floor|abs|keyvalue)\s*\(\s*\)/})
-export const DatetimeMethod         = createToken({name: "DatetimeMethod", pattern: /\.\s*datetime\s*\(\s*(?:"[^"]+")?\s*\)/})
 export const WildcardMember         = createToken({name: "WildcardMember", pattern: /\.\s*\*/})
+
+export const DatetimeMethod = createRegexToken({
+  name:             "DatetimeMethod",
+  pattern:          /\.\s*datetime\s*\(\s*("[^"]+")?\s*\)/y,
+  start_chars_hint: ["."]
+})
+
+export const ItemMethod = createRegexToken({
+  name:             "ItemMethod",
+  pattern:          /\.\s*(type|size|double|ceiling|floor|abs|keyvalue)\s*\(\s*\)/y,
+  start_chars_hint: ["."]
+})
 
 /*
   <JSON member accessor> ::=
@@ -123,7 +133,12 @@ function createRegexToken(configIn: ITokenConfig): TokenType {
     ...config,
     pattern: (text, offset) => {
       regex.lastIndex = offset
-      return regex.exec(text)
+      const m = regex.exec(text)
+      if (m && m.length > 1) {
+        // capturing groups in the regex, take the last one as the payload. No token has more than 1 group
+        (m as unknown as CustomPatternMatcherReturn).payload = m[m.length - 1]
+      }
+      return m
     },
     line_breaks: false
   })

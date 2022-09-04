@@ -20,7 +20,7 @@ export type CodegenContext = {
 
 export const itemMethodFns = {
   type(primary: any): string {
-    return Array.isArray(primary) ? 'array' : typeof primary
+    return Array.isArray(primary) ? "array" : typeof primary
   },
 
   size(primary: any): number {
@@ -28,8 +28,8 @@ export const itemMethodFns = {
   },
 
   double(primary: any): number {
-    if (typeof primary !== 'number' && typeof primary !== 'string') {
-      throw new Error(`${primary} must be a number or string, found ${JSON.stringify(primary)}.`);
+    if (typeof primary !== "number" && typeof primary !== "string") {
+      throw new Error(`${primary} must be a number or string, found ${JSON.stringify(primary)}.`)
     }
     const n = Number(primary)
     if (Number.isNaN(n)) {
@@ -39,22 +39,22 @@ export const itemMethodFns = {
   },
 
   ceiling(primary: any): number {
-    if (typeof primary !== 'number') {
-      throw new Error(`${primary} must be a number, found ${JSON.stringify(primary)}.`);
+    if (typeof primary !== "number") {
+      throw new Error(`${primary} must be a number, found ${JSON.stringify(primary)}.`)
     }
     return Math.ceil(primary)
   },
 
   floor(primary: any): number {
-    if (typeof primary !== 'number') {
-      throw new Error(`${primary} must be a number, found ${JSON.stringify(primary)}.`);
+    if (typeof primary !== "number") {
+      throw new Error(`${primary} must be a number, found ${JSON.stringify(primary)}.`)
     }
     return Math.floor(primary)
   },
 
   abs(primary: any): number {
-    if (typeof primary !== 'number') {
-      throw new Error(`${primary} must be a number, found ${JSON.stringify(primary)}.`);
+    if (typeof primary !== "number") {
+      throw new Error(`${primary} must be a number, found ${JSON.stringify(primary)}.`)
     }
     return Math.abs(primary)
   }
@@ -181,14 +181,9 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
           $.abs()        ->    Math.abs($)
 
           $.keyvalue()   ->    ??
-          $.datetime()   ->    new Date($)
          */
+        const methodName = ItemMethod[0].payload
         let methodImpl = ""
-        const methodMatch = /\w+/.exec(ItemMethod[0].image)
-        if (methodMatch === null) {
-          throw new Error(`method ${ItemMethod[0].image} cannot be found`)
-        }
-        const methodName = methodMatch[0]
         switch (methodName) {
           case "size" :
             methodImpl = `this.size(${primary})`
