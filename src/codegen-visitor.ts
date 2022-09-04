@@ -1,5 +1,6 @@
 import {CstNode, ICstVisitor} from "@chevrotain/types"
 import {IToken} from "chevrotain"
+import {DateTime, FixedOffsetZone} from "luxon"
 import {
   AccessExpCstChildren,
   AccessorCstChildren,
@@ -35,43 +36,43 @@ export const itemMethodFns = {
 
   double(primary: any): number {
     if (typeof primary !== "number" && typeof primary !== "string") {
-      throw new Error(`${primary} must be a number or string, found ${JSON.stringify(primary)}.`)
+      throw new Error(`double() value must be a number or string, found ${JSON.stringify(primary)}.`)
     }
     const n = Number(primary)
     if (Number.isNaN(n)) {
-      throw new Error(`${primary} is not a representation of a number.`)
+      throw new Error(`double() param ${primary} is not a representation of a number.`)
     }
     return n
   },
 
   ceiling(primary: any): number {
     if (typeof primary !== "number") {
-      throw new Error(`${primary} must be a number, found ${JSON.stringify(primary)}.`)
+      throw new Error(`$ceiling() param must be a number, found ${JSON.stringify(primary)}.`)
     }
     return Math.ceil(primary)
   },
 
   floor(primary: any): number {
     if (typeof primary !== "number") {
-      throw new Error(`${primary} must be a number, found ${JSON.stringify(primary)}.`)
+      throw new Error(`floor() param must be a number, found ${JSON.stringify(primary)}.`)
     }
     return Math.floor(primary)
   },
 
   abs(primary: any): number {
     if (typeof primary !== "number") {
-      throw new Error(`${primary} must be a number, found ${JSON.stringify(primary)}.`)
+      throw new Error(`abs() param must be a number, found ${JSON.stringify(primary)}.`)
     }
     return Math.abs(primary)
   },
 
   keyvalue(primary: any, lax: boolean): KeyValue[] {
     if (typeof primary !== "object") {
-      throw new Error(`${primary} must be an object or array of objects (only in lax mode), found ${JSON.stringify(primary)}.`)
+      throw new Error(`keyvalue() param must be an object or array of objects (only in lax mode), found ${JSON.stringify(primary)}.`)
     }
     if (Array.isArray(primary)) {
       if (!lax) {
-        throw new Error(`${primary} must be an object but is an array (in strict mode), found ${JSON.stringify(primary)}.`)
+        throw new Error(`keyvalue() param must be an object but is an array (in strict mode), found ${JSON.stringify(primary)}.`)
       }
       return primary.reduce((acc, row, id) => {
         acc.push(...this._toKV(row, id))
@@ -83,6 +84,15 @@ export const itemMethodFns = {
 
   _toKV(primary: object, id: number): KeyValue[] {
     return Object.entries(primary).map(([key, value]) => ({id, key, value}))
+  },
+
+  datetime(primary: any, template?: string): Date {
+    if (typeof primary !== "string") {
+      throw new Error(`datetime() param must be a string, found ${JSON.stringify(primary)}.`)
+    }
+    return template
+      ? DateTime.fromFormat(primary, template, {zone: FixedOffsetZone.utcInstance}).toJSDate()
+      : new Date(primary)
   }
 }
 
@@ -196,18 +206,6 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
       const {array, filter, DatetimeMethod, ItemMethod, Member, WildcardArray, WildcardMember} = node
       const primary = ctx.source
       if (ItemMethod) {
-        /*
-          type|size|double|ceiling|floor|abs|keyvalue
-
-          $.type()       ->    typeof $
-          $.size()       ->    Array.isArray($) ? $.length : 1
-          $.double()     ->    Turns a string / number into a Number
-          $.ceiling()    ->    Math.ceil($)
-          $.floor()      ->    Math.floor($)
-          $.abs()        ->    Math.abs($)
-
-          $.keyvalue()   ->    ??
-         */
         const methodName = ItemMethod[0].payload
         let methodImpl = ""
         switch (methodName) {
@@ -232,10 +230,16 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
           case "keyvalue" :
             methodImpl = `this.keyvalue(${primary},${ctx.lax})`
             break
+          default :
+            throw new Error(`Item methodName unrecognized: ${methodName}`)
         }
-        if (methodImpl) {
-          ctx.source = methodImpl
+        ctx.source = methodImpl
+      } else if (DatetimeMethod) {
+        let template = DatetimeMethod[0].payload || ""
+        if (template) {
+          template = "," + template
         }
+        ctx.source = `this.datetime(${primary}${template})`
       }
       return ctx
     }

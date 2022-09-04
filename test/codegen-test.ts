@@ -114,13 +114,13 @@ describe("Codegen tests", () => {
           const actual = generateFunctionSource("$ .keyvalue (  )")
           expect(actual.source).to.equal(`return this.keyvalue($,true)`)
           const fn = createFunction(actual.source)
-          const kvActual = fn([{a: 1, b: true, c: "see", d: {z: -9}}, {"m": 1}])
+          const kvActual = fn([{a: 1, b: true, c: "see", d: {z: -9}}, {"m b": 1}])
           expect(kvActual).to.deep.equal([
             {id: 0, key: "a", value: 1},
             {id: 0, key: "b", value: true},
             {id: 0, key: "c", value: "see"},
             {id: 0, key: "d", value: {z: -9}},
-            {id: 1, key: "m", value: 1}
+            {id: 1, key: "m b", value: 1}
           ])
           expect(() => fn("77.4")).to.throw()
           expect(() => fn(true)).to.throw()
@@ -143,6 +143,32 @@ describe("Codegen tests", () => {
           expect(() => fn(true)).to.throw()
           expect(() => fn(100)).to.throw()
           expect(() => fn([])).to.throw()
+        })
+      })
+
+      describe("datetime()", () => {
+        it("ISO string date", () => {
+          const actual = generateFunctionSource("$ .datetime(  )")
+          expect(actual.source).to.equal(`return this.datetime($)`)
+          const fn = createFunction(actual.source)
+          const actualDate = fn("2020-01-01")
+          expect(actualDate.getTime()).to.equal(new Date("2020-01-01").getTime())
+        })
+
+        it("template string date", () => {
+          const actual = generateFunctionSource("$ .datetime(\"M/d/yyyy\")")
+          expect(actual.source).to.equal(`return this.datetime($,\"M/d/yyyy\")`)
+          const fn = createFunction(actual.source)
+          const actualDate = fn("2/21/1900")
+          expect(actualDate.getTime()).to.equal(new Date("1900-02-21").getTime())
+        })
+
+        it("template string datetime with timezone", () => {
+          const actual = generateFunctionSource("$ .datetime(\"M•d•yyyy@h#m#sZ\")")
+          expect(actual.source).to.equal(`return this.datetime($,\"M•d•yyyy@h#m#sZ\")`)
+          const fn = createFunction(actual.source)
+          const actualDate = fn("2•21•1900@3#35#19+8")
+          expect(actualDate.getTime()).to.equal(new Date("1900-02-21 3:35:19+8").getTime())
         })
       })
     })

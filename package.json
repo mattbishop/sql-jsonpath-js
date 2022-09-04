@@ -17,10 +17,12 @@
     "url": "https://github.com/mattbishop/sql-jsonpath-js"
   },
   "dependencies": {
-    "chevrotain": "10.3.0"
+    "chevrotain": "10.3.0",
+    "luxon": "3.0.3"
   },
   "devDependencies": {
     "@types/chai": "4.3.3",
+    "@types/luxon": "3.0.1",
     "@types/mocha": "9.1.1",
     "@types/node": "18.7.14",
     "chai": "4.3.6",
