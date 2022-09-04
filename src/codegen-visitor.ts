@@ -18,6 +18,12 @@ export type CodegenContext = {
   source: string
 }
 
+type KeyValue = {
+  id:     number
+  key:    string
+  value:  unknown
+}
+
 export const itemMethodFns = {
   type(primary: any): string {
     return Array.isArray(primary) ? "array" : typeof primary
@@ -57,6 +63,15 @@ export const itemMethodFns = {
       throw new Error(`${primary} must be a number, found ${JSON.stringify(primary)}.`)
     }
     return Math.abs(primary)
+  },
+
+  keyvalue(primary: any): KeyValue[] {
+    if (this.type(primary) !== "object") {
+      throw new Error(`${primary} must be an object, found ${JSON.stringify(primary)}.`)
+    }
+    // the ID is used to rebuild the object array from the KV array when an array of objects is consumed.
+    const id = 0
+    return Object.entries(primary).map(([key, value]) => ({id, key, value}))
   }
 }
 
@@ -202,6 +217,9 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
             break
           case "abs" :
             methodImpl = `this.abs(${primary})`
+            break
+          case "keyvalue" :
+            methodImpl = `this.keyvalue(${primary})`
             break
         }
         if (methodImpl) {
