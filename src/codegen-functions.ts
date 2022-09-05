@@ -69,6 +69,9 @@ export const codegenFunctions = {
       }
       if (Array.isArray(primary)) {
         return primary.reduce((acc, row, id) => {
+          if (this.type(row) !== "object") {
+            throw new Error(`keyvalue() array must have object values, found ${JSON.stringify(row)}.`)
+          }
           acc.push(..._toKV(row, id))
           return acc
         }, [])

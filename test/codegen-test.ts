@@ -57,6 +57,8 @@ describe("Codegen tests", () => {
       expect(objectType).to.equal("object")
       const arrayType = fn([])
       expect(arrayType).to.equal("array")
+      const undefinedType = fn(undefined)
+      expect (undefinedType).to.equal("undefined")
     })
 
     it("size()", () => {
@@ -133,6 +135,7 @@ describe("Codegen tests", () => {
         ])
         expect(() => fn(null)).to.throw()
         expect(() => fn("frogs")).to.throw()
+        expect(() => fn([{q: 6}, "frogs"])).to.throw()
         expect(() => fn(true)).to.throw()
         expect(() => fn(100)).to.throw()
       })
@@ -151,6 +154,7 @@ describe("Codegen tests", () => {
         ])
         expect(() => fn(null)).to.throw()
         expect(() => fn("star")).to.throw()
+        expect(() => fn([{q: 6}, "frogs"])).to.throw()
         expect(() => fn(true)).to.throw()
         expect(() => fn(100)).to.throw()
         expect(() => fn([])).to.throw()
