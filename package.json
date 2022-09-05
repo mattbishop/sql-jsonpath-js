@@ -1,16 +1,16 @@
 {
   "name": "sql-jsonpath-js",
   "version": "1.0.0",
-  "description": "JavaScript implementation of the SQL JSONPath dialect, from SQL2016.",
+  "description": "JavaScript implementation of the SQL JSONPath API from SQL2016.",
   "main": "dist/index.js",
   "scripts": {
-    "test": "mocha -r ts-node/register test/**/cst-test.ts --timeout 0",
+    "test": "mocha -r ts-node/register test/**/*-test.ts --timeout 0",
     "clean": "rm -rf ./dist",
     "build": "yarn clean && tsc",
-    "diagram": "yarn build && node generate-diagrams.js",
-    "types": "ts-node src/generate-parser-types.ts"
+    "diagram": "yarn build && node utils/generate-diagrams.js",
+    "types": "yarn build && node utils/generate-parser-types.js"
   },
-  "author": "Matt Bishop, Marc Levin",
+  "author": "Matt Bishop, Marc Levin, Jeff Lowery",
   "license": "MIT",
   "repository": {
     "type": "git",

@@ -44,7 +44,6 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
 
 
     stmt(node: StmtCstChildren): CodegenContext {
-      console.info(`stmt: ${JSON.stringify(node)}`)
       const {Mode} = node
       const mode = Mode ? Mode[0].image : "lax"
       let ctx: CodegenContext = {
