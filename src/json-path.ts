@@ -11,6 +11,13 @@ export interface SqlJsonPath {
   query: (config?: QueryConfig) => any
 }
 
+export type KeyValue = {
+  id:     number
+  key:    string
+  value:  unknown
+}
+
+
 export type Mode = "strict" | "lax"
 export type PathPart = Property | ArrayElement | Method
 export type PathQuery = PathPart[]

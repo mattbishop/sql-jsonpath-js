@@ -1,13 +1,14 @@
 import {expect} from "chai"
+
 import {generateFunctionSource} from "../src"
-import {fns} from "../src/codegen-visitor"
+import {codegenFunctions} from "../src/codegen-functions"
 
 
-function createFunction(body: String): Function {
-  const src = `${body}`
-  const fn = Function("$", "$$", src)
-  return fn.bind(fns)
+function createFunction(body: string): Function {
+  const fn = Function("$", "$$", body)
+  return fn.bind(codegenFunctions)
 }
+
 
 describe("Codegen tests", () => {
 
