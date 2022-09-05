@@ -25,7 +25,8 @@ type KeyValue = {
   value:  unknown
 }
 
-export const itemMethodFns = {
+// todo All of these need to accept undefined primary param
+export const fns = {
   type(primary: any): string {
     return Array.isArray(primary) ? "array" : typeof primary
   },
@@ -77,7 +78,7 @@ export const itemMethodFns = {
       return primary.reduce((acc, row, id) => {
         acc.push(...this._toKV(row, id))
         return acc
-      }, [] as KeyValue[])
+      }, [])
     }
     return this._toKV(primary, 0)
   },
@@ -93,6 +94,24 @@ export const itemMethodFns = {
     return template
       ? DateTime.fromFormat(primary, template, {zone: FixedOffsetZone.utcInstance}).toJSDate()
       : new Date(primary)
+  },
+
+  dotStar(primary: any, lax: boolean): any {
+    const type = this.type(primary)
+    if (!lax && type !== "object") {
+      throw new Error(`.* can only be applied to an object in strict mode, found ${JSON.stringify(primary)}.`)
+    }
+    let result
+    if (type === "object") {
+      result = Object.values(primary)
+    } else if (type === "array") {
+      result = primary
+        .filter((o: any) => this.type(o) === "object")
+        .flatMap(Object.values)
+    }
+    if (result && result.length) {
+      return result
+    }
   }
 }
 
@@ -137,7 +156,6 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
 
     wff(node: WffCstChildren, ctx: CodegenContext): CodegenContext {
       const {left, UnaryOp, right} = node
-
       ctx = this.visit(left, ctx)
       ctx = this.maybeAppend(UnaryOp, ctx)
       return this.maybeVisit(right, ctx)
@@ -145,7 +163,6 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
 
     binary(node: BinaryCstChildren, ctx: CodegenContext): CodegenContext {
       const {left, BinaryOp, right} = node
-
       ctx = this.visit(left, ctx)
       ctx = this.maybeAppend(BinaryOp, ctx)
       return this.maybeVisit(right, ctx)
@@ -153,7 +170,6 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
 
     unary(node: UnaryCstChildren, ctx: CodegenContext): CodegenContext {
       const {unary, UnaryOp, accessExp} = node
-
       ctx = this.maybeVisit(unary, ctx)
       ctx = this.maybeAppend(UnaryOp, ctx)
       return this.maybeVisit(accessExp, ctx)
@@ -161,7 +177,6 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
 
     accessExp(node: AccessExpCstChildren, ctx: CodegenContext): CodegenContext {
       const {primary, accessor} = node
-
       const origSource = ctx.source
       ctx.source = ""
       ctx = this.visit(primary, ctx)
@@ -204,7 +219,7 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
 
     accessor(node: AccessorCstChildren, ctx: CodegenContext): CodegenContext {
       const {array, filter, DatetimeMethod, ItemMethod, Member, WildcardArray, WildcardMember} = node
-      const primary = ctx.source
+      const {source: primary, lax} = ctx
       if (ItemMethod) {
         const methodName = ItemMethod[0].payload
         let methodImpl = ""
@@ -228,7 +243,7 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
             methodImpl = `this.abs(${primary})`
             break
           case "keyvalue" :
-            methodImpl = `this.keyvalue(${primary},${ctx.lax})`
+            methodImpl = `this.keyvalue(${primary},${lax})`
             break
           default :
             throw new Error(`Item methodName unrecognized: ${methodName}`)
@@ -240,6 +255,8 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
           template = "," + template
         }
         ctx.source = `this.datetime(${primary}${template})`
+      } else if (WildcardMember) {
+        ctx.source = `this.dotStar(${primary},${lax})`
       }
       return ctx
     }
