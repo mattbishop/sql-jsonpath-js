@@ -1,4 +1,6 @@
 import {expect} from "chai"
+import {iterate} from "iterare"
+import {IteratorWithOperators} from "iterare/lib/iterate"
 
 import {generateFunctionSource} from "../src"
 import {codegenFunctions} from "../src/codegen-functions"
@@ -6,7 +8,13 @@ import {codegenFunctions} from "../src/codegen-functions"
 
 function createFunction(body: string): Function {
   const fn = Function("$", "$$", body)
-  return fn.bind(codegenFunctions)
+  const boundFn = fn.bind(codegenFunctions)
+  return (input: any, args?: any) => {
+    const i = input instanceof IteratorWithOperators
+      ? input
+      : iterate([input])
+    return boundFn(i, args).toArray()
+  }
 }
 
 
@@ -36,7 +44,7 @@ describe("Codegen tests", () => {
       expect(actual.source).to.equal("return $")
       const fn = createFunction(actual.source)
       const value = fn("matt")
-      expect(value).to.equal("matt")
+      expect(value).to.deep.equal(["matt"])
     })
   })
 
@@ -46,19 +54,19 @@ describe("Codegen tests", () => {
       expect(actual.source).to.equal("return this.type($)")
       const fn = createFunction(actual.source)
       const nullType = fn(null)
-      expect(nullType).to.equal("null")
+      expect(nullType).to.deep.equal(["null"])
       const stringType = fn("matt")
-      expect(stringType).to.equal("string")
+      expect(stringType).to.deep.equal(["string"])
       const numberType = fn(77.6)
-      expect(numberType).to.equal("number")
+      expect(numberType).to.deep.equal(["number"])
       const booleanType = fn(true)
-      expect(booleanType).to.equal("boolean")
+      expect(booleanType).to.deep.equal(["boolean"])
       const objectType = fn({})
-      expect(objectType).to.equal("object")
+      expect(objectType).to.deep.equal(["object"])
       const arrayType = fn([])
-      expect(arrayType).to.equal("array")
+      expect(arrayType).to.deep.equal(["array"])
       const undefinedType = fn(undefined)
-      expect (undefinedType).to.equal("undefined")
+      expect (undefinedType).to.deep.equal(["undefined"])
     })
 
     it("size()", () => {
@@ -66,17 +74,17 @@ describe("Codegen tests", () => {
       expect(actual.source).to.equal("return this.size($)")
       const fn = createFunction(actual.source)
       const nullSize = fn(null)
-      expect(nullSize).to.equal(1)
+      expect(nullSize).to.deep.equal([1])
       const stringSize = fn("matt")
-      expect(stringSize).to.equal(1)
+      expect(stringSize).to.deep.equal([1])
       const numberSize = fn(77.6)
-      expect(numberSize).to.equal(1)
+      expect(numberSize).to.deep.equal([1])
       const booleanSize = fn(true)
-      expect(booleanSize).to.equal(1)
+      expect(booleanSize).to.deep.equal([1])
       const objectSize = fn({})
-      expect(objectSize).to.equal(1)
+      expect(objectSize).to.deep.equal([1])
       const arraySize = fn([1, 2, 3])
-      expect(arraySize).to.equal(3)
+      expect(arraySize).to.deep.equal([3])
     })
 
     it("double()", () => {
@@ -84,9 +92,9 @@ describe("Codegen tests", () => {
       expect(actual.source).to.equal("return this.double($)")
       const fn = createFunction(actual.source)
       const stringDouble = fn("45")
-      expect(stringDouble).to.equal(45)
+      expect(stringDouble).to.deep.equal([45])
       const numberDouble = fn(77.6)
-      expect(numberDouble).to.equal(77.6)
+      expect(numberDouble).to.deep.equal([77.6])
       expect(() => fn(null)).to.throw()
       expect(() => fn("bond")).to.throw()
       expect(() => fn(true)).to.throw()
@@ -99,7 +107,7 @@ describe("Codegen tests", () => {
       expect(actual.source).to.equal("return this.ceiling($)")
       const fn = createFunction(actual.source)
       const numberActual = fn(77.6)
-      expect(numberActual).to.equal(78)
+      expect(numberActual).to.deep.equal([78])
       expect(() => fn(null)).to.throw()
       expect(() => fn("77.4")).to.throw()
       expect(() => fn(true)).to.throw()
@@ -112,7 +120,7 @@ describe("Codegen tests", () => {
       expect(actual.source).to.equal("return this.abs($)")
       const fn = createFunction(actual.source)
       const numberActual = fn(-440.33)
-      expect(numberActual).to.equal(440.33)
+      expect(numberActual).to.deep.equal([440.33])
       expect(() => fn(null)).to.throw()
       expect(() => fn("1977")).to.throw()
       expect(() => fn(true)).to.throw()
@@ -167,7 +175,7 @@ describe("Codegen tests", () => {
         expect(actual.source).to.equal(`return this.datetime($)`)
         const fn = createFunction(actual.source)
         const actualDate = fn("2020-01-01")
-        expect(actualDate.getTime()).to.equal(new Date("2020-01-01").getTime())
+        expect(actualDate[0].getTime()).to.equal(new Date("2020-01-01").getTime())
       })
 
       it("template string date", () => {
@@ -175,7 +183,7 @@ describe("Codegen tests", () => {
         expect(actual.source).to.equal(`return this.datetime($,\"M/d/yyyy\")`)
         const fn = createFunction(actual.source)
         const actualDate = fn("2/21/1900")
-        expect(actualDate.getTime()).to.equal(new Date("1900-02-21").getTime())
+        expect(actualDate[0].getTime()).to.deep.equal(new Date("1900-02-21").getTime())
       })
 
       it("template string datetime with timezone", () => {
@@ -183,7 +191,7 @@ describe("Codegen tests", () => {
         expect(actual.source).to.equal(`return this.datetime($,\"M•d•yyyy@h#m#sZ\")`)
         const fn = createFunction(actual.source)
         const actualDate = fn("2•21•1900@3#35#19+8")
-        expect(actualDate.getTime()).to.equal(new Date("1900-02-21 3:35:19+8").getTime())
+        expect(actualDate[0].getTime()).to.equal(new Date("1900-02-21 3:35:19+8").getTime())
       })
     })
   })
@@ -198,19 +206,19 @@ describe("Codegen tests", () => {
         expect(objectValue).to.deep.equal([1, {c: "2"}])
         const arrayValue = fn([{"a": 1}, 77, {"b": {c: "2"}}, true, "cats"])
         expect(arrayValue).to.deep.equal([1, {c: "2"}])
-        expect(fn(null)).to.be.undefined
-        expect(fn({})).to.be.undefined
-        expect(fn([])).to.be.undefined
-        expect(fn("dogs")).to.be.undefined
-        expect(fn(707)).to.be.undefined
-        expect(fn(false)).to.be.undefined
+        expect(fn(null)).to.be.empty
+        expect(fn({})).to.be.empty
+        expect(fn([])).to.be.empty
+        expect(fn("dogs")).to.be.empty
+        expect(fn(707)).to.be.empty
+        expect(fn(false)).to.be.empty
       })
 
       it("strict .*", () => {
         const actual = generateFunctionSource("strict $.*")
         expect(actual.source).to.equal("return this.dotStar($,false)")
         const fn = createFunction(actual.source)
-        const objectValue = fn({"a": 1, "b": {c: "2"}})
+        const objectValue = fn(iterate([{"a": 1, "b": {c: "2"}}]))
         expect(objectValue).to.deep.equal([1, {c: "2"}])
         expect(() => fn([{"a": 1}, 77, {"b": {c: "2"}}, true, "cats"])).to.throw
         expect(() => fn(null)).to.throw

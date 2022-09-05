@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "chevrotain": "10.3.0",
+    "iterare": "1.2.1",
     "luxon": "3.0.3"
   },
   "devDependencies": {
