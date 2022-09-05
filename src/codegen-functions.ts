@@ -5,7 +5,11 @@ import {KeyValue} from "./json-path"
 
 export const codegenFunctions = {
   type(primary: any): string {
-    return Array.isArray(primary) ? "array" : typeof primary
+    return Array.isArray(primary)
+      ? "array"
+      : primary === null
+        ? "null"
+        : typeof primary
   },
 
   size(primary: any): number {

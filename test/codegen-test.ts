@@ -45,6 +45,8 @@ describe("Codegen tests", () => {
       const actual = generateFunctionSource("$.type()")
       expect(actual.source).to.equal("return this.type($)")
       const fn = createFunction(actual.source)
+      const nullType = fn(null)
+      expect(nullType).to.equal("null")
       const stringType = fn("matt")
       expect(stringType).to.equal("string")
       const numberType = fn(77.6)
@@ -61,6 +63,8 @@ describe("Codegen tests", () => {
       const actual = generateFunctionSource("$.size()")
       expect(actual.source).to.equal("return this.size($)")
       const fn = createFunction(actual.source)
+      const nullSize = fn(null)
+      expect(nullSize).to.equal(1)
       const stringSize = fn("matt")
       expect(stringSize).to.equal(1)
       const numberSize = fn(77.6)
@@ -81,6 +85,7 @@ describe("Codegen tests", () => {
       expect(stringDouble).to.equal(45)
       const numberDouble = fn(77.6)
       expect(numberDouble).to.equal(77.6)
+      expect(() => fn(null)).to.throw()
       expect(() => fn("bond")).to.throw()
       expect(() => fn(true)).to.throw()
       expect(() => fn({})).to.throw()
@@ -93,6 +98,7 @@ describe("Codegen tests", () => {
       const fn = createFunction(actual.source)
       const numberActual = fn(77.6)
       expect(numberActual).to.equal(78)
+      expect(() => fn(null)).to.throw()
       expect(() => fn("77.4")).to.throw()
       expect(() => fn(true)).to.throw()
       expect(() => fn({})).to.throw()
@@ -105,7 +111,8 @@ describe("Codegen tests", () => {
       const fn = createFunction(actual.source)
       const numberActual = fn(-440.33)
       expect(numberActual).to.equal(440.33)
-      expect(() => fn("77.4")).to.throw()
+      expect(() => fn(null)).to.throw()
+      expect(() => fn("1977")).to.throw()
       expect(() => fn(true)).to.throw()
       expect(() => fn({})).to.throw()
       expect(() => fn([])).to.throw()
@@ -124,7 +131,8 @@ describe("Codegen tests", () => {
           {id: 0, key: "d", value: {z: -9}},
           {id: 1, key: "m b", value: 1}
         ])
-        expect(() => fn("77.4")).to.throw()
+        expect(() => fn(null)).to.throw()
+        expect(() => fn("frogs")).to.throw()
         expect(() => fn(true)).to.throw()
         expect(() => fn(100)).to.throw()
       })
@@ -141,7 +149,8 @@ describe("Codegen tests", () => {
           {id, key: "c", value: "see"},
           {id, key: "d", value: {z: -9}}
         ])
-        expect(() => fn("77.4")).to.throw()
+        expect(() => fn(null)).to.throw()
+        expect(() => fn("star")).to.throw()
         expect(() => fn(true)).to.throw()
         expect(() => fn(100)).to.throw()
         expect(() => fn([])).to.throw()
@@ -185,9 +194,10 @@ describe("Codegen tests", () => {
         expect(objectValue).to.deep.equal([1, {c: "2"}])
         const arrayValue = fn([{"a": 1}, 77, {"b": {c: "2"}}, true, "cats"])
         expect(arrayValue).to.deep.equal([1, {c: "2"}])
+        expect(fn(null)).to.be.undefined
         expect(fn({})).to.be.undefined
         expect(fn([])).to.be.undefined
-        expect(fn("mice")).to.be.undefined
+        expect(fn("dogs")).to.be.undefined
         expect(fn(707)).to.be.undefined
         expect(fn(false)).to.be.undefined
       })
@@ -199,6 +209,7 @@ describe("Codegen tests", () => {
         const objectValue = fn({"a": 1, "b": {c: "2"}})
         expect(objectValue).to.deep.equal([1, {c: "2"}])
         expect(() => fn([{"a": 1}, 77, {"b": {c: "2"}}, true, "cats"])).to.throw
+        expect(() => fn(null)).to.throw
         expect(() => fn({})).to.throw
         expect(() => fn([])).to.throw
         expect(() => fn("mice")).to.throw
