@@ -130,5 +130,15 @@ export const codegenFunctions = {
       }
       return []
     }).flatten()
+  },
+
+
+  boxStar(seq: IteratorWithOperators<any>, lax: boolean): IteratorWithOperators<any> {
+    return seq.map((primary) => {
+      if (!lax && _type(primary) !== "array") {
+        throw new Error(`[*] can only be applied to an array in strict mode, found ${JSON.stringify(primary)}.`)
+      }
+      return primary
+    }).flatten()
   }
 }

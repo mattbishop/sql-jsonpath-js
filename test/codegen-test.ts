@@ -229,5 +229,38 @@ describe("Codegen tests", () => {
         expect(() => fn(false)).to.throw
       })
     })
+
+    describe("[*]", () => {
+      it("lax [*]", () => {
+        const actual = generateFunctionSource("$[*]")
+        expect(actual.source).to.equal("return this.boxStar($,true)")
+        const fn = createFunction(actual.source)
+        const nullValue = fn(null)
+        expect(nullValue).to.deep.equal([null])
+        const stringValue = fn("galaxies")
+        expect(stringValue).to.deep.equal(["galaxies"])
+        const numberValue = fn(9944.839)
+        expect(numberValue).to.deep.equal([9944.839])
+        const booleanValue = fn(true)
+        expect(booleanValue).to.deep.equal([true])
+        const objectValue = fn({t: "shirt"})
+        expect(objectValue).to.deep.equal([{t: "shirt"}])
+        const arrayValue = fn([7, 9, 55])
+        expect(arrayValue).to.deep.equal([7, 9, 55])
+      })
+
+      it("strict [*]", () => {
+        const actual = generateFunctionSource("strict $[*]")
+        expect(actual.source).to.equal("return this.boxStar($,false)")
+        const fn = createFunction(actual.source)
+        const arrayValue = fn([7, 9, 55])
+        expect(arrayValue).to.deep.equal([7, 9, 55])
+        expect(() => fn(null)).to.throw
+        expect(() => fn("galaxies")).to.throw
+        expect(() => fn(9944.839)).to.throw
+        expect(() => fn(true)).to.throw
+        expect(() => fn({t: "shirt"})).to.throw
+      })
+    })
   })
 })

@@ -159,6 +159,8 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
         ctx.source = `this.datetime(${primary}${template})`
       } else if (WildcardMember) {
         ctx.source = `this.dotStar(${primary},${lax})`
+      } else if (WildcardArray) {
+        ctx.source = `this.boxStar(${primary},${lax})`
       }
       return ctx
     }
