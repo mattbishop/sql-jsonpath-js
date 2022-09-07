@@ -19,15 +19,16 @@ function _toKV(primary: Record<string, any>, id: number): IteratorWithOperators<
     .map((key) => ({id, key, value: primary[key]}))
 }
 
-function _maybeMember(primary: Record<string, any>, member: string): IteratorWithOperators<any> {
-  let v = primary[member]
-  if (v === undefined) {
-    v = EMPTY
-  } else if (Array.isArray(v) && v.length === 0) {
-    // an empty array is an iterator, so flatten() will erase it from the sequence.
-    v = [v]
+function _maybeMember(primary: Record<string, any>, member: string): any {
+  if (primary.hasOwnProperty(member)) {
+    let v = primary[member]
+    if (Array.isArray(v) && v.length === 0) {
+      // an empty array is an iterator, so flatten() will erase it from the sequence.
+      v = [v]
+    }
+    return v
   }
-  return v
+  return EMPTY
 }
 
 
@@ -138,7 +139,7 @@ export const codegenFunctions = {
       } else if (type === "array") {
         return iterate(primary)
           .filter((o) => _type(o) === "object")
-          .map((obj) => iterate(Object.values(obj as object)))
+          .map((obj) => Object.values(obj as object))
           .flatten()
       }
       return EMPTY
@@ -170,6 +171,6 @@ export const codegenFunctions = {
           .map((obj) => _maybeMember(obj as Record<string, any>, member))
       }
       return EMPTY
-    }).flatten()  // flatten erases the empty sequences
+    }).flatten()
   }
 }

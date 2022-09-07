@@ -204,8 +204,9 @@ describe("Codegen tests", () => {
         const fn = createFunction(actual.source)
         const objectValue = fn({"a": 1, "b": {c: "2"}})
         expect(objectValue).to.deep.equal([1, {c: "2"}])
-        const arrayValue = fn([{"a": 1, e: []}, 77, {"b": {c: "2"}}, true, [], "cats"])
-        expect(arrayValue).to.deep.equal([1, [], {c: "2"}])
+        const arrayValue = fn([{"a": 1, e: [], q: null, g: undefined}, 77, {"b": {c: "2"}}, true, [], "cats"])
+        expect(arrayValue).to.deep.equal([1, [], null, undefined, {c: "2"}])
+        expect(fn(undefined)).to.be.empty
         expect(fn(null)).to.be.empty
         expect(fn({})).to.be.empty
         expect(fn([])).to.be.empty
@@ -218,9 +219,10 @@ describe("Codegen tests", () => {
         const actual = generateFunctionSource("strict $.*")
         expect(actual.source).to.equal("return this.dotStar($,false)")
         const fn = createFunction(actual.source)
-        const objectValue = fn(iterate([{"a": 1, "b": {c: "2"}}]))
-        expect(objectValue).to.deep.equal([1, {c: "2"}])
+        const objectValue = fn(iterate([{"a": 1, "b": {c: "2"}, u: undefined}]))
+        expect(objectValue).to.deep.equal([1, {c: "2"}, undefined])
         expect(() => fn([{"a": 1}, 77, {"b": {c: "2"}}, true, "cats"])).to.throw
+        expect(() => fn(undefined)).to.throw
         expect(() => fn(null)).to.throw
         expect(() => fn({})).to.throw
         expect(() => fn([])).to.throw
@@ -235,6 +237,8 @@ describe("Codegen tests", () => {
         const actual = generateFunctionSource("$[*]")
         expect(actual.source).to.equal("return this.boxStar($,true)")
         const fn = createFunction(actual.source)
+        const undefinedValue = fn(undefined)
+        expect(undefinedValue).to.deep.equal([undefined])
         const nullValue = fn(null)
         expect(nullValue).to.deep.equal([null])
         const stringValue = fn("galaxies")
@@ -249,6 +253,8 @@ describe("Codegen tests", () => {
         expect(arrayValue).to.be.empty
         arrayValue = fn([[]])
         expect(arrayValue).to.deep.equal([[]])
+        arrayValue = fn([undefined])
+        expect(arrayValue).to.deep.equal([undefined])
         arrayValue = fn([7, 9, 55])
         expect(arrayValue).to.deep.equal([7, 9, 55])
       })
@@ -259,6 +265,7 @@ describe("Codegen tests", () => {
         const fn = createFunction(actual.source)
         const arrayValue = fn([7, 9, 55])
         expect(arrayValue).to.deep.equal([7, 9, 55])
+        expect(() => fn(undefined)).to.throw
         expect(() => fn(null)).to.throw
         expect(() => fn("galaxies")).to.throw
         expect(() => fn(9944.839)).to.throw
@@ -277,7 +284,10 @@ describe("Codegen tests", () => {
       expect(objectActual).to.deep.equal([[]])
       objectActual = fn({thing: "bird"})
       expect(objectActual).to.deep.equal(["bird"])
+      objectActual = fn({thing: undefined})
+      expect(objectActual).to.deep.equal([undefined])
       expect(fn({not: "thing"})).to.be.empty
+      expect(fn(undefined)).to.be.empty
       expect(fn(null)).to.be.empty
       expect(fn([])).to.be.empty
       expect(fn("dogs")).to.be.empty
@@ -289,8 +299,9 @@ describe("Codegen tests", () => {
       const actual = generateFunctionSource("$.\"thing\\tbrick\"")
       expect(actual.source).to.equal("return this.member($,\"thing\\tbrick\",true)")
       const fn = createFunction(actual.source)
-      const objectActual = fn({"thing\tbrick": 1})
-      expect(objectActual).to.deep.equal([1])
+      const objectActual = fn({"thing\tbrick": 14})
+      expect(objectActual).to.deep.equal([14])
+      expect(fn(undefined)).to.be.empty
       expect(fn(null)).to.be.empty
       expect(fn([])).to.be.empty
       expect(fn("dogs")).to.be.empty
@@ -307,6 +318,7 @@ describe("Codegen tests", () => {
       objectActual = fn({thing: "bird"})
       expect(objectActual).to.deep.equal(["bird"])
       expect(fn({not: "thing"})).to.be.empty
+      expect(() => fn(undefined)).to.throw
       expect(() => fn(null)).to.throw
       expect(() => fn([])).to.throw
       expect(() => fn("dogs")).to.throw
