@@ -123,7 +123,7 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
       const {array, filter, DatetimeMethod, ItemMethod, Member, WildcardArray, WildcardMember} = node
       const {source: primary, lax} = ctx
       if (ItemMethod) {
-        const methodName = ItemMethod[0].payload
+        const methodName = ItemMethod[0].payload[0]
         let methodImpl = ""
         switch (methodName) {
           case "size" :
@@ -152,7 +152,7 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
         }
         ctx.source = methodImpl
       } else if (DatetimeMethod) {
-        let template = DatetimeMethod[0].payload || ""
+        let template = DatetimeMethod[0].payload[0] || ""
         if (template) {
           template = `,${template}`
         }
@@ -161,6 +161,9 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
         ctx.source = `this.dotStar(${primary},${lax})`
       } else if (WildcardArray) {
         ctx.source = `this.boxStar(${primary},${lax})`
+      } else if (Member) {
+        const member = Member[0].payload.find((m: any) => m !== undefined)
+        ctx.source = `this.member(${primary},"${member}",${lax})`
       }
       return ctx
     }

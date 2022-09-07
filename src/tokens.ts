@@ -27,7 +27,7 @@ export const ItemMethod = createRegexToken({
 export const Member = createRegexToken({
   name:             "Member",
   // quoted string pattern identical to StringLiteral
-  pattern:          /\.\s*(?:(?:\p{ID_Start}\p{ID_Continue}*)|(?:"(?:[^"\\\p{Cc}]|(?:\\(?:["\\/bfnrt]|u[a-fA-F\d]{4})))*"))/uy,
+  pattern:          /\.\s*(?:(\p{ID_Start}\p{ID_Continue}*)|"((?:[^"\\\p{Cc}]+|(?:\\(?:["\\/bfnrt]|u[a-fA-F\d]{4})))*)")/uy,
   start_chars_hint: ["."]
 })
 
@@ -64,7 +64,7 @@ export const NumberLiteral    = createToken({name: "Number", pattern: /-?(?:0(?:
 // JSON string pattern, using unicode; {Cc} character class defined: https://www.regular-expressions.info/unicode.html#category
 export const StringLiteral    = createRegexToken({
   name:             "String",
-  pattern:          /"(?:[^"\\\p{Cc}]|(?:\\(?:["\\/bfnrt]|u[a-fA-F\d]{4})))*"/uy,
+  pattern:          /"((?:[^"\\\p{Cc}]+|(?:\\(?:["\\/bfnrt]|u[a-fA-F\d]{4})))*)"/uy,
   start_chars_hint: ["\""]
 })
 
@@ -135,8 +135,7 @@ function createRegexToken(configIn: ITokenConfig): TokenType {
       regex.lastIndex = offset
       const m = regex.exec(text)
       if (m && m.length > 1) {
-        // capturing groups in the regex, take the last one as the payload. No token has more than 1 group
-        (m as unknown as CustomPatternMatcherReturn).payload = m[m.length - 1]
+        (m as unknown as CustomPatternMatcherReturn).payload = m.slice(1)
       }
       return m
     },

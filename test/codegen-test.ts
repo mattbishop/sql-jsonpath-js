@@ -204,8 +204,8 @@ describe("Codegen tests", () => {
         const fn = createFunction(actual.source)
         const objectValue = fn({"a": 1, "b": {c: "2"}})
         expect(objectValue).to.deep.equal([1, {c: "2"}])
-        const arrayValue = fn([{"a": 1}, 77, {"b": {c: "2"}}, true, "cats"])
-        expect(arrayValue).to.deep.equal([1, {c: "2"}])
+        const arrayValue = fn([{"a": 1, e: []}, 77, {"b": {c: "2"}}, true, [], "cats"])
+        expect(arrayValue).to.deep.equal([1, [], {c: "2"}])
         expect(fn(null)).to.be.empty
         expect(fn({})).to.be.empty
         expect(fn([])).to.be.empty
@@ -245,7 +245,11 @@ describe("Codegen tests", () => {
         expect(booleanValue).to.deep.equal([true])
         const objectValue = fn({t: "shirt"})
         expect(objectValue).to.deep.equal([{t: "shirt"}])
-        const arrayValue = fn([7, 9, 55])
+        let arrayValue = fn([])
+        expect(arrayValue).to.be.empty
+        arrayValue = fn([[]])
+        expect(arrayValue).to.deep.equal([[]])
+        arrayValue = fn([7, 9, 55])
         expect(arrayValue).to.deep.equal([7, 9, 55])
       })
 
@@ -261,6 +265,53 @@ describe("Codegen tests", () => {
         expect(() => fn(true)).to.throw
         expect(() => fn({t: "shirt"})).to.throw
       })
+    })
+  })
+
+  describe("member accessor", () => {
+    it(".member", () => {
+      const actual = generateFunctionSource("$.thing")
+      expect(actual.source).to.equal("return this.member($,\"thing\",true)")
+      const fn = createFunction(actual.source)
+      let objectActual = fn({thing: []})
+      expect(objectActual).to.deep.equal([[]])
+      objectActual = fn({thing: "bird"})
+      expect(objectActual).to.deep.equal(["bird"])
+      expect(fn({not: "thing"})).to.be.empty
+      expect(fn(null)).to.be.empty
+      expect(fn([])).to.be.empty
+      expect(fn("dogs")).to.be.empty
+      expect(fn(707)).to.be.empty
+      expect(fn(true)).to.be.empty
+    })
+
+    it(".\"member\"", () => {
+      const actual = generateFunctionSource("$.\"thing\\tbrick\"")
+      expect(actual.source).to.equal("return this.member($,\"thing\\tbrick\",true)")
+      const fn = createFunction(actual.source)
+      const objectActual = fn({"thing\tbrick": 1})
+      expect(objectActual).to.deep.equal([1])
+      expect(fn(null)).to.be.empty
+      expect(fn([])).to.be.empty
+      expect(fn("dogs")).to.be.empty
+      expect(fn(707)).to.be.empty
+      expect(fn(true)).to.be.empty
+    })
+
+    it("strict .member", () => {
+      const actual = generateFunctionSource("strict $.thing")
+      expect(actual.source).to.equal("return this.member($,\"thing\",false)")
+      const fn = createFunction(actual.source)
+      let objectActual = fn({thing: []})
+      expect(objectActual).to.deep.equal([[]])
+      objectActual = fn({thing: "bird"})
+      expect(objectActual).to.deep.equal(["bird"])
+      expect(fn({not: "thing"})).to.be.empty
+      expect(() => fn(null)).to.throw
+      expect(() => fn([])).to.throw
+      expect(() => fn("dogs")).to.throw
+      expect(() => fn(707)).to.throw
+      expect(() => fn(true)).to.throw
     })
   })
 })

@@ -4,10 +4,7 @@ import {DateTime, FixedOffsetZone} from "luxon"
 import {KeyValue} from "./json-path"
 
 
-function _toKV(primary: Record<string, any>, id: number): IteratorWithOperators<KeyValue> {
-  return iterate(Object.keys(primary))
-    .map((key) => ({id, key, value: primary[key]}))
-}
+const EMPTY = Object.freeze([])
 
 function _type(primary: any): string {
   return Array.isArray(primary)
@@ -15,6 +12,22 @@ function _type(primary: any): string {
     : primary === null
       ? "null"
       : typeof primary
+}
+
+function _toKV(primary: Record<string, any>, id: number): IteratorWithOperators<KeyValue> {
+  return iterate(Object.keys(primary))
+    .map((key) => ({id, key, value: primary[key]}))
+}
+
+function _maybeMember(primary: Record<string, any>, member: string): IteratorWithOperators<any> {
+  let v = primary[member]
+  if (v === undefined) {
+    v = EMPTY
+  } else if (Array.isArray(v) && v.length === 0) {
+    // an empty array is an iterator, so flatten() will erase it from the sequence.
+    v = [v]
+  }
+  return v
 }
 
 
@@ -125,10 +138,10 @@ export const codegenFunctions = {
       } else if (type === "array") {
         return iterate(primary)
           .filter((o) => _type(o) === "object")
-          .map((o) => iterate(Object.values(o as object)))
+          .map((obj) => iterate(Object.values(obj as object)))
           .flatten()
       }
-      return []
+      return EMPTY
     }).flatten()
   },
 
@@ -140,5 +153,23 @@ export const codegenFunctions = {
       }
       return primary
     }).flatten()
+  },
+
+
+  member(seq: IteratorWithOperators<any>, member: string, lax: boolean): IteratorWithOperators<any> {
+    return seq.map((primary) => {
+      const type = _type(primary)
+      if (!lax && type !== "object") {
+        throw new Error(`."${member}" can only be applied to an object in strict mode, found ${JSON.stringify(primary)}.`)
+      }
+      if (type === "object") {
+        return _maybeMember(primary, member)
+      } else if (type === "array") {
+        return iterate(primary)
+          .filter((o) => _type(o) === "object")
+          .map((obj) => _maybeMember(obj as Record<string, any>, member))
+      }
+      return EMPTY
+    }).flatten()  // flatten erases the empty sequences
   }
 }
