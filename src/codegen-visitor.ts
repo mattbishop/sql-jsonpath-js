@@ -105,7 +105,6 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
 
     scopedWff(node: ScopedWffCstChildren, ctx: CodegenContext): CodegenContext {
       const {wff} = node
-
       ctx.source += "("
       ctx = this.visit(wff, ctx)
       ctx.source += ")"
@@ -183,12 +182,13 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
 
     subscript(node: SubscriptCstChildren, ctx: CodegenContext): CodegenContext {
       const {To, wff} = node
-
-      if (wff.length > 1) {
-        throw new Error ("not supporting ranges just yet")
+      const wff0 = this.visit(wff[0], {...ctx, source: ""})
+      if (To) {
+        const wff1 = this.visit(wff[1], {...ctx, source: ""})
+        ctx.source = `this.range(${wff0.source},${wff1.source})`
+        return ctx
       }
-
-      return this.visit(wff[0], {...ctx, source: ""})
+      return wff0
     }
   }
 }

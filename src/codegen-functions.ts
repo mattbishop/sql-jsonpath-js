@@ -29,6 +29,26 @@ function _maybeMember(primary: Record<string, any>, member: string): any {
     : EMPTY
 }
 
+function _toNumber(value: any): number {
+  let num
+  if (typeof value === "number") {
+    num = value
+  }
+  if (value instanceof IteratorWithOperators) {
+    num = value.next().value
+  }
+  if (typeof num === "number") {
+    return num
+  }
+  throw new Error (`array accessor range must be a number: ${num}`)
+}
+
+function* _range(start: number, end: number): Generator<number> {
+  for (let i = start; i <= end; i++) {
+    yield i;
+  }
+}
+
 
 export const codegenFunctions = {
 
@@ -187,5 +207,12 @@ export const codegenFunctions = {
           throw new Error("array accessor must be numbers")
         }).flatten()
     }).flatten()
+  },
+
+
+  range(from: any, to: any): IteratorWithOperators<number> {
+    const start = _toNumber(from)
+    const end = _toNumber(to)
+    return iterate(_range(start, end))
   }
 }

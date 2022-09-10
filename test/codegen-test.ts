@@ -332,12 +332,20 @@ describe("Codegen tests", () => {
   })
 
   describe("array accessor", () => {
-    it("single element", () => {
+    it("single elements", () => {
       const actual = generateFunctionSource("$[0,4,$.size()]")
       expect(actual.source).to.equal("return this.array($,[0,4,this.size($)],true)")
       const fn = createFunction(actual.source)
       const actualArray = fn(["a", "b", "c", "d", [66,77], "f", "g", "h"])
       expect(actualArray).to.deep.equal(["a", [66,77]])
+    })
+
+    it("range elements", () => {
+      const actual = generateFunctionSource("$[1 to 3]")
+      expect(actual.source).to.equal("return this.array($,[this.range(1,3)],true)")
+      const fn = createFunction(actual.source)
+      const actualArray = fn(["a", "b", "c", "d", [66,77]])
+      expect(actualArray).to.deep.equal(["b", "c", "d"])
     })
   })
 })
