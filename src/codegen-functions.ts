@@ -19,16 +19,14 @@ function _toKV(primary: Record<string, any>, id: number): IteratorWithOperators<
     .map((key) => ({id, key, value: primary[key]}))
 }
 
+function _maybeWrapArray(value: any): any {
+  return Array.isArray(value) ? [value] : value
+}
+
 function _maybeMember(primary: Record<string, any>, member: string): any {
-  if (primary.hasOwnProperty(member)) {
-    let v = primary[member]
-    if (Array.isArray(v) && v.length === 0) {
-      // an empty array is an iterator, so flatten() will erase it from the sequence.
-      v = [v]
-    }
-    return v
-  }
-  return EMPTY
+  return primary.hasOwnProperty(member)
+    ? _maybeWrapArray(primary[member])
+    : EMPTY
 }
 
 
@@ -171,6 +169,23 @@ export const codegenFunctions = {
           .map((obj) => _maybeMember(obj as Record<string, any>, member))
       }
       return EMPTY
+    }).flatten()
+  },
+
+
+  array(seq: IteratorWithOperators<any>, subscripts: any[], lax: boolean): IteratorWithOperators<any> {
+    return seq.map((primary) => {
+      // I don't like to double-flatten() and I don't want to re-wrap arrays
+      return iterate(subscripts)
+        .map((s) => {
+          if (typeof s === "number") {
+            return _maybeWrapArray(primary[s])
+          }
+          if (s instanceof IteratorWithOperators) {
+            return s.map(s1 => _maybeWrapArray(primary[s1]))
+          }
+          throw new Error("array accessor must be numbers")
+        }).flatten()
     }).flatten()
   }
 }

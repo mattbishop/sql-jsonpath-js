@@ -3,11 +3,13 @@ import {IToken} from "chevrotain"
 import {
   AccessExpCstChildren,
   AccessorCstChildren,
+  ArrayCstChildren,
   BinaryCstChildren,
   LiteralCstChildren,
   PrimaryCstChildren,
   ScopedWffCstChildren,
   StmtCstChildren,
+  SubscriptCstChildren,
   UnaryCstChildren,
   WffCstChildren
 } from "./sql_jsonpath_cst"
@@ -165,7 +167,28 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
         const member = Member[0].payload.find((m: any) => m !== undefined)
         ctx.source = `this.member(${primary},"${member}",${lax})`
       }
+      ctx = this.maybeVisit(array, ctx)
       return ctx
+    }
+
+    array(node: ArrayCstChildren, ctx: CodegenContext): CodegenContext {
+      const {subscript} = node
+      const {lax, source: primary} = ctx
+      const subscripts = subscript
+        .map((s) => this.visit(s, {...ctx, source: ""}).source)
+      ctx.source = `this.array(${primary},[${subscripts}],${lax})`
+
+      return ctx
+    }
+
+    subscript(node: SubscriptCstChildren, ctx: CodegenContext): CodegenContext {
+      const {To, wff} = node
+
+      if (wff.length > 1) {
+        throw new Error ("not supporting ranges just yet")
+      }
+
+      return this.visit(wff[0], {...ctx, source: ""})
     }
   }
 }

@@ -104,9 +104,11 @@ describe("SQL JSONPath CST", () => {
       expect(actual).to.have.nested.include({[`${cstPrefix}.String[0].image`]: "\"ब्राउन फक्स\""})
     })
 
-    it("parses emoji string", () => {
+    it("parses emoji chars with multiple codepoints", () => {
       const actual = parseJsonPath("\"🟫🦊\"")
       expect(actual).to.have.nested.include({[`${cstPrefix}.String[0].image`]: "\"🟫🦊\""})
+      const actual2 = parseJsonPath("\"👨🏾‍⚕️\"")
+      expect(actual2).to.have.nested.include({[`${cstPrefix}.String[0].image`]: "\"👨🏾‍⚕️\""})
     })
 
     it("parses emoji surrogate pair string", () => {
