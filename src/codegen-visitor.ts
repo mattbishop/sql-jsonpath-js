@@ -95,10 +95,11 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
       ctx = this.maybeVisit(scopedWff, ctx)
       ctx = this.maybeVisit(literal, ctx)
       ctx = this.maybeAppend(ContextVariable, ctx)
-      ctx = this.maybeAppend(Last, ctx)
       ctx = this.maybeAppend(NamedVariable, ctx)
       if (FilterValue) {
         ctx.source += "$$"
+      } else if (Last) {
+        ctx.source += `this.last($$a)`
       }
       return ctx
     }
@@ -170,13 +171,13 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
       return ctx
     }
 
+
     array(node: ArrayCstChildren, ctx: CodegenContext): CodegenContext {
       const {subscript} = node
       const {lax, source: primary} = ctx
       const subscripts = subscript
         .map((s) => this.visit(s, {...ctx, source: ""}).source)
       ctx.source = `this.array(${primary},[${subscripts}],${lax})`
-
       return ctx
     }
 

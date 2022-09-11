@@ -51,6 +51,8 @@ function* _range(start: number, end: number): Generator<number> {
 
 
 export const codegenFunctions = {
+  // current array reference
+  $$a: null,
 
   type(seq: IteratorWithOperators<any>): IteratorWithOperators<string> {
     return seq.map(_type)
@@ -59,6 +61,16 @@ export const codegenFunctions = {
 
   size(seq: IteratorWithOperators<any>): IteratorWithOperators<number> {
     return seq.map((primary) => Array.isArray(primary) ? primary.length : 1);
+  },
+
+
+  last(seq: IteratorWithOperators<any>): IteratorWithOperators<number> {
+    return seq.map((primary) => {
+      if (Array.isArray(primary)) {
+        return primary.length - 1
+      }
+      throw new Error("'last' can only be used as an array accessor")
+    });
   },
 
 
@@ -195,8 +207,8 @@ export const codegenFunctions = {
 
   array(seq: IteratorWithOperators<any>, subscripts: any[], lax: boolean): IteratorWithOperators<any> {
     return seq.map((primary) => {
-      // I don't like to double-flatten() and I don't want to re-wrap arrays
-      return iterate(subscripts)
+      this.$$a = primary
+      const values = iterate(subscripts)
         .map((s) => {
           if (typeof s === "number") {
             return _maybeWrapArray(primary[s])
@@ -206,6 +218,8 @@ export const codegenFunctions = {
           }
           throw new Error("array accessor must be numbers")
         }).flatten()
+      this.$$a = null
+      return values
     }).flatten()
   },
 
