@@ -99,7 +99,7 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
       if (FilterValue) {
         ctx.source += "$$"
       } else if (Last) {
-        ctx.source += `this.last($$a)`
+        ctx.source += `this.last(this.$$a)`
       }
       return ctx
     }
@@ -171,13 +171,12 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
       return ctx
     }
 
-
     array(node: ArrayCstChildren, ctx: CodegenContext): CodegenContext {
       const {subscript} = node
       const {lax, source: primary} = ctx
       const subscripts = subscript
         .map((s) => this.visit(s, {...ctx, source: ""}).source)
-      ctx.source = `this.array(${primary},[${subscripts}],${lax})`
+      ctx.source = `this.array(this.set$$a(${primary}),[${subscripts}],${lax})`
       return ctx
     }
 

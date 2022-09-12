@@ -64,16 +64,6 @@ export const codegenFunctions = {
   },
 
 
-  last(seq: IteratorWithOperators<any>): IteratorWithOperators<number> {
-    return seq.map((primary) => {
-      if (Array.isArray(primary)) {
-        return primary.length - 1
-      }
-      throw new Error("'last' can only be used as an array accessor")
-    });
-  },
-
-
   double(seq: IteratorWithOperators<any>): IteratorWithOperators<number> {
     return seq.map((primary) => {
       const type = _type(primary)
@@ -205,9 +195,14 @@ export const codegenFunctions = {
   },
 
 
+  set$$a(a: any) {
+    this.$$a = a
+    return a
+  },
+
+
   array(seq: IteratorWithOperators<any>, subscripts: any[], lax: boolean): IteratorWithOperators<any> {
     return seq.map((primary) => {
-      this.$$a = primary
       const values = iterate(subscripts)
         .map((s) => {
           if (typeof s === "number") {
@@ -221,6 +216,16 @@ export const codegenFunctions = {
       this.$$a = null
       return values
     }).flatten()
+  },
+
+
+  last(seq: IteratorWithOperators<any>): IteratorWithOperators<number> {
+    return seq.map((primary) => {
+      if (Array.isArray(primary)) {
+        return primary.length - 1
+      }
+      throw new Error("'last' can only be used as an array accessor")
+    });
   },
 
 
