@@ -46,14 +46,14 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
 
 
     stmt(node: StmtCstChildren): CodegenContext {
-      const {Mode} = node
+      const {Mode, wff} = node
       const mode = Mode ? Mode[0].image : "lax"
       let ctx: CodegenContext = {
         lax:    mode === "lax",
         source: ""
       }
 
-      ctx = this.visit(node.wff, ctx)
+      ctx = this.visit(wff, ctx)
       ctx.source = `return ${ctx.source}`
       return ctx
     }
@@ -129,22 +129,12 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
         let methodImpl = ""
         switch (methodName) {
           case "size" :
-            methodImpl = `this.size(${primary})`
-            break
           case "type" :
-            methodImpl = `this.type(${primary})`
-            break
           case "double" :
-            methodImpl = `this.double(${primary})`
-            break
           case "ceiling" :
-            methodImpl = `this.ceiling(${primary})`
-            break
           case "floor" :
-            methodImpl = `this.floor(${primary})`
-            break
           case "abs" :
-            methodImpl = `this.abs(${primary})`
+            methodImpl = `this.${methodName}(${primary})`
             break
           case "keyvalue" :
             methodImpl = `this.keyvalue(${primary},${lax})`
