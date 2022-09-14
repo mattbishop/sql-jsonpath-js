@@ -132,7 +132,7 @@ describe("Codegen tests", () => {
     describe("keyvalue()", () => {
       it("lax keyvalue", () => {
         const actual = generateFunctionSource("$ .keyvalue (  )")
-        expect(actual.source).to.equal(`return this.keyvalue($,true)`)
+        expect(actual.source).to.equal(`return this.keyvalue($)`)
         const fn = createFunction(actual.source)
         const kvActual = fn([{a: 1, b: true, c: "see", d: {z: -9}}, {"m b": 1}])
         expect(kvActual).to.deep.equal([
@@ -151,8 +151,8 @@ describe("Codegen tests", () => {
 
       it("strict keyvalue", () => {
         const actual = generateFunctionSource("strict $ .keyvalue (  )")
-        expect(actual.source).to.equal(`return this.keyvalue($,false)`)
-        const fn = createFunction(actual.source)
+        expect(actual.source).to.equal(`return this.keyvalue($)`)
+        const fn = createFunction(actual.source, false)
         const id = 0
         const kvActual = fn({a: 1, b: true, c: "see", d: {z: -9}})
         expect(kvActual).to.deep.equal([
