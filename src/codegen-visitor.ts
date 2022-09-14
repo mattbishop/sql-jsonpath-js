@@ -121,7 +121,7 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
 
     accessor(node: AccessorCstChildren, ctx: CodegenContext): CodegenContext {
       const {array, filter, DatetimeMethod, ItemMethod, Member, WildcardArray, WildcardMember} = node
-      const {source: primary, lax} = ctx
+      const {source: primary} = ctx
       if (ItemMethod) {
         const methodName = ItemMethod[0].payload[0]
         let methodImpl = ""
@@ -135,7 +135,7 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
             methodImpl = `this.${methodName}(${primary})`
             break
           case "keyvalue" :
-            methodImpl = `this.keyvalue(${primary},${lax})`
+            methodImpl = `this.keyvalue(${primary})`
             break
           default :
             throw new Error(`Item methodName unrecognized: ${methodName}`)
@@ -153,7 +153,7 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
         ctx.source = `this.boxStar(${primary},${lax})`
       } else if (Member) {
         const member = Member[0].payload.find((m: any) => m !== undefined)
-        ctx.source = `this.member(${primary},"${member}",${lax})`
+        ctx.source = `this.member(${primary},"${member}")`
       }
       ctx = this.maybeVisit(array, ctx)
       return ctx
@@ -161,10 +161,10 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
 
     array(node: ArrayCstChildren, ctx: CodegenContext): CodegenContext {
       const {subscript} = node
-      const {lax, source: primary} = ctx
+      const {source: primary} = ctx
       const subscripts = subscript
         .map((s) => this.visit(s, {...ctx, source: ""}).source)
-      ctx.source = `this.array(this.push$$a(${primary}),[${subscripts}],${lax})`
+      ctx.source = `this.array(this.push$$a(${primary}),[${subscripts}])`
       return ctx
     }
 

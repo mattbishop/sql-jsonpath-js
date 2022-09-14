@@ -53,9 +53,11 @@ export class CodegenBase {
 
   // stack
   $$a: IteratorWithOperators<any>[]
+  lax: boolean
 
-  constructor() {
+  constructor(lax: boolean) {
     this.$$a = []
+    this.lax = lax
   }
 
   type(seq: IteratorWithOperators<any>): IteratorWithOperators<string> {
@@ -125,10 +127,10 @@ export class CodegenBase {
   }
 
 
-  keyvalue(seq: IteratorWithOperators<any>, lax: boolean): IteratorWithOperators<KeyValue> {
+  keyvalue(seq: IteratorWithOperators<any>): IteratorWithOperators<KeyValue> {
     return seq.map((primary) => {
       const type = _type(primary)
-      if (lax) {
+      if (this.lax) {
         if (type !== "object" && type !== "array") {
           throw new Error(`keyvalue() param must be an object or array (in lax mode), found ${JSON.stringify(primary)}.`)
         }
@@ -152,10 +154,10 @@ export class CodegenBase {
   }
 
 
-  dotStar(seq: IteratorWithOperators<any>, lax: boolean): IteratorWithOperators<any> {
+  dotStar(seq: IteratorWithOperators<any>): IteratorWithOperators<any> {
     return seq.map((primary) => {
       const type = _type(primary)
-      if (!lax && type !== "object") {
+      if (!this.lax && type !== "object") {
         throw new Error(`.* can only be applied to an object in strict mode, found ${JSON.stringify(primary)}.`)
       }
       if (type === "object") {
@@ -171,9 +173,9 @@ export class CodegenBase {
   }
 
 
-  boxStar(seq: IteratorWithOperators<any>, lax: boolean): IteratorWithOperators<any> {
+  boxStar(seq: IteratorWithOperators<any>): IteratorWithOperators<any> {
     return seq.map((primary) => {
-      if (!lax && _type(primary) !== "array") {
+      if (!this.lax && _type(primary) !== "array") {
         throw new Error(`[*] can only be applied to an array in strict mode, found ${JSON.stringify(primary)}.`)
       }
       return primary
@@ -181,10 +183,10 @@ export class CodegenBase {
   }
 
 
-  member(seq: IteratorWithOperators<any>, member: string, lax: boolean): IteratorWithOperators<any> {
+  member(seq: IteratorWithOperators<any>, member: string): IteratorWithOperators<any> {
     return seq.map((primary) => {
       const type = _type(primary)
-      if (!lax && type !== "object") {
+      if (!this.lax && type !== "object") {
         throw new Error(`."${member}" can only be applied to an object in strict mode, found ${JSON.stringify(primary)}.`)
       }
       if (type === "object") {
@@ -205,7 +207,7 @@ export class CodegenBase {
   }
 
 
-  array(seq: IteratorWithOperators<any>, subscripts: any[], lax: boolean): IteratorWithOperators<any> {
+  array(seq: IteratorWithOperators<any>, subscripts: any[]): IteratorWithOperators<any> {
     return seq.map((primary) => {
       const values = iterate(subscripts)
         .map((s) => {
