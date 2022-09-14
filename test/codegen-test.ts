@@ -3,12 +3,13 @@ import {iterate} from "iterare"
 import {IteratorWithOperators} from "iterare/lib/iterate"
 
 import {generateFunctionSource} from "../src"
-import {codegenFunctions} from "../src/codegen-functions"
+import {CodegenBase} from "../src/codegen-base"
 
 
 function createFunction(body: string): Function {
-  const fn = Function("$", "$$", body)
-  const boundFn = fn.bind(codegenFunctions)
+  const fn = Function("$", body)
+  const codegenFns = new CodegenBase()
+  const boundFn = fn.bind(codegenFns)
   return (input: any, args?: any) => {
     const i = input instanceof IteratorWithOperators
       ? input
@@ -334,7 +335,7 @@ describe("Codegen tests", () => {
   describe("array accessor", () => {
     it("single elements", () => {
       const actual = generateFunctionSource("$[0,4,last,$.size()]")
-      expect(actual.source).to.equal("return this.array(this.set$$a($),[0,4,this.last(this.$$a),this.size($)],true)")
+      expect(actual.source).to.equal("return this.array(this.push$$a($),[0,4,this.last(),this.size($)],true)")
       const fn = createFunction(actual.source)
       const actualArray = fn(["a", "b", "c", "d", [66,77], "f", "g", "h"])
       expect(actualArray).to.deep.equal(["a", [66,77]], "h")
@@ -342,7 +343,7 @@ describe("Codegen tests", () => {
 
     it("range elements", () => {
       const actual = generateFunctionSource("$[1 to 3]")
-      expect(actual.source).to.equal("return this.array(this.set$$a($),[this.range(1,3)],true)")
+      expect(actual.source).to.equal("return this.array(this.push$$a($),[this.range(1,3)],true)")
       const fn = createFunction(actual.source)
       const actualArray = fn(["a", "b", "c", "d", [66,77]])
       expect(actualArray).to.deep.equal(["b", "c", "d"])

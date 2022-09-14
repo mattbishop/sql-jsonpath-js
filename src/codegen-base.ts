@@ -49,19 +49,23 @@ function* _range(start: number, end: number): Generator<number> {
   }
 }
 
+export class CodegenBase {
 
-export const codegenFunctions = {
-  // current array reference
-  $$a: null,
+  // stack
+  $$a: IteratorWithOperators<any>[]
+
+  constructor() {
+    this.$$a = []
+  }
 
   type(seq: IteratorWithOperators<any>): IteratorWithOperators<string> {
     return seq.map(_type)
-  },
+  }
 
 
   size(seq: IteratorWithOperators<any>): IteratorWithOperators<number> {
     return seq.map((primary) => Array.isArray(primary) ? primary.length : 1);
-  },
+  }
 
 
   double(seq: IteratorWithOperators<any>): IteratorWithOperators<number> {
@@ -76,7 +80,7 @@ export const codegenFunctions = {
       }
       return n
     })
-  },
+  }
 
 
   ceiling(seq: IteratorWithOperators<any>): IteratorWithOperators<number> {
@@ -86,7 +90,7 @@ export const codegenFunctions = {
       }
       return Math.ceil(primary)
     })
-  },
+  }
 
 
   floor(seq: IteratorWithOperators<any>): IteratorWithOperators<number> {
@@ -96,7 +100,7 @@ export const codegenFunctions = {
       }
       return Math.floor(primary)
     })
-  },
+  }
 
 
   abs(seq: IteratorWithOperators<any>): IteratorWithOperators<number> {
@@ -106,7 +110,7 @@ export const codegenFunctions = {
       }
       return Math.abs(primary)
     })
-  },
+  }
 
 
   datetime(seq: IteratorWithOperators<any>, template?: string): IteratorWithOperators<Date> {
@@ -118,7 +122,7 @@ export const codegenFunctions = {
         ? DateTime.fromFormat(primary, template, {zone: FixedOffsetZone.utcInstance}).toJSDate()
         : new Date(primary)
     })
-  },
+  }
 
 
   keyvalue(seq: IteratorWithOperators<any>, lax: boolean): IteratorWithOperators<KeyValue> {
@@ -145,7 +149,7 @@ export const codegenFunctions = {
       }
       return _toKV(primary, 0)
     }).flatten()
-  },
+  }
 
 
   dotStar(seq: IteratorWithOperators<any>, lax: boolean): IteratorWithOperators<any> {
@@ -164,7 +168,7 @@ export const codegenFunctions = {
       }
       return EMPTY
     }).flatten()
-  },
+  }
 
 
   boxStar(seq: IteratorWithOperators<any>, lax: boolean): IteratorWithOperators<any> {
@@ -174,7 +178,7 @@ export const codegenFunctions = {
       }
       return primary
     }).flatten()
-  },
+  }
 
 
   member(seq: IteratorWithOperators<any>, member: string, lax: boolean): IteratorWithOperators<any> {
@@ -192,13 +196,13 @@ export const codegenFunctions = {
       }
       return EMPTY
     }).flatten()
-  },
+  }
 
 
-  set$$a(a: any) {
-    this.$$a = a
+  push$$a(a: IteratorWithOperators<any>) {
+    this.$$a.push(a)
     return a
-  },
+  }
 
 
   array(seq: IteratorWithOperators<any>, subscripts: any[], lax: boolean): IteratorWithOperators<any> {
@@ -213,20 +217,20 @@ export const codegenFunctions = {
           }
           throw new Error("array accessor must be numbers")
         }).flatten()
-      this.$$a = null
+      this.$$a.pop()
       return values
     }).flatten()
-  },
+  }
 
 
-  last(seq: IteratorWithOperators<any>): IteratorWithOperators<number> {
-    return seq.map((primary) => {
+  last(): IteratorWithOperators<number> {
+    return this.$$a[this.$$a.length - 1].map((primary) => {
       if (Array.isArray(primary)) {
         return primary.length - 1
       }
       throw new Error("'last' can only be used as an array accessor")
     });
-  },
+  }
 
 
   range(from: any, to: any): IteratorWithOperators<number> {
