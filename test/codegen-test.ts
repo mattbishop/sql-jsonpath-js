@@ -4,10 +4,11 @@ import {IteratorWithOperators} from "iterare/lib/iterate"
 
 import {generateFunctionSource} from "../src"
 import {CodegenBase} from "../src/codegen-base"
+import {CodegenContext} from "../src/codegen-visitor"
 
 
-function createFunction(body: string, lax = true): Function {
-  const fn = Function("$", body)
+function createFunction({source, lax}: CodegenContext): Function {
+  const fn = Function("$", source)
   const fnBase = new CodegenBase(lax)
   const boundFn = fn.bind(fnBase)
   return (contextVariable: any, args?: any) => {
@@ -27,26 +28,26 @@ describe("Codegen tests", () => {
   describe("Modes", () => {
 
     it("default mode is lax", () => {
-      const actual = generateFunctionSource("$")
-      expect(actual).to.deep.include({lax: true})
+      const ctx = generateFunctionSource("$")
+      expect(ctx).to.deep.include({lax: true})
     })
 
     it("explicit mode set to lax", () => {
-      const actual = generateFunctionSource("lax$")
-      expect(actual).to.deep.include({lax: true})
+      const ctx = generateFunctionSource("lax$")
+      expect(ctx).to.deep.include({lax: true})
     })
 
     it("explicit mode set to strict", () => {
-      const actual = generateFunctionSource("strict $")
-      expect(actual).to.deep.include({lax: false})
+      const ctx = generateFunctionSource("strict $")
+      expect(ctx).to.deep.include({lax: false})
     })
   })
 
   describe("ContextVariable", () => {
     it("standalone context", () => {
-      const actual = generateFunctionSource("$")
-      expect(actual.source).to.equal("return $")
-      const fn = createFunction(actual.source)
+      const ctx = generateFunctionSource("$")
+      expect(ctx.source).to.equal("return $")
+      const fn = createFunction(ctx)
       const value = fn("matt")
       expect(value).to.deep.equal(["matt"])
     })
@@ -54,9 +55,9 @@ describe("Codegen tests", () => {
 
   describe("item methods", () => {
     it("type()", () => {
-      const actual = generateFunctionSource("$.type()")
-      expect(actual.source).to.equal("return this.type($)")
-      const fn = createFunction(actual.source)
+      const ctx = generateFunctionSource("$.type()")
+      expect(ctx.source).to.equal("return this.type($)")
+      const fn = createFunction(ctx)
       const nullType = fn(null)
       expect(nullType).to.deep.equal(["null"])
       const stringType = fn("matt")
@@ -74,9 +75,9 @@ describe("Codegen tests", () => {
     })
 
     it("size()", () => {
-      const actual = generateFunctionSource("$.size()")
-      expect(actual.source).to.equal("return this.size($)")
-      const fn = createFunction(actual.source)
+      const ctx = generateFunctionSource("$.size()")
+      expect(ctx.source).to.equal("return this.size($)")
+      const fn = createFunction(ctx)
       const nullSize = fn(null)
       expect(nullSize).to.deep.equal([1])
       const stringSize = fn("matt")
@@ -92,9 +93,9 @@ describe("Codegen tests", () => {
     })
 
     it("double()", () => {
-      const actual = generateFunctionSource("$.double()")
-      expect(actual.source).to.equal("return this.double($)")
-      const fn = createFunction(actual.source)
+      const ctx = generateFunctionSource("$.double()")
+      expect(ctx.source).to.equal("return this.double($)")
+      const fn = createFunction(ctx)
       const stringDouble = fn("45")
       expect(stringDouble).to.deep.equal([45])
       const numberDouble = fn(77.6)
@@ -107,9 +108,9 @@ describe("Codegen tests", () => {
     })
 
     it("ceiling()", () => {
-      const actual = generateFunctionSource("$. ceiling ()")
-      expect(actual.source).to.equal("return this.ceiling($)")
-      const fn = createFunction(actual.source)
+      const ctx = generateFunctionSource("$. ceiling ()")
+      expect(ctx.source).to.equal("return this.ceiling($)")
+      const fn = createFunction(ctx)
       const numberActual = fn(77.6)
       expect(numberActual).to.deep.equal([78])
       expect(() => fn(null)).to.throw()
@@ -120,9 +121,9 @@ describe("Codegen tests", () => {
     })
 
     it("abs()", () => {
-      const actual = generateFunctionSource("$ .abs (  )")
-      expect(actual.source).to.equal("return this.abs($)")
-      const fn = createFunction(actual.source)
+      const ctx = generateFunctionSource("$ .abs (  )")
+      expect(ctx.source).to.equal("return this.abs($)")
+      const fn = createFunction(ctx)
       const numberActual = fn(-440.33)
       expect(numberActual).to.deep.equal([440.33])
       expect(() => fn(null)).to.throw()
@@ -134,9 +135,9 @@ describe("Codegen tests", () => {
 
     describe("keyvalue()", () => {
       it("lax keyvalue", () => {
-        const actual = generateFunctionSource("$ .keyvalue (  )")
-        expect(actual.source).to.equal(`return this.keyvalue($)`)
-        const fn = createFunction(actual.source)
+        const ctx = generateFunctionSource("$ .keyvalue (  )")
+        expect(ctx.source).to.equal(`return this.keyvalue($)`)
+        const fn = createFunction(ctx)
         const kvActual = fn([{a: 1, b: true, c: "see", d: {z: -9}}, {"m b": 1}])
         expect(kvActual).to.deep.equal([
           {id: 0, key: "a", value: 1},
@@ -153,9 +154,9 @@ describe("Codegen tests", () => {
       })
 
       it("strict keyvalue", () => {
-        const actual = generateFunctionSource("strict $ .keyvalue (  )")
-        expect(actual.source).to.equal(`return this.keyvalue($)`)
-        const fn = createFunction(actual.source, false)
+        const ctx = generateFunctionSource("strict $ .keyvalue (  )")
+        expect(ctx.source).to.equal(`return this.keyvalue($)`)
+        const fn = createFunction(ctx)
         const id = 0
         const kvActual = fn({a: 1, b: true, c: "see", d: {z: -9}})
         expect(kvActual).to.deep.equal([
@@ -175,25 +176,25 @@ describe("Codegen tests", () => {
 
     describe("datetime()", () => {
       it("ISO string date", () => {
-        const actual = generateFunctionSource("$ .datetime(  )")
-        expect(actual.source).to.equal(`return this.datetime($)`)
-        const fn = createFunction(actual.source)
+        const ctx = generateFunctionSource("$ .datetime(  )")
+        expect(ctx.source).to.equal(`return this.datetime($)`)
+        const fn = createFunction(ctx)
         const actualDate = fn("2020-01-01")
         expect(actualDate[0].getTime()).to.equal(new Date("2020-01-01").getTime())
       })
 
       it("template string date", () => {
-        const actual = generateFunctionSource("$ .datetime(\"M/d/yyyy\")")
-        expect(actual.source).to.equal(`return this.datetime($,\"M/d/yyyy\")`)
-        const fn = createFunction(actual.source)
+        const ctx = generateFunctionSource("$ .datetime(\"M/d/yyyy\")")
+        expect(ctx.source).to.equal(`return this.datetime($,\"M/d/yyyy\")`)
+        const fn = createFunction(ctx)
         const actualDate = fn("2/21/1900")
         expect(actualDate[0].getTime()).to.deep.equal(new Date("1900-02-21").getTime())
       })
 
       it("template string datetime with timezone", () => {
-        const actual = generateFunctionSource("$ .datetime(\"M•d•yyyy@h#m#sZ\")")
-        expect(actual.source).to.equal(`return this.datetime($,\"M•d•yyyy@h#m#sZ\")`)
-        const fn = createFunction(actual.source)
+        const ctx = generateFunctionSource("$ .datetime(\"M•d•yyyy@h#m#sZ\")")
+        expect(ctx.source).to.equal(`return this.datetime($,\"M•d•yyyy@h#m#sZ\")`)
+        const fn = createFunction(ctx)
         const actualDate = fn("2•21•1900@3#35#19+8")
         expect(actualDate[0].getTime()).to.equal(new Date("1900-02-21 3:35:19+8").getTime())
       })
@@ -203,9 +204,9 @@ describe("Codegen tests", () => {
   describe("Wildcards", () => {
     describe(".*", () => {
       it("lax .*", () => {
-        const actual = generateFunctionSource("$.*")
-        expect(actual.source).to.equal("return this.dotStar($)")
-        const fn = createFunction(actual.source)
+        const ctx = generateFunctionSource("$.*")
+        expect(ctx.source).to.equal("return this.dotStar($)")
+        const fn = createFunction(ctx)
         const objectValue = fn({"a": 1, "b": {c: "2"}})
         expect(objectValue).to.deep.equal([1, {c: "2"}])
         const arrayValue = fn([{"a": 1, e: [], q: null, g: undefined}, 77, {"b": {c: "2"}}, true, [], "cats"])
@@ -220,9 +221,9 @@ describe("Codegen tests", () => {
       })
 
       it("strict .*", () => {
-        const actual = generateFunctionSource("strict $.*")
-        expect(actual.source).to.equal("return this.dotStar($)")
-        const fn = createFunction(actual.source, false)
+        const ctx = generateFunctionSource("strict $.*")
+        expect(ctx.source).to.equal("return this.dotStar($)")
+        const fn = createFunction(ctx)
         const objectValue = fn(iterate([{"a": 1, "b": {c: "2"}, u: undefined}]))
         expect(objectValue).to.deep.equal([1, {c: "2"}, undefined])
         expect(() => fn([{"a": 1}, 77, {"b": {c: "2"}}, true, "cats"])).to.throw
@@ -238,9 +239,9 @@ describe("Codegen tests", () => {
 
     describe("[*]", () => {
       it("lax [*]", () => {
-        const actual = generateFunctionSource("$[*]")
-        expect(actual.source).to.equal("return this.boxStar($)")
-        const fn = createFunction(actual.source)
+        const ctx = generateFunctionSource("$[*]")
+        expect(ctx.source).to.equal("return this.boxStar($)")
+        const fn = createFunction(ctx)
         const undefinedValue = fn(undefined)
         expect(undefinedValue).to.deep.equal([undefined])
         const nullValue = fn(null)
@@ -266,9 +267,9 @@ describe("Codegen tests", () => {
       })
 
       it("strict [*]", () => {
-        const actual = generateFunctionSource("strict $[*]")
-        expect(actual.source).to.equal("return this.boxStar($)")
-        const fn = createFunction(actual.source, false)
+        const ctx = generateFunctionSource("strict $[*]")
+        expect(ctx.source).to.equal("return this.boxStar($)")
+        const fn = createFunction(ctx)
         const arrayValue = fn([7, 9, 55])
         expect(arrayValue).to.deep.equal([7, 9, 55])
         expect(() => fn(undefined)).to.throw
@@ -283,9 +284,9 @@ describe("Codegen tests", () => {
 
   describe("member accessor", () => {
     it(".member", () => {
-      const actual = generateFunctionSource("$.thing")
-      expect(actual.source).to.equal("return this.member($,\"thing\")")
-      const fn = createFunction(actual.source)
+      const ctx = generateFunctionSource("$.thing")
+      expect(ctx.source).to.equal("return this.member($,\"thing\")")
+      const fn = createFunction(ctx)
       let objectActual = fn({thing: "bird"})
       expect(objectActual).to.deep.equal(["bird"])
       objectActual = fn({thing: []})
@@ -304,9 +305,9 @@ describe("Codegen tests", () => {
     })
 
     it(".\"member\"", () => {
-      const actual = generateFunctionSource("$.\"thing\\tbrick\"")
-      expect(actual.source).to.equal("return this.member($,\"thing\\tbrick\")")
-      const fn = createFunction(actual.source)
+      const ctx = generateFunctionSource("$.\"thing\\tbrick\"")
+      expect(ctx.source).to.equal("return this.member($,\"thing\\tbrick\")")
+      const fn = createFunction(ctx)
       const objectActual = fn({"thing\tbrick": 14})
       expect(objectActual).to.deep.equal([14])
       expect(fn(undefined)).to.be.empty
@@ -318,9 +319,9 @@ describe("Codegen tests", () => {
     })
 
     it("strict .member", () => {
-      const actual = generateFunctionSource("strict $.thing")
-      expect(actual.source).to.equal("return this.member($,\"thing\")")
-      const fn = createFunction(actual.source, false)
+      const ctx = generateFunctionSource("strict $.thing")
+      expect(ctx.source).to.equal("return this.member($,\"thing\")")
+      const fn = createFunction(ctx)
       let objectActual = fn({thing: []})
       expect(objectActual).to.deep.equal([[]])
       objectActual = fn({thing: "bird"})
@@ -337,17 +338,32 @@ describe("Codegen tests", () => {
 
   describe("array accessor", () => {
     it("single elements", () => {
-      const actual = generateFunctionSource("$[0,4,last,$.size()]")
-      expect(actual.source).to.equal("return this.array(this.push$$a($),[0,4,this.last(),this.size($)])")
-      const fn = createFunction(actual.source)
+      const ctx = generateFunctionSource("$[0,4,last,$.size()]")
+      expect(ctx.source).to.equal("return this.array(this.push$$a($),[0,4,this.last(),this.size($)])")
+      const fn = createFunction(ctx)
       const actualArray = fn(["a", "b", "c", "d", [66,77], "f", "g", "h"])
       expect(actualArray).to.deep.equal(["a", [66,77], "h"])
     })
 
+    it("auto-wraps non-arrays in lax mode", () => {
+      const ctx = generateFunctionSource("$[last]")
+      expect(ctx.source).to.equal("return this.array(this.push$$a($),[this.last()])")
+      const fn = createFunction(ctx)
+      const actualArray = fn("coffee")
+      expect(actualArray).to.deep.equal(["coffee"])
+    })
+
+    it("rejects non-arrays in strict mode", () => {
+      const ctx = generateFunctionSource("strict $[last]")
+      expect(ctx.source).to.equal("return this.array(this.push$$a($),[this.last()])")
+      const fn = createFunction(ctx)
+      expect(() => fn("tea")).to.throw
+    })
+
     it("range elements", () => {
-      const actual = generateFunctionSource("$[1 to 3]")
-      expect(actual.source).to.equal("return this.array(this.push$$a($),[this.range(1,3)])")
-      const fn = createFunction(actual.source)
+      const ctx = generateFunctionSource("$[1 to 3]")
+      expect(ctx.source).to.equal("return this.array(this.push$$a($),[this.range(1,3)])")
+      const fn = createFunction(ctx)
       const actualArray = fn(["a", "b", "c", "d", [66,77]])
       expect(actualArray).to.deep.equal(["b", "c", "d"])
     })

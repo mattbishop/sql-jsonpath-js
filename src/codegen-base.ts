@@ -4,6 +4,7 @@ import {DateTime, FixedOffsetZone} from "luxon"
 import {KeyValue} from "./json-path"
 
 
+
 const EMPTY = iterate(Object.freeze([]))
 
 
@@ -225,7 +226,15 @@ export class CodegenBase {
   }
 
 
-  push$$a(a: []) {
+  push$$a(a: any) {
+    if (!Array.isArray(a)) {
+      if (this.lax) {
+        // lax mode auto-wraps things that are not an array
+        a = [a]
+      } else {
+        throw new Error(`Array accessors can only be applied to an array, found ${a}`)
+      }
+    }
     this.$$a.push(a)
     return a
   }
@@ -260,7 +269,7 @@ export class CodegenBase {
   }
 
   last(): number {
-    const a = this.$$a[this.$$a.length - 1]
+    const a = this.$$a.at(-1) as []
     return a.length - 1
   }
 
