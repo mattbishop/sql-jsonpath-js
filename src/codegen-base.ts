@@ -4,8 +4,10 @@ import {DateTime, FixedOffsetZone} from "luxon"
 import {KeyValue} from "./json-path"
 
 
-const EMPTY = Object.freeze([])
+const EMPTY = iterate(Object.freeze([]))
 
+
+// Lives outside of class so function refs can use this without bind(this)
 function _type(primary: any): string {
   return Array.isArray(primary)
     ? "array"
@@ -14,45 +16,14 @@ function _type(primary: any): string {
       : typeof primary
 }
 
-function _toKV(primary: Record<string, any>, id: number): IteratorWithOperators<KeyValue> {
-  return iterate(Object.keys(primary))
-    .map((key) => ({id, key, value: primary[key]}))
-}
 
-function _maybeWrapArray(value: any): any {
-  return Array.isArray(value) ? [value] : value
-}
+type SingleOrIterator<T> = T | IteratorWithOperators<T>
 
-function _maybeMember(primary: Record<string, any>, member: string): any {
-  return primary.hasOwnProperty(member)
-    ? _maybeWrapArray(primary[member])
-    : EMPTY
-}
-
-function _toNumber(value: any): number {
-  let num
-  if (typeof value === "number") {
-    num = value
-  }
-  if (value instanceof IteratorWithOperators) {
-    num = value.next().value
-  }
-  if (typeof num === "number") {
-    return num
-  }
-  throw new Error (`array accessor range must be a number: ${num}`)
-}
-
-function* _range(start: number, end: number): Generator<number> {
-  for (let i = start; i <= end; i++) {
-    yield i;
-  }
-}
 
 export class CodegenBase {
 
   // stack
-  $$a: IteratorWithOperators<any>[]
+  $$a: [][]
   lax: boolean
 
   constructor(lax: boolean) {
@@ -60,184 +31,264 @@ export class CodegenBase {
     this.lax = lax
   }
 
-  type(seq: IteratorWithOperators<any>): IteratorWithOperators<string> {
-    return seq.map(_type)
+  private _autoMapWithFlatten<I extends IteratorWithOperators<unknown>>(input: any, mapƒ: (value: any) => I): I {
+    const mapped = this._autoMap(input, mapƒ) as I
+    return input instanceof IteratorWithOperators
+      ? mapped.flatten() as I
+      : mapped
+  }
+
+  private _autoMap<T>(input: any, mapƒ: (value: any) => T): SingleOrIterator<T> {
+    return input instanceof IteratorWithOperators
+      ? input.map(mapƒ)
+      : mapƒ(input)
   }
 
 
-  size(seq: IteratorWithOperators<any>): IteratorWithOperators<number> {
-    return seq.map((primary) => Array.isArray(primary) ? primary.length : 1);
+  type(input: any): SingleOrIterator<string> {
+    return this._autoMap(input, _type)
   }
 
 
-  double(seq: IteratorWithOperators<any>): IteratorWithOperators<number> {
-    return seq.map((primary) => {
-      const type = _type(primary)
-      if (type !== "number" && type !== "string") {
-        throw new Error(`double() value must be a number or string, found ${JSON.stringify(primary)}.`)
+  private _size(value: any) {
+    return Array.isArray(value)
+      ? value.length
+      : 1
+  }
+
+  size(input: any): SingleOrIterator<number> {
+    return this._autoMap(input, this._size);
+  }
+
+
+  private _double(input: any): number {
+    const type = _type(input)
+    if (type !== "number" && type !== "string") {
+      throw new Error(`double() value must be a number or string, found ${JSON.stringify(input)}.`)
+    }
+    const n = Number(input)
+    if (Number.isNaN(n)) {
+      throw new Error(`double() param ${input} is not a representation of a number.`)
+    }
+    return n
+  }
+
+  double(input: any): SingleOrIterator<number> {
+    return this._autoMap(input, this._double)
+  }
+
+
+  private _ceiling(input: any): number {
+    if (typeof input !== "number") {
+      throw new Error(`$ceiling() param must be a number, found ${JSON.stringify(input)}.`)
+    }
+    return Math.ceil(input)
+  }
+
+  ceiling(input: any): SingleOrIterator<number> {
+    return this._autoMap(input, this._ceiling)
+  }
+
+
+  private _floor(input: any): number {
+    if (typeof (input) !== "number") {
+      throw new Error(`floor() param must be a number, found ${JSON.stringify(input)}.`)
+    }
+    return Math.floor(input)
+  }
+
+  floor(input: any): SingleOrIterator<number> {
+    return this._autoMap(input, this._floor)
+  }
+
+
+  private _abs(input: any): number {
+    if (typeof input !== "number") {
+      throw new Error(`abs() param must be a number, found ${JSON.stringify(input)}.`)
+    }
+    return Math.abs(input)
+  }
+
+  abs(input: any): SingleOrIterator<number> {
+    return this._autoMap(input, this._abs)
+  }
+
+
+  private _datetime(input: any, template?: string): Date {
+    if (typeof input !== "string") {
+      throw new Error(`datetime() param must be a string, found ${JSON.stringify(input)}.`)
+    }
+    return template
+      ? DateTime.fromFormat(input, template, {zone: FixedOffsetZone.utcInstance}).toJSDate()
+      : new Date(input)
+  }
+
+  datetime(input: any, template?: string): SingleOrIterator<Date> {
+    return this._autoMap(input, (v: any) => this._datetime(v, template))
+  }
+
+
+  private _toKV(obj: Record<string, any>, id: number): IteratorWithOperators<KeyValue> {
+    return iterate(Object.keys(obj))
+      .map((key) => ({id, key, value: obj[key]}))
+  }
+
+  private _keyvalue(input: any): IteratorWithOperators<KeyValue> {
+    const type = _type(input)
+    if (this.lax) {
+      if (type !== "object" && type !== "array") {
+        throw new Error(`keyvalue() param must be an object or array (in lax mode), found ${JSON.stringify(input)}.`)
       }
-      const n = Number(primary)
-      if (Number.isNaN(n)) {
-        throw new Error(`double() param ${primary} is not a representation of a number.`)
-      }
-      return n
-    })
-  }
-
-
-  ceiling(seq: IteratorWithOperators<any>): IteratorWithOperators<number> {
-    return seq.map((primary) => {
-      if (typeof primary !== "number") {
-        throw new Error(`$ceiling() param must be a number, found ${JSON.stringify(primary)}.`)
-      }
-      return Math.ceil(primary)
-    })
-  }
-
-
-  floor(seq: IteratorWithOperators<any>): IteratorWithOperators<number> {
-    return seq.map(primary => {
-      if (typeof (primary) !== "number") {
-        throw new Error(`floor() param must be a number, found ${JSON.stringify(primary)}.`)
-      }
-      return Math.floor(primary)
-    })
-  }
-
-
-  abs(seq: IteratorWithOperators<any>): IteratorWithOperators<number> {
-    return seq.map((primary) => {
-      if (typeof primary !== "number") {
-        throw new Error(`abs() param must be a number, found ${JSON.stringify(primary)}.`)
-      }
-      return Math.abs(primary)
-    })
-  }
-
-
-  datetime(seq: IteratorWithOperators<any>, template?: string): IteratorWithOperators<Date> {
-    return seq.map((primary) => {
-      if (typeof primary !== "string") {
-        throw new Error(`datetime() param must be a string, found ${JSON.stringify(primary)}.`)
-      }
-      return template
-        ? DateTime.fromFormat(primary, template, {zone: FixedOffsetZone.utcInstance}).toJSDate()
-        : new Date(primary)
-    })
-  }
-
-
-  keyvalue(seq: IteratorWithOperators<any>): IteratorWithOperators<KeyValue> {
-    return seq.map((primary) => {
-      const type = _type(primary)
-      if (this.lax) {
-        if (type !== "object" && type !== "array") {
-          throw new Error(`keyvalue() param must be an object or array (in lax mode), found ${JSON.stringify(primary)}.`)
-        }
-        if (Array.isArray(primary)) {
-          let id = 0
-          return iterate(primary)
-            .map((row) => {
+      if (Array.isArray(input)) {
+        let id = 0
+        return iterate(input)
+          .map((row) => {
               if (_type(row) !== "object") {
                 throw new Error(`keyvalue() array must have object values, found ${JSON.stringify(row)}.`)
               }
-              return _toKV(row, id++)
-            }).flatten()
-        }
-      } else { // strict
-        if (type !== "object") {
-          throw new Error(`keyvalue() param must be an object but is an array (in strict mode), found ${JSON.stringify(primary)}.`)
-        }
-      }
-      return _toKV(primary, 0)
-    }).flatten()
-  }
-
-
-  dotStar(seq: IteratorWithOperators<any>): IteratorWithOperators<any> {
-    return seq.map((primary) => {
-      const type = _type(primary)
-      if (!this.lax && type !== "object") {
-        throw new Error(`.* can only be applied to an object in strict mode, found ${JSON.stringify(primary)}.`)
-      }
-      if (type === "object") {
-        return Object.values(primary)
-      } else if (type === "array") {
-        return iterate(primary)
-          .filter((o) => _type(o) === "object")
-          .map((obj) => Object.values(obj as object))
+              return this._toKV(row, id++)
+            })
           .flatten()
       }
-      return EMPTY
-    }).flatten()
+    } else { // strict
+      if (type !== "object") {
+        throw new Error(`keyvalue() param must be an object but is an array (in strict mode), found ${JSON.stringify(input)}.`)
+      }
+    }
+    return this._toKV(input, 0)
+  }
+
+  keyvalue(input: any): IteratorWithOperators<KeyValue> {
+    return this._autoMapWithFlatten(input, (i) => this._keyvalue(i))
   }
 
 
-  boxStar(seq: IteratorWithOperators<any>): IteratorWithOperators<any> {
-    return seq.map((primary) => {
-      if (!this.lax && _type(primary) !== "array") {
-        throw new Error(`[*] can only be applied to an array in strict mode, found ${JSON.stringify(primary)}.`)
-      }
-      return primary
-    }).flatten()
+  private _dotStar(input: any): IteratorWithOperators<any> {
+    const type = _type(input)
+    if (!this.lax && type !== "object") {
+      throw new Error(`.* can only be applied to an object in strict mode, found ${JSON.stringify(input)}.`)
+    }
+    if (type === "object") {
+      return iterate(Object.values(input))
+    } else if (type === "array") {
+      return iterate(input)
+        .filter((o) => _type(o) === "object")
+        .map((obj) => Object.values(obj as object))
+        .flatten()
+    }
+    return EMPTY
+  }
+
+  dotStar(input: any): IteratorWithOperators<any> {
+    return this._autoMapWithFlatten(input, (i) => this._dotStar(i))
   }
 
 
-  member(seq: IteratorWithOperators<any>, member: string): IteratorWithOperators<any> {
-    return seq.map((primary) => {
-      const type = _type(primary)
-      if (!this.lax && type !== "object") {
-        throw new Error(`."${member}" can only be applied to an object in strict mode, found ${JSON.stringify(primary)}.`)
-      }
-      if (type === "object") {
-        return _maybeMember(primary, member)
-      } else if (type === "array") {
-        return iterate(primary)
-          .filter((o) => _type(o) === "object")
-          .map((obj) => _maybeMember(obj as Record<string, any>, member))
-      }
-      return EMPTY
-    }).flatten()
+  private _boxStar(input: any): IteratorWithOperators<any> {
+    if (Array.isArray(input)) {
+      return iterate(input)
+    }
+    if (!this.lax) {
+      throw new Error(`[*] can only be applied to an array in strict mode, found ${JSON.stringify(input)}.`)
+    }
+    return iterate([input])
+  }
+
+  boxStar(input: any): IteratorWithOperators<any> {
+    return this._autoMapWithFlatten(input, (i) => this._boxStar(i))
   }
 
 
-  push$$a(a: IteratorWithOperators<any>) {
+  private _maybeMember(obj: Record<string, any>, member: string): any {
+    return obj.hasOwnProperty(member)
+      ? obj[member]
+      : EMPTY
+  }
+
+  private _member(input: any, member: string): any {
+    const type = _type(input)
+    if (!this.lax && type !== "object") {
+      throw new Error(`."${member}" can only be applied to an object in strict mode, found ${JSON.stringify(input)}.`)
+    }
+    if (type === "object") {
+      return this._maybeMember(input, member)
+    } else if (type === "array") {
+      return iterate(input)
+        .filter((o) => _type(o) === "object")
+        .map((obj) => this._maybeMember(obj as Record<string, any>, member))
+    }
+    return EMPTY
+  }
+
+  member(input: any, member: string): SingleOrIterator<any> {
+    return this._autoMap(input, (i) => this._member(i, member))
+  }
+
+
+  push$$a(a: []) {
     this.$$a.push(a)
     return a
   }
 
+  private _maybeElement(arr: [], pos: number): any {
+    if (pos < arr.length) {
+      const value = arr[pos]
+      return Array.isArray(value)
+        ? [value]
+        : value
+    }
+    return EMPTY
+  }
 
-  array(seq: IteratorWithOperators<any>, subscripts: any[]): IteratorWithOperators<any> {
-    return seq.map((primary) => {
-      const values = iterate(subscripts)
-        .map((s) => {
-          if (typeof s === "number") {
-            return _maybeWrapArray(primary[s])
-          }
-          if (s instanceof IteratorWithOperators) {
-            return s.map(s1 => _maybeWrapArray(primary[s1]))
-          }
-          throw new Error("array accessor must be numbers")
-        }).flatten()
-      this.$$a.pop()
-      return values
-    }).flatten()
+  private _array(array: any, subscripts: any[]): IteratorWithOperators<any> {
+    const values = iterate(subscripts)
+      .map((s) => {
+        if (typeof s === "number") {
+          return this._maybeElement(array, s)
+        }
+        if (s instanceof IteratorWithOperators) {
+          return s.map(s1 => this._maybeElement(array, s1))
+        }
+        throw new Error("array accessor must be numbers")
+      }).flatten()
+    this.$$a.pop()
+    return values
+  }
+
+  array(input: any, subscripts: any[]): IteratorWithOperators<any> {
+    return this._autoMapWithFlatten(input, (i) => this._array(i, subscripts))
+  }
+
+  last(): number {
+    const a = this.$$a[this.$$a.length - 1]
+    return a.length - 1
   }
 
 
-  last(): IteratorWithOperators<number> {
-    return this.$$a[this.$$a.length - 1].map((primary) => {
-      if (Array.isArray(primary)) {
-        return primary.length - 1
-      }
-      throw new Error("'last' can only be used as an array accessor")
-    });
+  private _toNumber(value: any): number {
+    if (typeof value === "number") {
+      return value
+    }
+
+    let num
+    if (value instanceof IteratorWithOperators) {
+      num = value.next().value
+    }
+    if (typeof num === "number") {
+      return num
+    }
+    throw new Error (`array accessor range must be a number: ${num}`)
   }
 
+  private *_range(start: number, end: number): Generator<number> {
+    for (let i = start; i <= end; i++) {
+      yield i;
+    }
+  }
 
   range(from: any, to: any): IteratorWithOperators<number> {
-    const start = _toNumber(from)
-    const end = _toNumber(to)
-    return iterate(_range(start, end))
+    const start = this._toNumber(from)
+    const end = this._toNumber(to)
+    return iterate(this._range(start, end))
   }
 }

@@ -8,13 +8,16 @@ import {CodegenBase} from "../src/codegen-base"
 
 function createFunction(body: string, lax = true): Function {
   const fn = Function("$", body)
-  const codegenFns = new CodegenBase(lax)
-  const boundFn = fn.bind(codegenFns)
-  return (input: any, args?: any) => {
-    const i = input instanceof IteratorWithOperators
-      ? input
-      : iterate([input])
-    return boundFn(i, args).toArray()
+  const fnBase = new CodegenBase(lax)
+  const boundFn = fn.bind(fnBase)
+  return (contextVariable: any, args?: any) => {
+    let result = boundFn(contextVariable, args)
+    if (result instanceof IteratorWithOperators) {
+      result = result.toArray()
+    } else {
+      result = [result]
+    }
+    return result
   }
 }
 
@@ -283,12 +286,12 @@ describe("Codegen tests", () => {
       const actual = generateFunctionSource("$.thing")
       expect(actual.source).to.equal("return this.member($,\"thing\")")
       const fn = createFunction(actual.source)
-      let objectActual = fn({thing: [9, 8, 7]})
-      expect(objectActual).to.deep.equal([[9, 8, 7]])
-      objectActual = fn({thing: "bird"})
+      let objectActual = fn({thing: "bird"})
       expect(objectActual).to.deep.equal(["bird"])
       objectActual = fn({thing: []})
       expect(objectActual).to.deep.equal([[]])
+      objectActual = fn({thing: [9, 8, 7]})
+      expect(objectActual).to.deep.equal([[9, 8, 7]])
       objectActual = fn({thing: undefined})
       expect(objectActual).to.deep.equal([undefined])
       expect(fn({not: "thing"})).to.be.empty
@@ -338,7 +341,7 @@ describe("Codegen tests", () => {
       expect(actual.source).to.equal("return this.array(this.push$$a($),[0,4,this.last(),this.size($)])")
       const fn = createFunction(actual.source)
       const actualArray = fn(["a", "b", "c", "d", [66,77], "f", "g", "h"])
-      expect(actualArray).to.deep.equal(["a", [66,77]], "h")
+      expect(actualArray).to.deep.equal(["a", [66,77], "h"])
     })
 
     it("range elements", () => {

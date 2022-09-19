@@ -33,14 +33,14 @@ Navigation can also use bracket notation, such as `$["store"]["book"][0]`
 
 Bracket notation must use double quotes instead of single quotes.
 
-| Navigation Operator       | Description                                                  |
-| ------------------------- | ------------------------------------------------------------ |
-| `$`                       | The root element reference. May be an object, an array, or a scalar value |
-| `.<name>` or `["<name>"]` | Child reference                                              |
-| `*`                       | Wildcard references any child or array element               |
-| `[<pos>]`                 | Array element reference                                      |
-| `[<pos>, <pos>]`          | Comma-separated list of array element references             |
-| `[<pos> to <pos>]`        | Array element range reference. Can be used as `<pos>` in list of element references. |
+| Navigation Operator       | Description                                                                                                                                                                |
+|---------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `$`                       | The root element reference. May be an object, an array, or a scalar value                                                                                                  |
+| `.<name>` or `["<name>"]` | Child reference                                                                                                                                                            |
+| `*`                       | Wildcard references any child or array element                                                                                                                             |
+| `[<pos>]`                 | Array element reference                                                                                                                                                    |
+| `[<pos>, <pos>]`          | Comma-separated list of array element references                                                                                                                           |
+| `[<pos> to <pos>]`        | Array element range reference. Can be used as `<pos>` in list of element references.                                                                                       |
 | `[last]`, `[last-1]`      | Last variable refers to the last element in the array and can be used as `<pos>` in list of element references. Value can be modified with the subtraction (`-`) operator. |
 
 At the completion of navigation, the values are represented as the `@` character in the filter section.
@@ -54,7 +54,7 @@ Predicates must be wrapped in parentheses `()` and can be internally combined wi
 `(@.name == "Marc Wu")`
 
 | Predicate Operator | Description           |
-| ------------------ | --------------------- |
+|--------------------|-----------------------|
 | `==`               | Equal                 |
 | `!=`, `<>`         | Not Equal             |
 | `>`                | Greater than          |
@@ -69,41 +69,41 @@ A predicate can transform the navigation data with arithmetic operators. These d
 
 Value functions offer ways to extract type information and apply mathematical functions before testing the value with predicate operators.
 
-| Function                 | Description                                                  |
-| ------------------------ | ------------------------------------------------------------ |
-| `.type()`                | Returns `null`, `boolean`, `number`, `string`, `array`, `object` or `date` |
-| `.size()`                | If `@` references an array, then it returns the number of elements in the array |
-| `.double()`              | Converts a string to a numeric value                         |
-| `.ceiling()`             | Round a numeric value up to the next largest integer         |
-| `.floor()`               | Round a numeric value down to the next smallest integer      |
-| `.abs()`                 | The absolute value of a numeric value                        |
+| Function                 | Description                                                                                                                                                                                                                                           |
+|--------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `.type()`                | Returns `null`, `boolean`, `number`, `string`, `array`, `object` or `date`                                                                                                                                                                            |
+| `.size()`                | If `@` references an array, then it returns the number of elements in the array                                                                                                                                                                       |
+| `.double()`              | Converts a string to a numeric value                                                                                                                                                                                                                  |
+| `.ceiling()`             | Round a numeric value up to the next largest integer                                                                                                                                                                                                  |
+| `.floor()`               | Round a numeric value down to the next smallest integer                                                                                                                                                                                               |
+| `.abs()`                 | The absolute value of a numeric value                                                                                                                                                                                                                 |
 | `.datetime("template"?)` | Converts a string into a Date object. The optional `template` is a quoted template string. If omitted, the ISO-8601 pattern (built into Javascript) will be used to evaluate the string. The SQL JSONPath spec does not specify this template format. |
-| `.keyvalue()`            | Converts an object into an array of name/value objects: `[{name, value}, ...]` which allows a predicate to extract the key name and value. |
+| `.keyvalue()`            | Converts an object into an array of name/value objects: `[{name, value}, ...]` which allows a predicate to extract the key name and value.                                                                                                            |
 
 Datetime template formatting symbols only match numeric date-time values, as SQL JSONPath does not have a language or culture setting to parse words for month and day.
 
-| Symbol | Meaning                                                      |
-| ------ | ------------------------------------------------------------ |
-| `y`    | year                                                         |
-| `M`    | month                                                        |
-| `d`    | day of month                                                 |
-| `h`    | clock hour from 1 to 12; use `a` in template to capture AM/PM |
-| `a`    | AM or PM                                                     |
-| `H`    | hour from 0 to 23                                            |
-| `m`    | minute from 00 to 59                                         |
-| `s`    | second from 00 to 59                                         |
-| `S`    | millisecond                                                  |
+| Symbol | Meaning                                                                                |
+|--------|----------------------------------------------------------------------------------------|
+| `y`    | year                                                                                   |
+| `M`    | month                                                                                  |
+| `d`    | day of month                                                                           |
+| `h`    | clock hour from 1 to 12; use `a` in template to capture AM/PM                          |
+| `a`    | AM or PM                                                                               |
+| `H`    | hour from 0 to 23                                                                      |
+| `m`    | minute from 00 to 59                                                                   |
+| `s`    | second from 00 to 59                                                                   |
+| `S`    | millisecond                                                                            |
 | `z`    | [Timezone abbreviation](https://en.wikipedia.org/wiki/List_of_time_zone_abbreviations) |
 
 #### Predicate functions
 
 A value can be tested for existence, and string values can be tested for prefixes and regular expression matches.
 
-| Expression                                      | Description                                                  |
-| ----------------------------------------------- | ------------------------------------------------------------ |
-| `exists ()`                                     | A value exists for the given predicate                       |
-| `() is unknown`                                 | No value exists                                              |
-| `starts with "<text>"`                          | Value starts with specified text                             |
+| Expression                                      | Description                                                                                                                 |
+|-------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|
+| `exists ()`                                     | A value exists for the given predicate                                                                                      |
+| `() is unknown`                                 | No value exists                                                                                                             |
+| `starts with "<text>"`                          | Value starts with specified text                                                                                            |
 | `like_regex "regex-expression" flag? "<flags>"` | [XQuery](https://www.regular-expressions.info/xpath.html) regular expression. Have a look at [XRegexp](https://xregexp.com) |
 
 Regex flags are optional, and change the pattern matching behavior.
@@ -151,17 +151,17 @@ This example is taken from Stefan Goessner’s original JSONPath documentation.
 }
 ```
 
-| JSONPath Expression                                         | Result                                                       |
-| ----------------------------------------------------------- | ------------------------------------------------------------ |
-| `$.store.book[*].author`                                    | The authors of all books in the store                        |
-| `$.store`                                                   | All the things in the store, which includes books and a bicycle |
-| `$.store.book[2]`                                           | The third book in the store.                                 |
-| `$.store.book[last]`                                        | The last book in the store                                   |
-| `$.store.book[0,1,2]` or `$.store.book[0 to 2]`             | The first three books in the store                           |
-| `$.store.book ? (exists(@.isbn))`                           | All books with an isbn                                       |
-| `$.store.book ? (!exists(@.isbn))`                          | All books without an isbn                                    |
-| `$.store.book.title ? (@ starts with "S")`                  | All books whose title starts with the letter “S”             |
-| `$.store.bicycle ? (@.colour like_regex "^RED$" flag "i")`  | All bicycles whose colour is “red”, case insensitive         |
-| `$.store.book.price ? (@ > 10)`                             | All books whose price is > 10                                |
-| `$.store ? ((@.book.price > 10) \|\| (@.bicycle.price > 10))` | All books and bicycles whose price is > 10                 |
+| JSONPath Expression                                           | Result                                                          |
+|---------------------------------------------------------------|-----------------------------------------------------------------|
+| `$.store.book[*].author`                                      | The authors of all books in the store                           |
+| `$.store`                                                     | All the things in the store, which includes books and a bicycle |
+| `$.store.book[2]`                                             | The third book in the store.                                    |
+| `$.store.book[last]`                                          | The last book in the store                                      |
+| `$.store.book[0,1,2]` or `$.store.book[0 to 2]`               | The first three books in the store                              |
+| `$.store.book ? (exists(@.isbn))`                             | All books with an isbn                                          |
+| `$.store.book ? (!exists(@.isbn))`                            | All books without an isbn                                       |
+| `$.store.book.title ? (@ starts with "S")`                    | All books whose title starts with the letter “S”                |
+| `$.store.bicycle ? (@.colour like_regex "^RED$" flag "i")`    | All bicycles whose colour is “red”, case insensitive            |
+| `$.store.book.price ? (@ > 10)`                               | All books whose price is > 10                                   |
+| `$.store ? ((@.book.price > 10) \|\| (@.bicycle.price > 10))` | All books and bicycles whose price is > 10                      |
 
