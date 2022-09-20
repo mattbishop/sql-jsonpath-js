@@ -84,7 +84,26 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
       const origSource = ctx.source
       ctx.source = ""
       ctx = this.visit(primary, ctx)
-      ctx = this.maybeVisit(accessor, ctx)
+      if (accessor) {
+        // This only works because the visitors mutate ctx.
+        accessor.forEach((a) => this.visit(a, ctx))
+      }
+        /*
+        I don't like this ctx.source route, too imprecise.
+
+          $.phones.type    phones is an array member, type is a field.
+          this.member($, "phones") -> seq(phone)
+          this.member(phones, "type")
+
+          accessors is a list of two items, so we know how many there are.
+          Two choices:
+
+          * this.member(this.member($, "phones"), "type")
+          * this.member($, "phones").map(m=>this.member(m,"type")
+
+          First one is probably more efficient as it doesn't map(), but will get harder to read with multiple
+          items. Second one is clearer but may be harder to trigger the strict error?
+         */
       ctx.source = origSource + ctx.source
       return ctx
     }
@@ -132,10 +151,8 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
           case "ceiling" :
           case "floor" :
           case "abs" :
-            methodImpl = `this.${methodName}(${primary})`
-            break
           case "keyvalue" :
-            methodImpl = `this.keyvalue(${primary})`
+            methodImpl = `this.${methodName}(${primary})`
             break
           default :
             throw new Error(`Item methodName unrecognized: ${methodName}`)
@@ -152,7 +169,8 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
       } else if (WildcardArray) {
         ctx.source = `this.boxStar(${primary})`
       } else if (Member) {
-        const member = Member[0].payload.find((m: any) => m !== undefined)
+        const payloads = Member[0].payload
+        const member = payloads[0] || payloads[1]
         ctx.source = `this.member(${primary},"${member}")`
       }
       ctx = this.maybeVisit(array, ctx)

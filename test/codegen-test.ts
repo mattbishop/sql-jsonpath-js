@@ -367,5 +367,24 @@ describe("Codegen tests", () => {
       const actualArray = fn(["a", "b", "c", "d", [66,77]])
       expect(actualArray).to.deep.equal(["b", "c", "d"])
     })
+
+    it("unwraps lax", () => {
+      const ctx = generateFunctionSource("$.phones.type")
+      expect(ctx.source).to.equal("return this.member(this.member($,\"phones\"),\"type\")")
+      const fn = createFunction(ctx)
+      const data = { name: "Fred", phones: [ { type: "home", number: "372-0453" },
+          { type: "work", number: "506-2051" } ] }
+      const actual = fn(data)
+      expect(actual).to.deep.equal(["home", "work"])
+    })
+
+    it("does not unwrap strict", () => {
+      const ctx = generateFunctionSource("strict $.phones.type")
+      expect(ctx.source).to.equal("return this.member(this.member($,\"phones\"),\"type\")")
+      const fn = createFunction(ctx)
+      const data = { name: "Fred", phones: [ { type: "home", number: "372-0453" },
+          { type: "work", number: "506-2051" } ] }
+      expect(() => fn(data)).to.throw
+    })
   })
 })
