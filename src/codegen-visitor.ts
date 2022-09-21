@@ -182,7 +182,7 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
       const {source: primary} = ctx
       const subscripts = subscript
         .map((s) => this.visit(s, {...ctx, source: ""}).source)
-      ctx.source = `this.array(this.push$$a(${primary}),[${subscripts}])`
+      ctx.source = `this.array(this.pa(${primary}),[${subscripts}])`
       return ctx
     }
 

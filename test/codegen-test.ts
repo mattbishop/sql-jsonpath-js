@@ -326,7 +326,7 @@ describe("Codegen tests", () => {
       expect(objectActual).to.deep.equal([[]])
       objectActual = fn({thing: "bird"})
       expect(objectActual).to.deep.equal(["bird"])
-      expect(fn({not: "thing"})).to.be.empty
+      expect(() => fn({not: "thing"})).to.throw
       expect(() => fn(undefined)).to.throw
       expect(() => fn(null)).to.throw
       expect(() => fn([])).to.throw
@@ -338,16 +338,24 @@ describe("Codegen tests", () => {
 
   describe("array accessor", () => {
     it("single elements", () => {
+      // tests $.size() which is out of bounds, but in lax mode, ignores the access
       const ctx = generateFunctionSource("$[0,4,last,$.size()]")
-      expect(ctx.source).to.equal("return this.array(this.push$$a($),[0,4,this.last(),this.size($)])")
+      expect(ctx.source).to.equal("return this.array(this.pa($),[0,4,this.last(),this.size($)])")
       const fn = createFunction(ctx)
       const actualArray = fn(["a", "b", "c", "d", [66,77], "f", "g", "h"])
       expect(actualArray).to.deep.equal(["a", [66,77], "h"])
     })
 
+    it("rejects out-of-bounds array access in strict mode", () => {
+      const ctx = generateFunctionSource("strict $[100]")
+      expect(ctx.source).to.equal("return this.array(this.pa($),[100])")
+      const fn = createFunction(ctx)
+      expect(() => fn(["tea", "Cookies"])).to.throw
+    })
+
     it("auto-wraps non-arrays in lax mode", () => {
       const ctx = generateFunctionSource("$[last]")
-      expect(ctx.source).to.equal("return this.array(this.push$$a($),[this.last()])")
+      expect(ctx.source).to.equal("return this.array(this.pa($),[this.last()])")
       const fn = createFunction(ctx)
       const actualArray = fn("coffee")
       expect(actualArray).to.deep.equal(["coffee"])
@@ -355,14 +363,14 @@ describe("Codegen tests", () => {
 
     it("rejects non-arrays in strict mode", () => {
       const ctx = generateFunctionSource("strict $[last]")
-      expect(ctx.source).to.equal("return this.array(this.push$$a($),[this.last()])")
+      expect(ctx.source).to.equal("return this.array(this.pa($),[this.last()])")
       const fn = createFunction(ctx)
       expect(() => fn("tea")).to.throw
     })
 
     it("range elements", () => {
       const ctx = generateFunctionSource("$[1 to 3]")
-      expect(ctx.source).to.equal("return this.array(this.push$$a($),[this.range(1,3)])")
+      expect(ctx.source).to.equal("return this.array(this.pa($),[this.range(1,3)])")
       const fn = createFunction(ctx)
       const actualArray = fn(["a", "b", "c", "d", [66,77]])
       expect(actualArray).to.deep.equal(["b", "c", "d"])

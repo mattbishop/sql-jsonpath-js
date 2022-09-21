@@ -136,27 +136,25 @@ export class CodegenBase {
 
   private _keyvalue(input: any): IteratorWithOperators<KeyValue> {
     const type = _type(input)
-    if (this.lax) {
-      if (type !== "object" && type !== "array") {
-        throw new Error(`keyvalue() param must be an object or array (in lax mode), found ${JSON.stringify(input)}.`)
-      }
-      if (Array.isArray(input)) {
-        let id = 0
-        return iterate(input)
-          .map((row) => {
-              if (_type(row) !== "object") {
-                throw new Error(`keyvalue() array must have object values, found ${JSON.stringify(row)}.`)
-              }
-              return this._toKV(row, id++)
-            })
-          .flatten()
-      }
-    } else { // strict
-      if (type !== "object") {
-        throw new Error(`keyvalue() param must be an object but is an array (in strict mode), found ${JSON.stringify(input)}.`)
-      }
+    if (type === "object") {
+      return this._toKV(input, 0)
     }
-    return this._toKV(input, 0)
+    if (!this.lax) {
+      throw new Error(`keyvalue() param must be an object but is an array (in strict mode), found ${JSON.stringify(input)}.`)
+    }
+    if (Array.isArray(input)) {
+      let id = 0
+      return iterate(input)
+        .map((row) => {
+          if (_type(row) !== "object") {
+            // Only sequence one level of an array.
+            throw new Error(`keyvalue() array must have object values, found ${JSON.stringify(row)}.`)
+          }
+          return this._toKV(row, id++)
+        })
+        .flatten()
+    }
+    throw new Error(`keyvalue() param must be an object or array (in lax mode), found ${JSON.stringify(input)}.`)
   }
 
   keyvalue(input: any): IteratorWithOperators<KeyValue> {
@@ -166,12 +164,14 @@ export class CodegenBase {
 
   private _dotStar(input: any): IteratorWithOperators<any> {
     const type = _type(input)
-    if (!this.lax && type !== "object") {
-      throw new Error(`.* can only be applied to an object in strict mode, found ${JSON.stringify(input)}.`)
-    }
     if (type === "object") {
       return iterate(Object.values(input))
-    } else if (type === "array") {
+    }
+
+    if (!this.lax) {
+      throw new Error(`.* can only be applied to an object in strict mode, found ${JSON.stringify(input)}.`)
+    }
+    if (type === "array") {
       return iterate(input)
         .filter((o) => _type(o) === "object")
         .map((obj) => Object.values(obj as object))
@@ -201,19 +201,24 @@ export class CodegenBase {
 
 
   private _maybeMember(obj: Record<string, any>, member: string): any {
-    return obj.hasOwnProperty(member)
-      ? obj[member]
-      : EMPTY
+    if (obj.hasOwnProperty(member)) {
+      return obj[member]
+    }
+    if (this.lax) {
+      return EMPTY
+    }
+    throw new Error(`Object does not contain key ${member}, in strict mode.`)
   }
 
   private _member(input: any, member: string): any {
     const type = _type(input)
-    if (!this.lax && type !== "object") {
-      throw new Error(`."${member}" can only be applied to an object in strict mode, found ${JSON.stringify(input)}.`)
-    }
     if (type === "object") {
       return this._maybeMember(input, member)
-    } else if (type === "array") {
+    }
+    if (!this.lax) {
+      throw new Error(`."${member}" can only be applied to an object in strict mode, found ${JSON.stringify(input)}.`)
+    }
+    if (type === "array") {
       return iterate(input)
         .filter((o) => _type(o) === "object")
         .map((obj) => this._maybeMember(obj as Record<string, any>, member))
@@ -226,7 +231,7 @@ export class CodegenBase {
   }
 
 
-  push$$a(a: any) {
+  pa(a: any) {
     if (!Array.isArray(a)) {
       if (this.lax) {
         // lax mode auto-wraps things that are not an array
@@ -246,7 +251,10 @@ export class CodegenBase {
         ? [value]
         : value
     }
-    return EMPTY
+    if (this.lax) {
+      return EMPTY
+    }
+    throw new Error (`array subscript [${pos}] is out of bounds.`)
   }
 
   private _array(array: any, subscripts: any[]): IteratorWithOperators<any> {
