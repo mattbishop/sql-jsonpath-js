@@ -235,7 +235,11 @@ export class CodegenBase {
     if (!Array.isArray(a)) {
       if (this.lax) {
         // lax mode auto-wraps things that are not an array
-        a = [a]
+        if (a instanceof IteratorWithOperators) {
+          a = a.map(v => Array.isArray(v) ? v : [v])
+        } else {
+          a = [a]
+        }
       } else {
         throw new Error(`Array accessors can only be applied to an array, found ${a}`)
       }

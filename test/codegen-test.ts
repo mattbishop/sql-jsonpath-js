@@ -386,6 +386,16 @@ describe("Codegen tests", () => {
       expect(actual).to.deep.equal(["home", "work"])
     })
 
+    it("nested array unwrapping", () => {
+      const ctx = generateFunctionSource("$.phones[0]")
+      expect(ctx.source).to.equal("return this.array(this.pa(this.member($,\"phones\")),[0])")
+      const fn = createFunction(ctx)
+      const data = [ { name: "Fred", phones: [ "372-0453", "558-9345"] },
+          { name: "Manjit", phones: "906-2051" } ]
+      const actual = fn(data)
+      expect(actual).to.deep.equal(["372-0453", "906-2051"])
+    })
+
     it("does not unwrap strict", () => {
       const ctx = generateFunctionSource("strict $.phones.type")
       expect(ctx.source).to.equal("return this.member(this.member($,\"phones\"),\"type\")")
