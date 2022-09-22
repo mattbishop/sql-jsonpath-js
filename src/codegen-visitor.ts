@@ -116,7 +116,7 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
       ctx = this.maybeAppend(ContextVariable, ctx)
       ctx = this.maybeAppend(NamedVariable, ctx)
       if (Last) {
-        ctx.source += `this.last()`
+        ctx.source += `ƒ.last()`
       }
       return ctx
     }
@@ -152,7 +152,7 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
           case "floor" :
           case "abs" :
           case "keyvalue" :
-            methodImpl = `this.${methodName}(${primary})`
+            methodImpl = `ƒ.${methodName}(${primary})`
             break
           default :
             throw new Error(`Item methodName unrecognized: ${methodName}`)
@@ -163,15 +163,15 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
         if (template) {
           template = `,${template}`
         }
-        ctx.source = `this.datetime(${primary}${template})`
+        ctx.source = `ƒ.datetime(${primary}${template})`
       } else if (WildcardMember) {
-        ctx.source = `this.dotStar(${primary})`
+        ctx.source = `ƒ.dotStar(${primary})`
       } else if (WildcardArray) {
-        ctx.source = `this.boxStar(${primary})`
+        ctx.source = `ƒ.boxStar(${primary})`
       } else if (Member) {
         const payloads = Member[0].payload
         const member = payloads[0] || payloads[1]
-        ctx.source = `this.member(${primary},"${member}")`
+        ctx.source = `ƒ.member(${primary},"${member}")`
       }
       ctx = this.maybeVisit(array, ctx)
       return ctx
@@ -182,7 +182,7 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
       const {source: primary} = ctx
       const subscripts = subscript
         .map((s) => this.visit(s, {...ctx, source: ""}).source)
-      ctx.source = `this.array(this.pa(${primary}),[${subscripts}])`
+      ctx.source = `ƒ.array(ƒ.pa(${primary}),[${subscripts}])`
       return ctx
     }
 
@@ -191,7 +191,7 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
       const wff0 = this.visit(wff[0], {...ctx, source: ""})
       if (To) {
         const wff1 = this.visit(wff[1], {...ctx, source: ""})
-        ctx.source = `this.range(${wff0.source},${wff1.source})`
+        ctx.source = `ƒ.range(${wff0.source},${wff1.source})`
         return ctx
       }
       return wff0
