@@ -404,5 +404,13 @@ describe("Codegen tests", () => {
           { type: "work", number: "506-2051" } ] }
       expect(() => fn(data)).to.throw
     })
+
+    it("nested elements", () => {
+      const actual = generateFunctionSource("$[0,$[last][1]]")
+      expect(actual.source).to.equal("return this.array(this.pa($),[0,this.array(this.pa(this.array(this.pa($),[this.last()])),[1])])")
+      const fn = createFunction(actual)
+      const actualArray = fn([27, "testy", true, [1, 2]])
+      expect(actualArray).to.deep.equal([27, true])
+    })
   })
 })
