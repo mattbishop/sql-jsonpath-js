@@ -33,13 +33,23 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
       // this.validateVisitor()
     }
 
+
+    // make the context immutable so visitors don't edit it but send back new ones
+    visit(cstNode: CstNode | CstNode[], ctx?: any): CodegenContext {
+      if (ctx) {
+        ctx = Object.freeze(ctx)
+      }
+      const result = super.visit(cstNode, ctx);
+      return Object.freeze(result)
+    }
+
     maybeVisit(node: CstNode | CstNode[] | undefined, ctx: CodegenContext): CodegenContext {
       return node ? this.visit(node, ctx) : ctx
     }
 
     maybeAppend(token: IToken[] | undefined, ctx: CodegenContext): CodegenContext {
       if (token) {
-        ctx.source += token[0].image
+        ctx = {...ctx, source: `${ctx.source}${token[0].image}`}
       }
       return ctx
     }
@@ -54,8 +64,7 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
       }
 
       ctx = this.visit(wff, ctx)
-      ctx.source = `return ${ctx.source}`
-      return ctx
+      return {...ctx, source: `return ${ctx.source}`}
     }
 
     wff(node: WffCstChildren, ctx: CodegenContext): CodegenContext {
@@ -82,12 +91,11 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
     accessExp(node: AccessExpCstChildren, ctx: CodegenContext): CodegenContext {
       const {primary, accessor} = node
       const origSource = ctx.source
-      ctx.source = ""
-      ctx = this.visit(primary, ctx)
+      ctx = this.visit(primary, {...ctx, source: ""})
       if (accessor) {
-        // This only works because the visitors mutate ctx.
-        accessor.forEach((a) => this.visit(a, ctx))
+        ctx = accessor.reduce((acc, a) => this.visit(a, acc), ctx)
       }
+      return {...ctx, source: `${origSource}${ctx.source}`}
         /*
         I don't like this ctx.source route, too imprecise.
 
@@ -104,8 +112,6 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
           First one is probably more efficient as it doesn't map(), but will get harder to read with multiple
           items. Second one is clearer but may be harder to trigger the strict error?
          */
-      ctx.source = origSource + ctx.source
-      return ctx
     }
 
     primary(node: PrimaryCstChildren, ctx: CodegenContext): CodegenContext {
@@ -116,17 +122,15 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
       ctx = this.maybeAppend(ContextVariable, ctx)
       ctx = this.maybeAppend(NamedVariable, ctx)
       if (Last) {
-        ctx.source += `ƒ.last()`
+        ctx = {...ctx, source: `${ctx.source}ƒ.last()`}
       }
       return ctx
     }
 
     scopedWff(node: ScopedWffCstChildren, ctx: CodegenContext): CodegenContext {
       const {wff} = node
-      ctx.source += "("
       ctx = this.visit(wff, ctx)
-      ctx.source += ")"
-      return ctx
+      return {...ctx, source: `(${ctx.source})`}
     }
 
     literal(node: LiteralCstChildren, ctx: CodegenContext): CodegenContext {
@@ -141,6 +145,7 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
     accessor(node: AccessorCstChildren, ctx: CodegenContext): CodegenContext {
       const {array, filter, DatetimeMethod, ItemMethod, Member, WildcardArray, WildcardMember} = node
       const {source: primary} = ctx
+      let source = ""
       if (ItemMethod) {
         const methodName = ItemMethod[0].payload[0]
         let methodImpl = ""
@@ -157,24 +162,26 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
           default :
             throw new Error(`Item methodName unrecognized: ${methodName}`)
         }
-        ctx.source = methodImpl
+        source = methodImpl
       } else if (DatetimeMethod) {
         let template = DatetimeMethod[0].payload[0] || ""
         if (template) {
           template = `,${template}`
         }
-        ctx.source = `ƒ.datetime(${primary}${template})`
+        source = `ƒ.datetime(${primary}${template})`
       } else if (WildcardMember) {
-        ctx.source = `ƒ.dotStar(${primary})`
+        source = `ƒ.dotStar(${primary})`
       } else if (WildcardArray) {
-        ctx.source = `ƒ.boxStar(${primary})`
+        source = `ƒ.boxStar(${primary})`
       } else if (Member) {
         const payloads = Member[0].payload
         const member = payloads[0] || payloads[1]
-        ctx.source = `ƒ.member(${primary},"${member}")`
+        source = `ƒ.member(${primary},"${member}")`
       }
-      ctx = this.maybeVisit(array, ctx)
-      return ctx
+      if (source) {
+        ctx = {...ctx, source}
+      }
+      return this.maybeVisit(array, ctx)
     }
 
     array(node: ArrayCstChildren, ctx: CodegenContext): CodegenContext {
@@ -182,8 +189,7 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
       const {source: primary} = ctx
       const subscripts = subscript
         .map((s) => this.visit(s, {...ctx, source: ""}).source)
-      ctx.source = `ƒ.array(ƒ.pa(${primary}),[${subscripts}])`
-      return ctx
+      return {...ctx, source: `ƒ.array(ƒ.pa(${primary}),[${subscripts}])`}
     }
 
     subscript(node: SubscriptCstChildren, ctx: CodegenContext): CodegenContext {
@@ -191,8 +197,7 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
       const wff0 = this.visit(wff[0], {...ctx, source: ""})
       if (To) {
         const wff1 = this.visit(wff[1], {...ctx, source: ""})
-        ctx.source = `ƒ.range(${wff0.source},${wff1.source})`
-        return ctx
+        return {...ctx, source: `ƒ.range(${wff0.source},${wff1.source})`}
       }
       return wff0
     }
