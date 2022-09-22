@@ -1,26 +1,8 @@
 import {expect} from "chai"
 import {iterate} from "iterare"
-import {IteratorWithOperators} from "iterare/lib/iterate"
 
-import {generateFunctionSource} from "../src"
-import {CodegenBase} from "../src/codegen-base"
-import {CodegenContext} from "../src/codegen-visitor"
+import {createFunction, generateFunctionSource} from "../src"
 
-
-function createFunction({source, lax}: CodegenContext): Function {
-  const fn = Function("ƒ", "$", source)
-  const ƒ = new CodegenBase(lax)
-  const boundFn = (c: any, args?: any) => fn(ƒ, c, args)
-  return (contextVariable: any, args?: any) => {
-    let result = boundFn(contextVariable, args)
-    if (result instanceof IteratorWithOperators) {
-      result = result.toArray()
-    } else {
-      result = [result]
-    }
-    return result
-  }
-}
 
 
 describe("Codegen tests", () => {
@@ -224,8 +206,8 @@ describe("Codegen tests", () => {
         const ctx = generateFunctionSource("strict $.*")
         expect(ctx.source).to.equal("return ƒ.dotStar($)")
         const fn = createFunction(ctx)
-        const objectValue = fn(iterate([{"a": 1, "b": {c: "2"}, u: undefined}]))
-        expect(objectValue).to.deep.equal([1, {c: "2"}, undefined])
+        const iteratorValue = fn(iterate([{"a": 1, "b": {c: "2"}, u: undefined}]))
+        expect(iteratorValue).to.deep.equal([1, {c: "2"}, undefined])
         expect(() => fn([{"a": 1}, 77, {"b": {c: "2"}}, true, "cats"])).to.throw
         expect(() => fn(undefined)).to.throw
         expect(() => fn(null)).to.throw

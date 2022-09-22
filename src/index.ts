@@ -1,3 +1,5 @@
+import {IteratorWithOperators} from "iterare/lib/iterate"
+import {CodegenBase} from "./codegen-base"
 import {CodegenContext, newCodegenVisitor} from "./codegen-visitor"
 import {JsonPathParser} from "./parser";
 import {allTokens} from "./tokens";
@@ -29,6 +31,22 @@ export function generateFunctionSource(text: string): CodegenContext {
   }
 
   return codegenVisitor.visit(cst)
+}
+
+
+export function createFunction({source, lax}: CodegenContext): Function {
+  const fn = Function("ƒ", "$", source)
+  const ƒ = new CodegenBase(lax)
+  const boundFn = (c: any, args?: any) => fn(ƒ, c, args)
+  return (contextVariable: any, args?: any) => {
+    let result = boundFn(contextVariable, args)
+    if (result instanceof IteratorWithOperators) {
+      result = result.toArray()
+    } else {
+      result = [result]
+    }
+    return result
+  }
 }
 
 
