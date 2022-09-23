@@ -38,12 +38,11 @@ type SingleOrIterator<T> = T | IteratorWithOperators<T>
 
 export class CodegenBase {
 
-  // stack
-  $$a: [][]
-  lax: boolean
+  arrayStack: [][]
+  lax:        boolean
 
   constructor(lax: boolean) {
-    this.$$a = []
+    this.arrayStack = []
     this.lax = lax
   }
 
@@ -256,7 +255,7 @@ export class CodegenBase {
         throw new Error(`Array accessors can only be applied to an array, found ${a}`)
       }
     }
-    this.$$a.push(a)
+    this.arrayStack.push(a)
     return a
   }
 
@@ -284,7 +283,7 @@ export class CodegenBase {
         }
         throw new Error("array accessor must be numbers")
       }).flatten()
-    this.$$a.pop()
+    this.arrayStack.pop()
     return values
   }
 
@@ -293,7 +292,7 @@ export class CodegenBase {
   }
 
   last(): number {
-    const a = this.$$a.at(-1) as []
+    const a = this.arrayStack.at(-1) as []
     return a.length - 1
   }
 
