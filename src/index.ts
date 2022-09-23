@@ -34,12 +34,20 @@ export function generateFunctionSource(text: string): CodegenContext {
 }
 
 
-export function createFunction({source, lax}: CodegenContext): Function {
-  const fn = Function("ƒ", "$", source)
+type JSONPathFunction = ($: any, $named?: Record<string, any>) => [any]
+
+export function createFunction({source, lax}: CodegenContext): JSONPathFunction {
+  const fn = Function("ƒ", "$", "$$", source)
   const ƒ = new CodegenBase(lax)
-  const boundFn = (c: any, args?: any) => fn(ƒ, c, args)
-  return (contextVariable: any, args?: any) => {
-    let result = boundFn(contextVariable, args)
+
+  return ($, $named = {}) => {
+    const $$ = (name: string): any => {
+      if ($named.hasOwnProperty(name)) {
+        return $named[name]
+      }
+      throw new Error(`no variable named '${name}'`)
+    }
+    let result = fn(ƒ, $, $$)
     if (result instanceof IteratorWithOperators) {
       result = result.toArray()
     } else {

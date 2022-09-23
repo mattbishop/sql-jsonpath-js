@@ -135,7 +135,10 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
       ctx = this.maybeVisit(scopedWff, ctx)
       ctx = this.maybeVisit(literal, ctx)
       ctx = this.maybeAppend(ContextVariable, ctx)
-      ctx = this.maybeAppend(NamedVariable, ctx)
+      if (NamedVariable) {
+        const name = NamedVariable[0].image.substring(1)
+        ctx = {...ctx, source: `$$("${name}")`}
+      }
       if (Last) {
         ctx = {...ctx, source: `${ctx.source}ƒ.last()`}
       }

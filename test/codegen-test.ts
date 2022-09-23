@@ -35,6 +35,17 @@ describe("Codegen tests", () => {
     })
   })
 
+  describe("NamedVariable", () => {
+    it("standalone named variable", () => {
+      const ctx = generateFunctionSource("$n")
+      expect(ctx.source).to.equal("return $$(\"n\")")
+      const fn = createFunction(ctx)
+      const value = fn("", {"n": "frosty"})
+      expect(value).to.deep.equal(["frosty"])
+      expect(() => fn(null, {wrong: true})).to.throw
+    })
+  })
+
   describe("item methods", () => {
     it("type()", () => {
       const ctx = generateFunctionSource("$.type()")
