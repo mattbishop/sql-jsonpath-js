@@ -17,6 +17,21 @@ function _type(primary: any): string {
       : typeof primary
 }
 
+function _mustBeNumber(input: any, method: string): number {
+  if (typeof input === "number") {
+    return input
+  }
+
+  let num
+  if (input instanceof IteratorWithOperators) {
+    num = input.next().value
+  }
+  if (typeof num === "number") {
+    return num
+  }
+  throw new Error(`${method} param must be a number, found ${JSON.stringify(input)}.`)
+}
+
 
 type SingleOrIterator<T> = T | IteratorWithOperators<T>
 
@@ -51,6 +66,11 @@ export class CodegenBase {
   }
 
 
+  num(input: any): number {
+    return _mustBeNumber(input, "arithmetic")
+  }
+
+
   private _size(value: any) {
     return Array.isArray(value)
       ? value.length
@@ -80,10 +100,7 @@ export class CodegenBase {
 
 
   private _ceiling(input: any): number {
-    if (typeof input !== "number") {
-      throw new Error(`$ceiling() param must be a number, found ${JSON.stringify(input)}.`)
-    }
-    return Math.ceil(input)
+    return Math.ceil(_mustBeNumber(input, "ceiling()"))
   }
 
   ceiling(input: any): SingleOrIterator<number> {
@@ -92,10 +109,7 @@ export class CodegenBase {
 
 
   private _floor(input: any): number {
-    if (typeof (input) !== "number") {
-      throw new Error(`floor() param must be a number, found ${JSON.stringify(input)}.`)
-    }
-    return Math.floor(input)
+    return Math.floor(_mustBeNumber(input, "floor()"))
   }
 
   floor(input: any): SingleOrIterator<number> {
@@ -104,10 +118,7 @@ export class CodegenBase {
 
 
   private _abs(input: any): number {
-    if (typeof input !== "number") {
-      throw new Error(`abs() param must be a number, found ${JSON.stringify(input)}.`)
-    }
-    return Math.abs(input)
+    return Math.abs(_mustBeNumber(input, "abs()"))
   }
 
   abs(input: any): SingleOrIterator<number> {
@@ -231,6 +242,7 @@ export class CodegenBase {
   }
 
 
+  // called to set the array for the accessor statements to use it before going into array()
   pa(a: any) {
     if (!Array.isArray(a)) {
       if (this.lax) {
@@ -286,21 +298,6 @@ export class CodegenBase {
   }
 
 
-  private _toNumber(value: any): number {
-    if (typeof value === "number") {
-      return value
-    }
-
-    let num
-    if (value instanceof IteratorWithOperators) {
-      num = value.next().value
-    }
-    if (typeof num === "number") {
-      return num
-    }
-    throw new Error (`array accessor range must be a number: ${num}`)
-  }
-
   private *_range(start: number, end: number): Generator<number> {
     for (let i = start; i <= end; i++) {
       yield i;
@@ -308,8 +305,8 @@ export class CodegenBase {
   }
 
   range(from: any, to: any): IteratorWithOperators<number> {
-    const start = this._toNumber(from)
-    const end = this._toNumber(to)
+    const start = _mustBeNumber(from, "'from'")
+    const end = _mustBeNumber(to, "'to'")
     return iterate(this._range(start, end))
   }
 }

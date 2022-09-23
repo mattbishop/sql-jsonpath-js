@@ -388,11 +388,61 @@ describe("Codegen tests", () => {
     })
 
     it("nested elements", () => {
-      const actual = generateFunctionSource("$[0,$[last][1]]")
-      expect(actual.source).to.equal("return ƒ.array(ƒ.pa($),[0,ƒ.array(ƒ.pa(ƒ.array(ƒ.pa($),[ƒ.last()])),[1])])")
-      const fn = createFunction(actual)
+      const ctx = generateFunctionSource("$[0,$[last][1]]")
+      expect(ctx.source).to.equal("return ƒ.array(ƒ.pa($),[0,ƒ.array(ƒ.pa(ƒ.array(ƒ.pa($),[ƒ.last()])),[1])])")
+      const fn = createFunction(ctx)
       const actualArray = fn([27, "testy", true, [1, 2]])
       expect(actualArray).to.deep.equal([27, true])
+    })
+  })
+
+  describe("arithmetic", () => {
+    it("can negate a value", () => {
+      const ctx = generateFunctionSource("-$.x")
+      expect(ctx.source).to.equal("return -ƒ.num(ƒ.member($,\"x\"))")
+      const fn = createFunction(ctx)
+      const actualNumber = fn({x: 100})
+      expect(actualNumber).to.deep.equal([-100])
+    })
+
+    it("can triple-negate a value", () => {
+      const ctx = generateFunctionSource("---30")
+      expect(ctx.source).to.equal("return -ƒ.num(-ƒ.num(-30))")
+      const fn = createFunction(ctx)
+      const actualNumber = fn(null)
+      expect(actualNumber).to.deep.equal([-30])
+    })
+
+    it("can add to a number", () => {
+      const ctx = generateFunctionSource("$ + 4")
+      expect(ctx.source).to.equal("return ƒ.num($)+ƒ.num(4)")
+      const fn = createFunction(ctx)
+      const actualNumber = fn(10)
+      expect(actualNumber).to.deep.equal([14])
+    })
+
+    it("can multiply a number", () => {
+      const ctx = generateFunctionSource("$ * 10")
+      expect(ctx.source).to.equal("return ƒ.num($)*ƒ.num(10)")
+      const fn = createFunction(ctx)
+      const actualNumber = fn(2)
+      expect(actualNumber).to.deep.equal([20])
+    })
+
+    it("can divide by a function", () => {
+      const ctx = generateFunctionSource("$[0] / $.size()")
+      expect(ctx.source).to.equal("return ƒ.num(ƒ.array(ƒ.pa($),[0]))/ƒ.num(ƒ.size($))")
+      const fn = createFunction(ctx)
+      const actualNumber = fn([20, 0])
+      expect(actualNumber).to.deep.equal([10])
+    })
+
+    it("chain arithmetic statements", () => {
+      const ctx = generateFunctionSource("$[0] / ($.size() + 2)")
+      expect(ctx.source).to.equal("return ƒ.num(ƒ.array(ƒ.pa($),[0]))/ƒ.num((ƒ.num(ƒ.size($))+ƒ.num(2)))")
+      const fn = createFunction(ctx)
+      const actualNumber = fn([20, 0])
+      expect(actualNumber).to.deep.equal([5])
     })
   })
 })

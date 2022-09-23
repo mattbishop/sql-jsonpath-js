@@ -67,25 +67,40 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
       return {...ctx, source: `return ${ctx.source}`}
     }
 
+    handleOps(left: CstNode[], opToken: IToken[]| undefined, right: CstNode[] | undefined, ctx: CodegenContext): CodegenContext {
+      const {source: origSource} = ctx
+      ctx = this.visit(left, {...ctx, source: ""})
+      if (right) {
+        const {source: leftSource} = ctx
+        const {source: rightSource} = this.visit(right, {...ctx, source: ""})
+        const op = opToken ? opToken[0].image : ""
+        ctx = {...ctx, source: `ƒ.num(${leftSource})${op}ƒ.num(${rightSource})`}
+      }
+      return {...ctx, source: `${origSource}${ctx.source}`}
+
+    }
+
     wff(node: WffCstChildren, ctx: CodegenContext): CodegenContext {
       const {left, UnaryOp, right} = node
-      ctx = this.visit(left, ctx)
-      ctx = this.maybeAppend(UnaryOp, ctx)
-      return this.maybeVisit(right, ctx)
+      return this.handleOps(left, UnaryOp, right, ctx)
     }
 
     binary(node: BinaryCstChildren, ctx: CodegenContext): CodegenContext {
       const {left, BinaryOp, right} = node
-      ctx = this.visit(left, ctx)
-      ctx = this.maybeAppend(BinaryOp, ctx)
-      return this.maybeVisit(right, ctx)
+      return this.handleOps(left, BinaryOp, right, ctx)
     }
 
     unary(node: UnaryCstChildren, ctx: CodegenContext): CodegenContext {
       const {unary, UnaryOp, accessExp} = node
-      ctx = this.maybeVisit(unary, ctx)
-      ctx = this.maybeAppend(UnaryOp, ctx)
-      return this.maybeVisit(accessExp, ctx)
+      if (unary) {
+        const {source: origSource} = ctx
+        const op = UnaryOp ? UnaryOp[0].image : ""
+        ctx = this.visit(unary, {...ctx, source: ""})
+        ctx = {...ctx, source: `${origSource}${op}ƒ.num(${ctx.source})`}
+      } else {
+        ctx = this.visit(accessExp as CstNode[], ctx)
+      }
+      return ctx
     }
 
     accessExp(node: AccessExpCstChildren, ctx: CodegenContext): CodegenContext {
