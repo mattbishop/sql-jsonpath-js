@@ -295,8 +295,9 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
 
 
     exists(node: ExistsCstChildren, ctx: CodegenContext): CodegenContext {
-
-      return ctx
+      const {scopedWff} = node
+      ctx = this.visit(scopedWff, ctx)
+      return {...ctx, source: `ƒ.exists(()=>${ctx.source})`}
     }
 
 

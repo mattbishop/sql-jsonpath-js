@@ -371,6 +371,20 @@ export class CodegenBase {
     return Pred.UNKNOWN
   }
 
+
+  exists(wff: () => SingleOrIterator<any>): Pred {
+    try {
+      const seq = wff()
+      const exists = seq instanceof IteratorWithOperators
+        ? !!seq.next().done
+        : seq !== EMPTY
+      return _toPred(exists)
+    } catch (e) {
+      return Pred.UNKNOWN
+    }
+  }
+
+
   /*
     Given: [
       { species: "cat" },

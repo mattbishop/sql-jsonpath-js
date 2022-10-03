@@ -482,7 +482,23 @@ describe("Codegen tests", () => {
       expect(actual).to.deep.equal([{sleepy: true}])
     })
 
-    it("can filter is unknown predicates", () => {
+    it("can filter 'exists' predicates on members", () => {
+      const ctx = generateFunctionSource("strict $ ? (exists(@.z))")
+      expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.exists(()=>(ƒ.member(v,\"z\"))))")
+      const fn = createFunction(ctx)
+      let actual = fn([{z: true}, {y: false}, {a: "yes"}])
+      expect(actual).to.deep.equal([{z: true}])
+    })
+
+    it("can filter 'exists' predicates and extract members", () => {
+      const ctx = generateFunctionSource("strict $ ? (exists(@.z)).z")
+      expect(ctx.source).to.equal("return ƒ.member(ƒ.filter($,v=>ƒ.exists(()=>(ƒ.member(v,\"z\")))),\"z\")")
+      const fn = createFunction(ctx)
+      let actual = fn([{z: 121.2}, {y: -99.828}, {a: "yes"}])
+      expect(actual).to.deep.equal([121.2])
+    })
+
+    it("can filter 'is unknown' predicates", () => {
       const ctx = generateFunctionSource("$ ? ((@.sleepy == true) is unknown)")
       expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.isUnknown(ƒ.compare(\"==\",ƒ.member(v,\"sleepy\"),true)))")
       const fn = createFunction(ctx)
