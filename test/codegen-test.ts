@@ -311,6 +311,14 @@ describe("Codegen tests", () => {
       expect(fn(true)).to.be.empty
     })
 
+    it("nested member", () => {
+      const ctx = generateFunctionSource("$.thing.name")
+      expect(ctx.source).to.equal("return ƒ.member(ƒ.member($,\"thing\"),\"name\")")
+      const fn = createFunction(ctx)
+      const objectActual = fn({thing:{name: "Constance"}})
+      expect(objectActual).to.deep.equal(["Constance"])
+    })
+
     it("strict .member", () => {
       const ctx = generateFunctionSource("strict $.thing")
       expect(ctx.source).to.equal("return ƒ.member($,\"thing\")")
@@ -458,11 +466,20 @@ describe("Codegen tests", () => {
   })
 
   describe("filter", () => {
-    it ("can filter literal predicates")
-    const ctx = generateFunctionSource("$ ? (@ == 1)")
-    expect(ctx.source).to.equal("return ƒ.filter($,i=>ƒ.compare(\"==\",i,1))")
-    const fn = createFunction(ctx)
-    let actual = fn(1)
-    expect(actual).to.deep.equal([1])
+    it("can filter comparison predicates", () => {
+      const ctx = generateFunctionSource("$ ? (@ == 1)")
+      expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.compare(\"==\",v,1))")
+      const fn = createFunction(ctx)
+      let actual = fn(1)
+      expect(actual).to.deep.equal([1])
+    })
+
+    it("can filter value accessor predicates", () => {
+      const ctx = generateFunctionSource("$ ? (@.sleepy == true)")
+      expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.compare(\"==\",ƒ.member(v,\"sleepy\"),true))")
+      const fn = createFunction(ctx)
+      let actual = fn([{sleepy: true}, {sleepy: false}, {sleepy: "yes"}])
+      expect(actual).to.deep.equal([{sleepy: true}])
+    })
   })
 })

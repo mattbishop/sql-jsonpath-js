@@ -144,7 +144,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       ctx = this.maybeVisit(literal, ctx)
       ctx = this.maybeAppend(ContextVariable, ctx)
       if (FilterValue) {
-        ctx = {...ctx, source: `${ctx.source}i`}
+        ctx = {...ctx, source: `${ctx.source}v`}
       }
       if (NamedVariable) {
         const name = NamedVariable[0].image.substring(1)
@@ -243,7 +243,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       const {neg, LogicOp} = node
       ctx = this.maybeAppend(LogicOp, ctx)
       ctx = this.visit(neg, ctx)
-      return {...ctx, source: `i=>${ctx.source}`}
+      return {...ctx, source: `v=>${ctx.source}`}
     }
 
     neg(node: NegCstChildren, ctx: CodegenContext): CodegenContext {
