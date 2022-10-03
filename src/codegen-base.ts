@@ -13,7 +13,9 @@ enum Pred {
   UNKNOWN
 }
 
-type Predƒ = (input: any) => Pred
+type Mapƒ<T> = (input: any) => T
+
+type Predƒ = Mapƒ<Pred>
 
 
 // Lives outside of class so function refs can use this without bind(this)
@@ -40,6 +42,12 @@ function _mustBeNumber(input: any, method: string): number {
   throw new Error(`${method} param must be a number, found ${JSON.stringify(input)}.`)
 }
 
+function _toPred(condition: boolean): Pred {
+  return condition
+    ? Pred.TRUE
+    : Pred.FALSE
+}
+
 
 type SingleOrIterator<T> = T | IteratorWithOperators<T>
 
@@ -54,14 +62,14 @@ export class CodegenBase {
     this.lax = lax
   }
 
-  private _autoMapWithFlatten<I extends IteratorWithOperators<unknown>>(input: any, mapƒ: (value: any) => I): I {
+  private _autoMapWithFlatten<I extends IteratorWithOperators<unknown>>(input: any, mapƒ: Mapƒ<I>): I {
     const mapped = this._autoMap(input, mapƒ) as I
     return input instanceof IteratorWithOperators
       ? mapped.flatten() as I
       : mapped
   }
 
-  private _autoMap<T>(input: any, mapƒ: (value: any) => T): SingleOrIterator<T> {
+  private _autoMap<T>(input: any, mapƒ: Mapƒ<T>): SingleOrIterator<T> {
     return input instanceof IteratorWithOperators
       ? input.map(mapƒ)
       : mapƒ(input)
@@ -255,7 +263,7 @@ export class CodegenBase {
       if (this.lax) {
         // lax mode auto-wraps things that are not an array
         if (a instanceof IteratorWithOperators) {
-          a = a.map(v => Array.isArray(v) ? v : [v])
+          a = a.map((v) => Array.isArray(v) ? v : [v])
         } else {
           a = [a]
         }
@@ -287,7 +295,7 @@ export class CodegenBase {
           return this._maybeElement(array, s)
         }
         if (s instanceof IteratorWithOperators) {
-          return s.map(s1 => this._maybeElement(array, s1))
+          return s.map((s1) => this._maybeElement(array, s1))
         }
         throw new Error("array accessor must be numbers")
       }).flatten()
@@ -298,6 +306,7 @@ export class CodegenBase {
   array(input: any, subscripts: any[]): IteratorWithOperators<any> {
     return this._autoMapWithFlatten(input, (i) => this._array(i, subscripts))
   }
+
 
   last(): number {
     const a = this.arrayStack.at(-1) as []
@@ -321,7 +330,8 @@ export class CodegenBase {
   filter(input: any, filterExp: Predƒ): IteratorWithOperators<any> {
     if (Array.isArray(input)) {
       input = iterate(input)
-    } else if (!(input instanceof IteratorWithOperators)) {
+    }
+    if (!(input instanceof IteratorWithOperators)) {
       // must return empty iterator if nothing matches
       input = iterate([input])
     }
@@ -336,18 +346,18 @@ export class CodegenBase {
     if (typeLeft === typeRight) {
       switch (compOp) {
         case "==" :
-          return left === right ? Pred.TRUE : Pred.FALSE
+          return _toPred(left === right)
         case "<>" :
         case "!=" :
-          return left !== right ? Pred.TRUE : Pred.FALSE
+          return _toPred(left !== right)
         case ">" :
-          return left > right ? Pred.TRUE : Pred.FALSE
+          return _toPred(left > right)
         case ">=" :
-          return left >= right ? Pred.TRUE : Pred.FALSE
+          return _toPred(left >= right)
         case "<" :
-          return left < right ? Pred.TRUE : Pred.FALSE
+          return _toPred(left < right)
         case "<=" :
-          return left <= right ? Pred.TRUE : Pred.FALSE
+          return _toPred(left <= right)
       }
     }
     return Pred.UNKNOWN
@@ -369,6 +379,6 @@ export class CodegenBase {
     Because species == string cannot be tested true or false, where "bird" can be tested as false
    */
   isUnknown(input: Pred): Pred {
-    return input === Pred.UNKNOWN ? Pred.TRUE : Pred.FALSE
+    return _toPred(input === Pred.UNKNOWN)
   }
 }

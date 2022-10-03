@@ -29,6 +29,22 @@ export type CodegenContext = {
 }
 
 
+function maybeAppend(token: IToken[] | undefined, ctx: CodegenContext): CodegenContext {
+  if (token) {
+    ctx = {...ctx, source: `${ctx.source}${token[0].image}`}
+  }
+  return ctx
+}
+
+
+function maybeImage(token: IToken[] | undefined, defaultValue = ""): string {
+  return token
+    ? token[0].image
+    : defaultValue
+}
+
+
+
 /**
  * Construct a new Visitor that generates a JS function to execute the JsonPath query.
  *
@@ -51,21 +67,17 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       return Object.freeze(result)
     }
 
-    maybeVisit(node: CstNode | CstNode[] | undefined, ctx: CodegenContext): CodegenContext {
-      return node ? this.visit(node, ctx) : ctx
-    }
 
-    maybeAppend(token: IToken[] | undefined, ctx: CodegenContext): CodegenContext {
-      if (token) {
-        ctx = {...ctx, source: `${ctx.source}${token[0].image}`}
-      }
-      return ctx
+    maybeVisit(node: CstNode | CstNode[] | undefined, ctx: CodegenContext): CodegenContext {
+      return node
+        ? this.visit(node, ctx)
+        : ctx
     }
 
 
     stmt(node: StmtCstChildren): CodegenContext {
       const {Mode, wff} = node
-      const mode = Mode ? Mode[0].image : "lax"
+      const mode = maybeImage(Mode, "lax")
       let ctx: CodegenContext = {
         lax:    mode === "lax",
         source: ""
@@ -75,34 +87,38 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       return {...ctx, source: `return ${ctx.source}`}
     }
 
+
     handleOps(left: CstNode[], opToken: IToken[]| undefined, right: CstNode[] | undefined, ctx: CodegenContext): CodegenContext {
       const {source: origSource} = ctx
       ctx = this.visit(left, {...ctx, source: ""})
       if (right) {
         const {source: leftSource} = ctx
         const {source: rightSource} = this.visit(right, {...ctx, source: ""})
-        const op = opToken ? opToken[0].image : ""
+        const op = maybeImage(opToken)
         ctx = {...ctx, source: `ƒ.num(${leftSource})${op}ƒ.num(${rightSource})`}
       }
       return {...ctx, source: `${origSource}${ctx.source}`}
 
     }
 
+
     wff(node: WffCstChildren, ctx: CodegenContext): CodegenContext {
       const {left, UnaryOp, right} = node
       return this.handleOps(left, UnaryOp, right, ctx)
     }
+
 
     binary(node: BinaryCstChildren, ctx: CodegenContext): CodegenContext {
       const {left, BinaryOp, right} = node
       return this.handleOps(left, BinaryOp, right, ctx)
     }
 
+
     unary(node: UnaryCstChildren, ctx: CodegenContext): CodegenContext {
       const {unary, UnaryOp, accessExp} = node
       if (unary) {
         const {source: origSource} = ctx
-        const op = UnaryOp ? UnaryOp[0].image : ""
+        const op = maybeImage(UnaryOp)
         ctx = this.visit(unary, {...ctx, source: ""})
         ctx = {...ctx, source: `${origSource}${op}ƒ.num(${ctx.source})`}
       } else {
@@ -110,6 +126,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       }
       return ctx
     }
+
 
     accessExp(node: AccessExpCstChildren, ctx: CodegenContext): CodegenContext {
       const {primary, accessor} = node
@@ -119,30 +136,15 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
         ctx = accessor.reduce((acc, a) => this.visit(a, acc), ctx)
       }
       return {...ctx, source: `${origSource}${ctx.source}`}
-        /*
-        I don't like this ctx.source route, too imprecise.
-
-          $.phones.type    phones is an array member, type is a field.
-          this.member($, "phones") -> seq(phone)
-          this.member(phones, "type")
-
-          accessors is a list of two items, so we know how many there are.
-          Two choices:
-
-          * this.member(this.member($, "phones"), "type")
-          * this.member($, "phones").map(m=>this.member(m,"type")
-
-          First one is probably more efficient as it doesn't map(), but will get harder to read with multiple
-          items. Second one is clearer but may be harder to trigger the strict error?
-         */
     }
+
 
     primary(node: PrimaryCstChildren, ctx: CodegenContext): CodegenContext {
       const {scopedWff, literal, ContextVariable, FilterValue, Last, NamedVariable} = node
       // will be just one of these so the order doesn't really matter
       ctx = this.maybeVisit(scopedWff, ctx)
       ctx = this.maybeVisit(literal, ctx)
-      ctx = this.maybeAppend(ContextVariable, ctx)
+      ctx = maybeAppend(ContextVariable, ctx)
       if (FilterValue) {
         ctx = {...ctx, source: `${ctx.source}v`}
       }
@@ -156,23 +158,27 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       return ctx
     }
 
+
     scopedWff(node: ScopedWffCstChildren, ctx: CodegenContext): CodegenContext {
       const {wff} = node
       ctx = this.visit(wff, ctx)
       return {...ctx, source: `(${ctx.source})`}
     }
 
+
     literal(node: LiteralCstChildren, ctx: CodegenContext): CodegenContext {
       const {Boolean, Null, Number, String} = node
-      // will be just one of these so the order doesn't really matter
-      ctx = this.maybeAppend(Boolean, ctx)
-      ctx = this.maybeAppend(Null, ctx)
-      ctx = this.maybeAppend(Number, ctx)
-      return this.maybeAppend(String, ctx)
+      ctx = maybeAppend(Boolean, ctx)
+      ctx = maybeAppend(Null, ctx)
+      ctx = maybeAppend(Number, ctx)
+      return maybeAppend(String, ctx)
     }
+
 
     accessor(node: AccessorCstChildren, ctx: CodegenContext): CodegenContext {
       const {array, filter, DatetimeMethod, ItemMethod, Member, WildcardArray, WildcardMember} = node
+      ctx = this.maybeVisit(array, ctx)
+      ctx = this.maybeVisit(filter, ctx)
       const {source: primary} = ctx
       let source = ""
       if (ItemMethod) {
@@ -192,17 +198,21 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
             throw new Error(`Item methodName unrecognized: ${methodName}`)
         }
         source = methodImpl
-      } else if (DatetimeMethod) {
+      }
+      if (DatetimeMethod) {
         let template = DatetimeMethod[0].payload[0] || ""
         if (template) {
           template = `,${template}`
         }
         source = `ƒ.datetime(${primary}${template})`
-      } else if (WildcardMember) {
+      }
+      if (WildcardMember) {
         source = `ƒ.dotStar(${primary})`
-      } else if (WildcardArray) {
+      }
+      if (WildcardArray) {
         source = `ƒ.boxStar(${primary})`
-      } else if (Member) {
+      }
+      if (Member) {
         const payloads = Member[0].payload
         const member = payloads[0] || payloads[1]
         source = `ƒ.member(${primary},"${member}")`
@@ -210,9 +220,9 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       if (source) {
         ctx = {...ctx, source}
       }
-      ctx = this.maybeVisit(filter, ctx)
-      return this.maybeVisit(array, ctx)
+      return ctx
     }
+
 
     array(node: ArrayCstChildren, ctx: CodegenContext): CodegenContext {
       const {subscript} = node
@@ -221,6 +231,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
         .map((s) => this.visit(s, {...ctx, source: ""}).source)
       return {...ctx, source: `ƒ.array(ƒ.pa(${primary}),[${subscripts}])`}
     }
+
 
     subscript(node: SubscriptCstChildren, ctx: CodegenContext): CodegenContext {
       const {To, wff} = node
@@ -232,6 +243,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       return wff0
     }
 
+
     filter(node: FilterCstChildren, ctx: CodegenContext): CodegenContext {
       const {pathPred} = node
       const origSource = ctx.source
@@ -239,18 +251,21 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       return {...ctx, source: `ƒ.filter(${origSource},v=>${ctx.source})`}
     }
 
+
     pathPred(node: PathPredCstChildren, ctx: CodegenContext): CodegenContext {
       const {neg, LogicOp} = node
-      ctx = this.maybeAppend(LogicOp, ctx)
+      ctx = maybeAppend(LogicOp, ctx)
       return this.visit(neg, ctx)
     }
+
 
     neg(node: NegCstChildren, ctx: CodegenContext): CodegenContext {
       const {pred, NotOp, delPred} = node
       ctx = this.maybeVisit(pred, ctx)
-      ctx = this.maybeAppend(NotOp, ctx)
+      ctx = maybeAppend(NotOp, ctx)
       return this.maybeVisit(delPred, ctx)
     }
+
 
     pred(node: PredCstChildren, ctx: CodegenContext): CodegenContext {
       const {delPred, wff, likeRegex, startsWith, comparison} = node
@@ -263,11 +278,13 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       return this.maybeVisit(comparison, ctx)
     }
 
+
     delPred(node: DelPredCstChildren, ctx: CodegenContext): CodegenContext {
       const {scopedPred, exists} = node
       ctx = this.maybeVisit(scopedPred, ctx)
       return this.maybeVisit(exists, ctx)
     }
+
 
     scopedPred(node: ScopedPredCstChildren, ctx: CodegenContext): CodegenContext {
       const {pathPred, IsUnknown} = node
@@ -276,15 +293,16 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       return {...ctx, source: `${unknown}(${ctx.source})`}
     }
 
+
     exists(node: ExistsCstChildren, ctx: CodegenContext): CodegenContext {
 
       return ctx
     }
 
+
     comparison(node: ComparisonCstChildren, ctx: CodegenContext): CodegenContext {
-      const {CompOp, wff} = node
+      const {CompOp: [{image: compOp}], wff} = node
       const rightCtx = this.visit(wff, {...ctx, source: ""})
-      const compOp = CompOp[0].image
       return {...ctx, source: `ƒ.compare("${compOp}",${ctx.source},${rightCtx.source})`}
     }
   }
