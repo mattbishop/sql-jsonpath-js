@@ -5,8 +5,16 @@ import {
   AccessorCstChildren,
   ArrayCstChildren,
   BinaryCstChildren,
+  ComparisonCstChildren,
+  DelPredCstChildren,
+  ExistsCstChildren,
+  FilterCstChildren,
   LiteralCstChildren,
+  NegCstChildren,
+  PathPredCstChildren,
+  PredCstChildren,
   PrimaryCstChildren,
+  ScopedPredCstChildren,
   ScopedWffCstChildren,
   StmtCstChildren,
   SubscriptCstChildren,
@@ -24,10 +32,10 @@ export type CodegenContext = {
 /**
  * Construct a new Visitor that generates a JS function to execute the JsonPath query.
  *
- * @param constr the value from <code>parser.getBaseCstVisitorConstructor()</code>
+ * @param ctor the value from <code>parser.getBaseCstVisitorConstructor()</code>
  */
-export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any, CodegenContext> }) {
-  return new class CodegenVisitor extends constr {
+export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<CodegenContext, CodegenContext> }) {
+  return new class CodegenVisitor extends ctor {
     constructor() {
       super()
       // this.validateVisitor()
@@ -35,7 +43,7 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
 
 
     // make the context immutable so visitors don't edit it but send back new ones
-    visit(cstNode: CstNode | CstNode[], ctx?: any): CodegenContext {
+    visit(cstNode: CstNode | CstNode[], ctx: CodegenContext): CodegenContext {
       if (ctx) {
         ctx = Object.freeze(ctx)
       }
@@ -135,6 +143,9 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
       ctx = this.maybeVisit(scopedWff, ctx)
       ctx = this.maybeVisit(literal, ctx)
       ctx = this.maybeAppend(ContextVariable, ctx)
+      if (FilterValue) {
+        ctx = {...ctx, source: `${ctx.source}i`}
+      }
       if (NamedVariable) {
         const name = NamedVariable[0].image.substring(1)
         ctx = {...ctx, source: `$$("${name}")`}
@@ -199,6 +210,7 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
       if (source) {
         ctx = {...ctx, source}
       }
+      ctx = this.maybeVisit(filter, ctx)
       return this.maybeVisit(array, ctx)
     }
 
@@ -218,6 +230,63 @@ export function newCodegenVisitor(constr: { new(...args: any[]): ICstVisitor<any
         return {...ctx, source: `ƒ.range(${wff0.source},${wff1.source})`}
       }
       return wff0
+    }
+
+    filter(node: FilterCstChildren, ctx: CodegenContext): CodegenContext {
+      const {pathPred} = node
+      const origSource = ctx.source
+      ctx = this.visit(pathPred, {...ctx, source: ""})
+      return {...ctx, source: `ƒ.filter(${origSource},${ctx.source})`}
+    }
+
+    pathPred(node: PathPredCstChildren, ctx: CodegenContext): CodegenContext {
+      const {neg, LogicOp} = node
+      ctx = this.maybeAppend(LogicOp, ctx)
+      ctx = this.visit(neg, ctx)
+      return {...ctx, source: `i=>${ctx.source}`}
+    }
+
+    neg(node: NegCstChildren, ctx: CodegenContext): CodegenContext {
+      const {pred, NotOp, delPred} = node
+      ctx = this.maybeVisit(pred, ctx)
+      ctx = this.maybeAppend(NotOp, ctx)
+      return this.maybeVisit(delPred, ctx)
+    }
+
+    pred(node: PredCstChildren, ctx: CodegenContext): CodegenContext {
+      const {delPred, wff, likeRegex, startsWith, comparison} = node
+      ctx = this.maybeVisit(delPred, ctx)
+      ctx = this.maybeVisit(wff, ctx)
+/*
+      ctx = this.maybeVisit(likeRegex, ctx)
+      ctx = this.maybeVisit(startsWith, ctx)
+*/
+      return this.maybeVisit(comparison, ctx)
+    }
+
+    delPred(node: DelPredCstChildren, ctx: CodegenContext): CodegenContext {
+      const {scopedPred, exists} = node
+      ctx = this.maybeVisit(scopedPred, ctx)
+      return this.maybeVisit(exists, ctx)
+    }
+
+    scopedPred(node: ScopedPredCstChildren, ctx: CodegenContext): CodegenContext {
+      const {pathPred, IsUnknown} = node
+      ctx = this.visit(pathPred, ctx)
+      const unknown = IsUnknown ? "ƒ.isUnknown" : ""
+      return {...ctx, source: `${unknown}(${ctx.source})`}
+    }
+
+    exists(node: ExistsCstChildren, ctx: CodegenContext): CodegenContext {
+
+      return ctx
+    }
+
+    comparison(node: ComparisonCstChildren, ctx: CodegenContext): CodegenContext {
+      const {CompOp, wff} = node
+      const rightCtx = this.visit(wff, {...ctx, source: ""})
+      const compOp = CompOp[0].image
+      return {...ctx, source: `ƒ.compare("${compOp}",${ctx.source},${rightCtx.source})`}
     }
   }
 }

@@ -30,7 +30,7 @@ export function generateFunctionSource(text: string): CodegenContext {
     throw parser.errors[0]
   }
 
-  return codegenVisitor.visit(cst)
+  return codegenVisitor.visit(cst, {lax: true, source: ""})
 }
 
 

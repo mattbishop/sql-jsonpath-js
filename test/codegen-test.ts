@@ -456,4 +456,13 @@ describe("Codegen tests", () => {
       expect(actualNumber).to.deep.equal([5])
     })
   })
+
+  describe("filter", () => {
+    it ("can filter literal predicates")
+    const ctx = generateFunctionSource("$ ? (@ == 1)")
+    expect(ctx.source).to.equal("return ƒ.filter($,i=>ƒ.compare(\"==\",i,1))")
+    const fn = createFunction(ctx)
+    let actual = fn(1)
+    expect(actual).to.deep.equal([1])
+  })
 })

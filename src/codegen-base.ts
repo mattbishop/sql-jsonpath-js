@@ -7,6 +7,14 @@ import {KeyValue} from "./json-path"
 
 const EMPTY = iterate(Object.freeze([]))
 
+enum Pred {
+  TRUE,
+  FALSE,
+  UNKNOWN
+}
+
+type Predƒ = (input: any) => Pred
+
 
 // Lives outside of class so function refs can use this without bind(this)
 function _type(primary: any): string {
@@ -307,5 +315,66 @@ export class CodegenBase {
     const start = _mustBeNumber(from, "'from'")
     const end = _mustBeNumber(to, "'to'")
     return iterate(this._range(start, end))
+  }
+
+
+  filter(input: any, filterExp: Predƒ): IteratorWithOperators<any> {
+    if (Array.isArray(input)) {
+      input = iterate(input)
+    } else if (!(input instanceof IteratorWithOperators)) {
+      // must return empty iterator if nothing matches
+      input = iterate([input])
+    }
+    return input.filter((i: any) => filterExp(i) === Pred.TRUE)
+  }
+
+  pred(input: any): Predƒ {
+    // not sure what to do here
+    // I think it's supposed to call compare()?
+    return () => Pred.UNKNOWN
+  }
+
+  compare(compOp: string, left: any, right: any): Pred {
+    // check that left and right can be compared
+    const typeLeft = _type(left)
+    const typeRight = _type(right)
+    if (typeLeft === typeRight) {
+      switch (compOp) {
+        case "==" :
+          return left === right ? Pred.TRUE : Pred.FALSE
+        case "<>" :
+        case "!=" :
+          return left !== right ? Pred.TRUE : Pred.FALSE
+        case ">" :
+          return left > right ? Pred.TRUE : Pred.FALSE
+        case ">=" :
+          return left >= right ? Pred.TRUE : Pred.FALSE
+        case "<" :
+          return left < right ? Pred.TRUE : Pred.FALSE
+        case "<=" :
+          return left <= right ? Pred.TRUE : Pred.FALSE
+      }
+    }
+    return Pred.UNKNOWN
+  }
+
+  /*
+    Given: [
+      { species: "cat" },
+      { species: "dog" },
+      { species: "bird" },
+      { species: 2 }
+    ]
+
+      $ ? (((@.species == "cat") || (@.species == "dog")) is unknown)
+
+    Returns:
+      { species: 2 }
+
+    Because species == string cannot be tested true or false, where "bird" can be tested as false
+   */
+  isUnknown(input: Pred): boolean {
+    // predicate has to return an enum of TRUE, FALSE, UNKNOWN
+    return input === Pred.UNKNOWN
   }
 }
