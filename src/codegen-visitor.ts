@@ -236,14 +236,13 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       const {pathPred} = node
       const origSource = ctx.source
       ctx = this.visit(pathPred, {...ctx, source: ""})
-      return {...ctx, source: `ƒ.filter(${origSource},${ctx.source})`}
+      return {...ctx, source: `ƒ.filter(${origSource},v=>${ctx.source})`}
     }
 
     pathPred(node: PathPredCstChildren, ctx: CodegenContext): CodegenContext {
       const {neg, LogicOp} = node
       ctx = this.maybeAppend(LogicOp, ctx)
-      ctx = this.visit(neg, ctx)
-      return {...ctx, source: `v=>${ctx.source}`}
+      return this.visit(neg, ctx)
     }
 
     neg(node: NegCstChildren, ctx: CodegenContext): CodegenContext {

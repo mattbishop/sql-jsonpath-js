@@ -328,11 +328,6 @@ export class CodegenBase {
     return input.filter((i: any) => filterExp(i) === Pred.TRUE)
   }
 
-  pred(input: any): Predƒ {
-    // not sure what to do here
-    // I think it's supposed to call compare()?
-    return () => Pred.UNKNOWN
-  }
 
   compare(compOp: string, left: any, right: any): Pred {
     // check that left and right can be compared
@@ -373,8 +368,7 @@ export class CodegenBase {
 
     Because species == string cannot be tested true or false, where "bird" can be tested as false
    */
-  isUnknown(input: Pred): boolean {
-    // predicate has to return an enum of TRUE, FALSE, UNKNOWN
-    return input === Pred.UNKNOWN
+  isUnknown(input: Pred): Pred {
+    return input === Pred.UNKNOWN ? Pred.TRUE : Pred.FALSE
   }
 }

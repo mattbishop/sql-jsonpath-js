@@ -481,5 +481,13 @@ describe("Codegen tests", () => {
       let actual = fn([{sleepy: true}, {sleepy: false}, {sleepy: "yes"}])
       expect(actual).to.deep.equal([{sleepy: true}])
     })
+
+    it("can filter is unknown predicates", () => {
+      const ctx = generateFunctionSource("$ ? ((@.sleepy == true) is unknown)")
+      expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.isUnknown(ƒ.compare(\"==\",ƒ.member(v,\"sleepy\"),true)))")
+      const fn = createFunction(ctx)
+      let actual = fn([{sleepy: true}, {sleepy: false}, {sleepy: "yes"}])
+      expect(actual).to.deep.equal([{sleepy: "yes"}])
+    })
   })
 })
