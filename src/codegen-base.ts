@@ -327,6 +327,14 @@ export class CodegenBase {
   }
 
 
+  private _filter(filterExp: Predƒ, input: any): boolean {
+    try {
+      return filterExp(input) === Pred.TRUE
+    } catch (e) {
+      return false
+    }
+  }
+
   filter(input: any, filterExp: Predƒ): IteratorWithOperators<any> {
     if (Array.isArray(input)) {
       input = iterate(input)
@@ -335,7 +343,7 @@ export class CodegenBase {
       // must return empty iterator if nothing matches
       input = iterate([input])
     }
-    return input.filter((i: any) => filterExp(i) === Pred.TRUE)
+    return input.filter((i: any) => this._filter(filterExp, i))
   }
 
 

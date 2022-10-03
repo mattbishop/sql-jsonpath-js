@@ -475,10 +475,10 @@ describe("Codegen tests", () => {
     })
 
     it("can filter value accessor predicates", () => {
-      const ctx = generateFunctionSource("$ ? (@.sleepy == true)")
+      const ctx = generateFunctionSource("strict $ ? (@.sleepy == true)")
       expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.compare(\"==\",ƒ.member(v,\"sleepy\"),true))")
       const fn = createFunction(ctx)
-      let actual = fn([{sleepy: true}, {sleepy: false}, {sleepy: "yes"}])
+      let actual = fn([{sleepy: true}, {sleepy: false}, {sleepy: "yes"}, {not: 1}])
       expect(actual).to.deep.equal([{sleepy: true}])
     })
 
