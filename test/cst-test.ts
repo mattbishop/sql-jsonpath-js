@@ -338,6 +338,13 @@ describe("SQL JSONPath CST", () => {
       expect(actual).to.have.nested.property(`${cstPrefix}.accessor[1].children.filter`)
     })
 
+    it("negates predicates", () => {
+      const actual = parseJsonPath("$ ? (!(@==100))")
+      expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.filter[0].children.pathPred[0].children.neg[0].children.NotOp`)
+      expect(actual).to.have.nested.property(`${cstPrefix}.accessor[0].children.filter[0].children.pathPred[0].children.neg[0].children.delPred[0].children.scopedPred`)
+    })
+
     it("starts with", () => {
       const actual = parseJsonPath("$ ? (@ starts with \"m\")")
       expect(actual).to.have.nested.property(`${cstPrefix}.primary[0].children.ContextVariable`)
