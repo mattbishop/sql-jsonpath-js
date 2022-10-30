@@ -378,7 +378,6 @@ export class FnBase {
         return Pred.FALSE
       }
     }
-    // todo account for UNKNOWN
     return Pred.TRUE
   }
 
@@ -389,7 +388,6 @@ export class FnBase {
         return Pred.TRUE
       }
     }
-    // todo account for UNKNOWN
     return Pred.FALSE
   }
 
@@ -424,5 +422,13 @@ export class FnBase {
    */
   isUnknown(input: Pred): Pred {
     return _toPred(input === Pred.UNKNOWN)
+  }
+
+
+  startsWith(input: any, start: string): Pred {
+    const type = _type(input)
+    return type === "string"
+      ? _toPred(input.startsWith(start))
+      : Pred.UNKNOWN
   }
 }

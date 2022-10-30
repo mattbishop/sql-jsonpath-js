@@ -49,7 +49,7 @@ export const Exists           = createToken({name: "Exists", pattern: "exists"})
 export const LikeRegex        = createToken({name: "LikeRegex", pattern: /\slike_regex\s/})
 export const Flag             = createToken({name: "Flag", pattern: /\sflag\s/})
 // Spec calls for whitespace
-export const StartsWith       = createToken({name: "StartsWith", pattern: /\sstarts\s+with\s/})
+export const StartsWith       = createToken({name: "StartsWith", pattern: /\sstarts\s+with/})
 // Spec calls for whitespace
 export const IsUnknown        = createToken({name: "IsUnknown", pattern: /\sis\s+unknown/})
 

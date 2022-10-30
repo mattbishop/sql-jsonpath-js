@@ -502,8 +502,8 @@ describe("Codegen tests", () => {
       const ctx = generateFunctionSource("$ ? ((@.sleepy == true) is unknown)")
       expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.isUnknown(ƒ.compare(\"==\",ƒ.member(v,\"sleepy\"),true)))")
       const fn = createFunction(ctx)
-      let actual = fn([{sleepy: true}, {sleepy: false}, {sleepy: "yes"}])
-      expect(actual).to.deep.equal([{sleepy: "yes"}])
+      let actual = fn([{sleepy: 77},{sleepy: true}, {sleepy: false}, {sleepy: "yes"}])
+      expect(actual).to.deep.equal([{sleepy: 77}, {sleepy: "yes"}])
     })
 
     it("can filter multiple predicates with && and ||", () => {
@@ -514,5 +514,12 @@ describe("Codegen tests", () => {
       expect(actual).to.deep.equal([{a: 1, c: "hi"}, {b: 2, c: "hi"}, {b: 3, c: "hi"}])
     })
 
+    it("can filter 'starts with' predicates", () => {
+      const ctx = generateFunctionSource("$ ? (@ starts with \"a\")")
+      expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.startsWith(v,\"a\"))")
+      const fn = createFunction(ctx)
+      let actual = fn(["apple", "orange", "argon"])
+      expect(actual).to.deep.equal(["apple", "argon"])
+    })
   })
 })

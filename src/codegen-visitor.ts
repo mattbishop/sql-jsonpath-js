@@ -17,6 +17,7 @@ import {
   PrimaryCstChildren,
   ScopedPredCstChildren,
   ScopedWffCstChildren,
+  StartsWithCstChildren,
   StmtCstChildren,
   SubscriptCstChildren,
   UnaryCstChildren,
@@ -297,8 +298,8 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       ctx = this.maybeVisit(wff, ctx)
 /*
       ctx = this.maybeVisit(likeRegex, ctx)
-      ctx = this.maybeVisit(startsWith, ctx)
 */
+      ctx = this.maybeVisit(startsWith, ctx)
       return this.maybeVisit(comparison, ctx)
     }
 
@@ -315,6 +316,14 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       ctx = this.visit(pathPred, ctx)
       const unknown = IsUnknown ? "ƒ.isUnknown" : ""
       return {...ctx, source: `${unknown}(${ctx.source})`}
+    }
+
+
+    startsWith(node: StartsWithCstChildren, ctx: CodegenContext): CodegenContext {
+      const {wff} = node
+      const {source: origSource} = ctx
+      ctx = this.visit(wff, {...ctx, source: ""})
+      return {...ctx, source: `ƒ.startsWith(${origSource},${ctx.source})`}
     }
 
 
