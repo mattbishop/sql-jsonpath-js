@@ -52,7 +52,7 @@ function _toPred(condition: boolean): Pred {
 type SingleOrIterator<T> = T | IteratorWithOperators<T>
 
 
-export class CodegenBase {
+export class FnBase {
 
   arrayStack: [][]
   lax:        boolean
@@ -93,7 +93,7 @@ export class CodegenBase {
   }
 
   size(input: any): SingleOrIterator<number> {
-    return this._autoMap(input, this._size);
+    return this._autoMap(input, this._size)
   }
 
 
@@ -316,7 +316,7 @@ export class CodegenBase {
 
   private *_range(start: number, end: number): Generator<number> {
     for (let i = start; i <= end; i++) {
-      yield i;
+      yield i
     }
   }
 
@@ -369,6 +369,28 @@ export class CodegenBase {
       }
     }
     return Pred.UNKNOWN
+  }
+
+
+  and(preds: Pred[]): Pred {
+    for (const pred of preds) {
+      if (pred !== Pred.TRUE) {
+        return Pred.FALSE
+      }
+    }
+    // todo account for UNKNOWN
+    return Pred.TRUE
+  }
+
+
+  or(preds: Pred[]): Pred {
+    for (const pred of preds) {
+      if (pred === Pred.TRUE) {
+        return Pred.TRUE
+      }
+    }
+    // todo account for UNKNOWN
+    return Pred.FALSE
   }
 
 

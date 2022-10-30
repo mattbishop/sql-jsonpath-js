@@ -184,14 +184,26 @@ export type NegCstChildren = {
   delPred?: DelPredCstNode[];
 };
 
+export interface BoolConjCstNode extends CstNode {
+  name: "boolConj";
+  children: BoolConjCstChildren;
+}
+
+export type BoolConjCstChildren = {
+  left: NegCstNode[];
+  AndOp?: IToken[];
+  right?: NegCstNode[];
+};
+
 export interface PathPredCstNode extends CstNode {
   name: "pathPred";
   children: PathPredCstChildren;
 }
 
 export type PathPredCstChildren = {
-  neg: (NegCstNode)[];
-  LogicOp?: IToken[];
+  left: BoolConjCstNode[];
+  OrOp?: IToken[];
+  right?: BoolConjCstNode[];
 };
 
 export interface ExistsCstNode extends CstNode {
@@ -253,6 +265,7 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   pred(children: PredCstChildren, param?: IN): OUT;
   scopedPred(children: ScopedPredCstChildren, param?: IN): OUT;
   neg(children: NegCstChildren, param?: IN): OUT;
+  boolConj(children: BoolConjCstChildren, param?: IN): OUT;
   pathPred(children: PathPredCstChildren, param?: IN): OUT;
   exists(children: ExistsCstChildren, param?: IN): OUT;
   startsWith(children: StartsWithCstChildren, param?: IN): OUT;

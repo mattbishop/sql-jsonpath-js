@@ -1,6 +1,7 @@
 import {CstParser} from "chevrotain"
 import {
   allTokens,
+  AndOperator,
   BinaryOperator,
   BooleanLiteral,
   Comma,
@@ -17,13 +18,13 @@ import {
   LeftBracket,
   LeftParen,
   LikeRegex,
-  LogicOperator,
   Member,
   Mode,
   NamedVariable,
   NotOperator,
   NullLiteral,
   NumberLiteral,
+  OrOperator,
   RightBracket,
   RightParen,
   StartsWith,
@@ -225,7 +226,7 @@ export class JsonPathParser extends CstParser {
  */
   filterExpression = this.RULE("filter", () => {
     this.CONSUME(FilterStart)
-    this.SUBRULE(this.pathPredicate)
+    this.SUBRULE(this.booleanDisjunction)
     this.CONSUME(RightParen, {LABEL: "FilterEnd"})
   })
 
@@ -278,7 +279,7 @@ export class JsonPathParser extends CstParser {
    */
   scopedPredicate = this.RULE("scopedPred", () => {
     this.CONSUME(LeftParen)
-    this.SUBRULE(this.pathPredicate)
+    this.SUBRULE(this.booleanDisjunction)
     this.CONSUME(RightParen)
     // parsing here eliminates an ambiguity
     this.OPTION(() => this.CONSUME(IsUnknown))
@@ -302,12 +303,33 @@ export class JsonPathParser extends CstParser {
   })
 
 
-  // No BNF, but examples use this pattern
-  pathPredicate = this.RULE("pathPred", () => {
-    this.SUBRULE(this.negation)
+/*
+    <JSON boolean conjunction> ::=
+            <JSON boolean negation>
+          | <JSON boolean conjunction> <double ampersand> <JSON boolean negation>
+*/
+  booleanConjunction = this.RULE("boolConj", () => {
+    this.SUBRULE(this.negation, { LABEL: "left" })
     this.MANY(() => {
-      this.CONSUME(LogicOperator)
-      this.SUBRULE1(this.negation)
+      this.CONSUME(AndOperator)
+      this.SUBRULE1(this.negation, { LABEL: "right" })
+    })
+  })
+
+
+  /*
+      <JSON path predicate> ::=
+            <JSON boolean disjunction>
+
+       <JSON boolean disjunction> ::=
+              <JSON boolean conjunction>
+            | <JSON boolean disjunction> <double vertical bar> <JSON boolean conjunction>
+   */
+  booleanDisjunction = this.RULE("pathPred", () => {
+    this.SUBRULE(this.booleanConjunction, { LABEL: "left" })
+    this.MANY(() => {
+      this.CONSUME(OrOperator)
+      this.SUBRULE1(this.booleanConjunction, { LABEL: "right" })
     })
   })
 

@@ -708,13 +708,14 @@
   },
   {
     "type": "Rule",
-    "name": "pathPred",
+    "name": "boolConj",
     "orgText": "",
     "definition": [
       {
         "type": "NonTerminal",
         "name": "neg",
-        "idx": 0
+        "idx": 0,
+        "label": "left"
       },
       {
         "type": "Repetition",
@@ -722,15 +723,48 @@
         "definition": [
           {
             "type": "Terminal",
-            "name": "LogicOp",
-            "label": "LogicOp",
+            "name": "AndOp",
+            "label": "AndOp",
             "idx": 0,
-            "pattern": "\\|\\||&&"
+            "pattern": "&&"
           },
           {
             "type": "NonTerminal",
             "name": "neg",
-            "idx": 1
+            "idx": 1,
+            "label": "right"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "Rule",
+    "name": "pathPred",
+    "orgText": "",
+    "definition": [
+      {
+        "type": "NonTerminal",
+        "name": "boolConj",
+        "idx": 0,
+        "label": "left"
+      },
+      {
+        "type": "Repetition",
+        "idx": 0,
+        "definition": [
+          {
+            "type": "Terminal",
+            "name": "OrOp",
+            "label": "OrOp",
+            "idx": 0,
+            "pattern": "||"
+          },
+          {
+            "type": "NonTerminal",
+            "name": "boolConj",
+            "idx": 1,
+            "label": "right"
           }
         ]
       }

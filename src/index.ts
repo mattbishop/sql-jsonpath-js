@@ -1,11 +1,11 @@
 import {IteratorWithOperators} from "iterare/lib/iterate"
-import {CodegenBase} from "./codegen-base"
+import {FnBase} from "./fn-base"
 import {CodegenContext, newCodegenVisitor} from "./codegen-visitor"
-import {JsonPathParser} from "./parser";
-import {allTokens} from "./tokens";
+import {JsonPathParser} from "./parser"
+import {allTokens} from "./tokens"
 import {Lexer} from "chevrotain"
-import {newJsonPathVisitor} from "./visitor";
-import {SqlJsonPath, SqlJsonPathStatement} from "./json-path";
+import {newJsonPathVisitor} from "./visitor"
+import {SqlJsonPath, SqlJsonPathStatement} from "./json-path"
 
 
 const jsonPathLexer = new Lexer(allTokens)
@@ -38,7 +38,7 @@ type JSONPathFunction = ($: any, $named?: Record<string, any>) => [any]
 
 export function createFunction({source, lax}: CodegenContext): JSONPathFunction {
   const fn = Function("ƒ", "$", "$$", source)
-  const ƒ = new CodegenBase(lax)
+  const ƒ = new FnBase(lax)
 
   return ($, $named = {}) => {
     const $$ = (name: string): any => {

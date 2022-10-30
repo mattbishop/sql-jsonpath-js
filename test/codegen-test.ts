@@ -505,5 +505,14 @@ describe("Codegen tests", () => {
       let actual = fn([{sleepy: true}, {sleepy: false}, {sleepy: "yes"}])
       expect(actual).to.deep.equal([{sleepy: "yes"}])
     })
+
+    it("can filter multiple predicates with && and ||", () => {
+      const ctx = generateFunctionSource("$ ? ((@.a==1 || @.b==2 || @.b==3) && @.c==\"hi\")")
+      expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.and([(ƒ.or([ƒ.compare(\"==\",ƒ.member(v,\"a\"),1),ƒ.compare(\"==\",ƒ.member(v,\"b\"),2),ƒ.compare(\"==\",ƒ.member(v,\"b\"),3)])),ƒ.compare(\"==\",ƒ.member(v,\"c\"),\"hi\")]))")
+      const fn = createFunction(ctx)
+      let actual = fn([{a: 1, c: "hi"}, {b: 2, c: "hi"}, {b: 3, c: "hi"}, {a: "yes"}, {a: 4, c: "hi"}])
+      expect(actual).to.deep.equal([{a: 1, c: "hi"}, {b: 2, c: "hi"}, {b: 3, c: "hi"}])
+    })
+
   })
 })

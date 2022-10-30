@@ -70,7 +70,8 @@ export const StringLiteral    = createRegexToken({
 
 export const UnaryOperator          = createToken({name: "UnaryOp", pattern: /[+-]/})
 export const BinaryOperator         = createToken({name: "BinaryOp", pattern: /[*\/%]/})
-export const LogicOperator          = createToken({name: "LogicOp", pattern: /\|\||&&/})
+export const AndOperator            = createToken({name: "AndOp", pattern: "&&"})
+export const OrOperator             = createToken({name: "OrOp", pattern: "||"})
 export const NotOperator            = createToken({name: "NotOp", pattern: "!"})
 export const ComparisonOperator     = createToken({name: "CompOp", pattern: /==|!=|>=|<=|<>|<|>/})
 export const LeftParen              = createToken({name: "LeftParen", pattern: "("})
@@ -111,7 +112,8 @@ export const allTokens = [
   NamedVariable,
   ContextVariable,
   Comma,
-  LogicOperator,
+  AndOperator,
+  OrOperator,
   LeftParen,
   RightParen,
   FilterStart,

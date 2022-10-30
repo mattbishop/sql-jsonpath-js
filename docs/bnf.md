@@ -342,7 +342,7 @@ NOTE: equality operators have the same precedence as inequality comparision oper
    1. The only goal symbol is InputElementDiv (modifies section 7 “Lexical conversions” paragraph 2).
    2. there are no comments (modifies section 7.4 “Comments”)
    3. there are no reserved words (modifies section 7.6.1 “Reserved words”)
-   4. NOTE: lexcially, the only issue is whether a token that matches an <SQL/ JSON key word> is a <JSON path member name> or in fact a key word. This can be decided from the observation that a <JSON path member name> cannot be followed by a <left paren>.
+   4. NOTE: lexically, the only issue is whether a token that matches an <SQL/ JSON key word> is a <JSON path member name> or in fact a key word. This can be decided from the observation that a <JSON path member name> cannot be followed by a <left paren>.
    5. the following are additional punctuators: @ (modifies section 7.7 “Punctuators”)
    6. there are no HexIntegerLiteral (modifies 7.8.3 “Numeric literals”)
    7. there are no RegularExpressionLiteral. (modifies section 7.8.5 “Regular expression literals”) NOTE: SQL/JSON path language uses SQL regular expressions in the <JSON like_regex predicate>, not ECMAScript regular expressions.

@@ -5,6 +5,7 @@ import {
   AccessorCstChildren,
   ArrayCstChildren,
   BinaryCstChildren,
+  BoolConjCstChildren,
   ComparisonCstChildren,
   DelPredCstChildren,
   ExistsCstChildren,
@@ -63,7 +64,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       if (ctx) {
         ctx = Object.freeze(ctx)
       }
-      const result = super.visit(cstNode, ctx);
+      const result = super.visit(cstNode, ctx)
       return Object.freeze(result)
     }
 
@@ -88,7 +89,10 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
     }
 
 
-    handleOps(left: CstNode[], opToken: IToken[]| undefined, right: CstNode[] | undefined, ctx: CodegenContext): CodegenContext {
+    handleArithmeticOps(left:     CstNode[],
+                        opToken:  IToken[] | undefined,
+                        right:    CstNode[] | undefined,
+                        ctx:      CodegenContext): CodegenContext {
       const {source: origSource} = ctx
       ctx = this.visit(left, {...ctx, source: ""})
       if (right) {
@@ -98,31 +102,29 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
         ctx = {...ctx, source: `ƒ.num(${leftSource})${op}ƒ.num(${rightSource})`}
       }
       return {...ctx, source: `${origSource}${ctx.source}`}
-
     }
 
 
     wff(node: WffCstChildren, ctx: CodegenContext): CodegenContext {
       const {left, UnaryOp, right} = node
-      return this.handleOps(left, UnaryOp, right, ctx)
+      return this.handleArithmeticOps(left, UnaryOp, right, ctx)
     }
 
 
     binary(node: BinaryCstChildren, ctx: CodegenContext): CodegenContext {
       const {left, BinaryOp, right} = node
-      return this.handleOps(left, BinaryOp, right, ctx)
+      return this.handleArithmeticOps(left, BinaryOp, right, ctx)
     }
 
 
     unary(node: UnaryCstChildren, ctx: CodegenContext): CodegenContext {
-      const {unary, UnaryOp, accessExp} = node
+      const {accessExp, UnaryOp, unary} = node
+      ctx = this.maybeVisit(accessExp, ctx)
       if (unary) {
         const {source: origSource} = ctx
         const op = maybeImage(UnaryOp)
         ctx = this.visit(unary, {...ctx, source: ""})
         ctx = {...ctx, source: `${origSource}${op}ƒ.num(${ctx.source})`}
-      } else {
-        ctx = this.visit(accessExp as CstNode[], ctx)
       }
       return ctx
     }
@@ -252,10 +254,32 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
     }
 
 
+    handleLogicOp(left:     CstNode[],
+                  opƒ:      string,
+                  right:    CstNode[] | undefined,
+                  ctx:      CodegenContext): CodegenContext {
+      const {source: origSource} = ctx
+      const leftCtx = this.visit(left, {...ctx, source: ""})
+      if (right) {
+        const rights = right
+          .map((r) => this.visit(r, {...ctx, source: ""}).source)
+        ctx = {...ctx, source: `ƒ.${opƒ}([${leftCtx.source},${[rights]}])`}
+      } else {
+        ctx = leftCtx
+      }
+      return {...ctx, source: `${origSource}${ctx.source}`}
+    }
+
+
     pathPred(node: PathPredCstChildren, ctx: CodegenContext): CodegenContext {
-      const {neg, LogicOp} = node
-      ctx = maybeAppend(LogicOp, ctx)
-      return this.visit(neg, ctx)
+      const {left, right} = node
+      return this.handleLogicOp(left, "or", right, ctx)
+    }
+
+
+    boolConj(node: BoolConjCstChildren, ctx: CodegenContext): CodegenContext {
+      const {left, right} = node
+      return this.handleLogicOp(left, "and", right, ctx)
     }
 
 
