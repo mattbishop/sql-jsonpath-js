@@ -19,7 +19,8 @@
   "dependencies": {
     "chevrotain": "10.4.0",
     "iterare": "1.2.1",
-    "luxon": "3.0.4"
+    "luxon": "3.0.4",
+    "xregexp": "5.1.1"
   },
   "devDependencies": {
     "@types/chai": "4.3.3",

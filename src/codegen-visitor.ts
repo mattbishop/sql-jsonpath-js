@@ -10,6 +10,7 @@ import {
   DelPredCstChildren,
   ExistsCstChildren,
   FilterCstChildren,
+  LikeRegexCstChildren,
   LiteralCstChildren,
   NegCstChildren,
   PathPredCstChildren,
@@ -296,9 +297,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       const {delPred, wff, likeRegex, startsWith, comparison} = node
       ctx = this.maybeVisit(delPred, ctx)
       ctx = this.maybeVisit(wff, ctx)
-/*
       ctx = this.maybeVisit(likeRegex, ctx)
-*/
       ctx = this.maybeVisit(startsWith, ctx)
       return this.maybeVisit(comparison, ctx)
     }
@@ -316,6 +315,22 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       ctx = this.visit(pathPred, ctx)
       const unknown = IsUnknown ? "ƒ.isUnknown" : ""
       return {...ctx, source: `${unknown}(${ctx.source})`}
+    }
+
+
+    private validFlags = /"[imsg]{1,4}"/
+
+    likeRegex(node: LikeRegexCstChildren, ctx: CodegenContext): CodegenContext {
+      const {Pattern, FlagValue} = node
+      let fnSource = `${ctx.source},${Pattern[0].image}`
+      if (FlagValue) {
+        const flags = FlagValue[0].image
+        if (!this.validFlags.test(flags)) {
+          throw new Error(`Invalid like_regex flag. Expected i, m, s, g but found ${flags}`)
+        }
+        fnSource += `,${flags}`
+      }
+      return {...ctx, source: `ƒ.like(${fnSource})`}
     }
 
 

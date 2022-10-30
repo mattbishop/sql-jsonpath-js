@@ -382,7 +382,6 @@ export class JsonPathParser extends CstParser {
     this.CONSUME(StringLiteral, { LABEL: "Pattern" })
     this.OPTION(() => {
       this.CONSUME(Flag)
-      // /"[imsq]{1,4}"/
       this.CONSUME1(StringLiteral, {LABEL: "FlagValue"})
     })
   })

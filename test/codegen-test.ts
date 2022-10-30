@@ -93,11 +93,11 @@ describe("Codegen tests", () => {
       expect(stringDouble).to.deep.equal([45])
       const numberDouble = fn(77.6)
       expect(numberDouble).to.deep.equal([77.6])
-      expect(() => fn(null)).to.throw()
-      expect(() => fn("bond")).to.throw()
-      expect(() => fn(true)).to.throw()
-      expect(() => fn({})).to.throw()
-      expect(() => fn([])).to.throw()
+      expect(() => fn(null)).to.throw
+      expect(() => fn("bond")).to.throw
+      expect(() => fn(true)).to.throw
+      expect(() => fn({})).to.throw
+      expect(() => fn([])).to.throw
     })
 
     it("ceiling()", () => {
@@ -106,11 +106,11 @@ describe("Codegen tests", () => {
       const fn = createFunction(ctx)
       const numberActual = fn(77.6)
       expect(numberActual).to.deep.equal([78])
-      expect(() => fn(null)).to.throw()
-      expect(() => fn("77.4")).to.throw()
-      expect(() => fn(true)).to.throw()
-      expect(() => fn({})).to.throw()
-      expect(() => fn([])).to.throw()
+      expect(() => fn(null)).to.throw
+      expect(() => fn("77.4")).to.throw
+      expect(() => fn(true)).to.throw
+      expect(() => fn({})).to.throw
+      expect(() => fn([])).to.throw
     })
 
     it("abs()", () => {
@@ -119,11 +119,11 @@ describe("Codegen tests", () => {
       const fn = createFunction(ctx)
       const numberActual = fn(-440.33)
       expect(numberActual).to.deep.equal([440.33])
-      expect(() => fn(null)).to.throw()
-      expect(() => fn("1977")).to.throw()
-      expect(() => fn(true)).to.throw()
-      expect(() => fn({})).to.throw()
-      expect(() => fn([])).to.throw()
+      expect(() => fn(null)).to.throw
+      expect(() => fn("1977")).to.throw
+      expect(() => fn(true)).to.throw
+      expect(() => fn({})).to.throw
+      expect(() => fn([])).to.throw
     })
 
     describe("keyvalue()", () => {
@@ -139,11 +139,11 @@ describe("Codegen tests", () => {
           {id: 0, key: "d", value: {z: -9}},
           {id: 1, key: "m b", value: 1}
         ])
-        expect(() => fn(null)).to.throw()
-        expect(() => fn("frogs")).to.throw()
-        expect(() => fn([{q: 6}, "frogs"])).to.throw()
-        expect(() => fn(true)).to.throw()
-        expect(() => fn(100)).to.throw()
+        expect(() => fn(null)).to.throw
+        expect(() => fn("frogs")).to.throw
+        expect(() => fn([{q: 6}, "frogs"])).to.throw
+        expect(() => fn(true)).to.throw
+        expect(() => fn(100)).to.throw
       })
 
       it("strict keyvalue", () => {
@@ -158,12 +158,12 @@ describe("Codegen tests", () => {
           {id, key: "c", value: "see"},
           {id, key: "d", value: {z: -9}}
         ])
-        expect(() => fn(null)).to.throw()
-        expect(() => fn("star")).to.throw()
-        expect(() => fn([{q: 6}, "frogs"])).to.throw()
-        expect(() => fn(true)).to.throw()
-        expect(() => fn(100)).to.throw()
-        expect(() => fn([])).to.throw()
+        expect(() => fn(null)).to.throw
+        expect(() => fn("star")).to.throw
+        expect(() => fn([{q: 6}, "frogs"])).to.throw
+        expect(() => fn(true)).to.throw
+        expect(() => fn(100)).to.throw
+        expect(() => fn([])).to.throw
       })
     })
 
@@ -470,7 +470,7 @@ describe("Codegen tests", () => {
       const ctx = generateFunctionSource("$ ? (@ == 1)")
       expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.compare(\"==\",v,1))")
       const fn = createFunction(ctx)
-      let actual = fn(1)
+      const actual = fn(1)
       expect(actual).to.deep.equal([1])
     })
 
@@ -478,7 +478,7 @@ describe("Codegen tests", () => {
       const ctx = generateFunctionSource("strict $ ? (@.sleepy == true)")
       expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.compare(\"==\",ƒ.member(v,\"sleepy\"),true))")
       const fn = createFunction(ctx)
-      let actual = fn([{sleepy: true}, {sleepy: false}, {sleepy: "yes"}, {not: 1}])
+      const actual = fn([{sleepy: true}, {sleepy: false}, {sleepy: "yes"}, {not: 1}])
       expect(actual).to.deep.equal([{sleepy: true}])
     })
 
@@ -486,7 +486,7 @@ describe("Codegen tests", () => {
       const ctx = generateFunctionSource("strict $ ? (exists(@.z))")
       expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.exists(()=>(ƒ.member(v,\"z\"))))")
       const fn = createFunction(ctx)
-      let actual = fn([{z: true}, {y: false}, {a: "yes"}])
+      const actual = fn([{z: true}, {y: false}, {a: "yes"}])
       expect(actual).to.deep.equal([{z: true}])
     })
 
@@ -494,7 +494,7 @@ describe("Codegen tests", () => {
       const ctx = generateFunctionSource("strict $ ? (exists(@.z)).z")
       expect(ctx.source).to.equal("return ƒ.member(ƒ.filter($,v=>ƒ.exists(()=>(ƒ.member(v,\"z\")))),\"z\")")
       const fn = createFunction(ctx)
-      let actual = fn([{z: 121.2}, {y: -99.828}, {a: "yes"}])
+      const actual = fn([{z: 121.2}, {y: -99.828}, {a: "yes"}])
       expect(actual).to.deep.equal([121.2])
     })
 
@@ -502,7 +502,7 @@ describe("Codegen tests", () => {
       const ctx = generateFunctionSource("$ ? ((@.sleepy == true) is unknown)")
       expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.isUnknown(ƒ.compare(\"==\",ƒ.member(v,\"sleepy\"),true)))")
       const fn = createFunction(ctx)
-      let actual = fn([{sleepy: 77},{sleepy: true}, {sleepy: false}, {sleepy: "yes"}])
+      const actual = fn([{sleepy: 77},{sleepy: true}, {sleepy: false}, {sleepy: "yes"}])
       expect(actual).to.deep.equal([{sleepy: 77}, {sleepy: "yes"}])
     })
 
@@ -510,7 +510,7 @@ describe("Codegen tests", () => {
       const ctx = generateFunctionSource("$ ? ((@.a==1 || @.b==2 || @.b==3) && @.c==\"hi\")")
       expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.and([(ƒ.or([ƒ.compare(\"==\",ƒ.member(v,\"a\"),1),ƒ.compare(\"==\",ƒ.member(v,\"b\"),2),ƒ.compare(\"==\",ƒ.member(v,\"b\"),3)])),ƒ.compare(\"==\",ƒ.member(v,\"c\"),\"hi\")]))")
       const fn = createFunction(ctx)
-      let actual = fn([{a: 1, c: "hi"}, {b: 2, c: "hi"}, {b: 3, c: "hi"}, {a: "yes"}, {a: 4, c: "hi"}])
+      const actual = fn([{a: 1, c: "hi"}, {b: 2, c: "hi"}, {b: 3, c: "hi"}, {a: "yes"}, {a: 4, c: "hi"}])
       expect(actual).to.deep.equal([{a: 1, c: "hi"}, {b: 2, c: "hi"}, {b: 3, c: "hi"}])
     })
 
@@ -518,8 +518,30 @@ describe("Codegen tests", () => {
       const ctx = generateFunctionSource("$ ? (@ starts with \"a\")")
       expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.startsWith(v,\"a\"))")
       const fn = createFunction(ctx)
-      let actual = fn(["apple", "orange", "argon"])
+      const actual = fn(["apple", "orange", "argon"])
       expect(actual).to.deep.equal(["apple", "argon"])
+    })
+
+    describe("can filter 'like_regex' predicates", () => {
+      it("without flags", () => {
+        const ctx = generateFunctionSource("$ ? (@ like_regex \"\\\\d+\")")
+        expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.like(v,\"\\\\d+\"))")
+        const fn = createFunction(ctx)
+        const actual = fn(["8854", "bear"])
+        expect(actual).to.deep.equal(["8854"])
+      })
+
+      it("with flags", () => {
+        const ctx = generateFunctionSource("$ ? (@ like_regex \"court\" flag \"i\")")
+        expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.like(v,\"court\",\"i\"))")
+        const fn = createFunction(ctx)
+        const actual = fn(["cOuRt", "COURT", 17])
+        expect(actual).to.deep.equal(["cOuRt", "COURT"])
+      })
+
+      it("with wrong flags", () => {
+        expect(() => generateFunctionSource("$ ? (@ like_regex \"court\" flag \"not\")")).to.throw
+      })
     })
   })
 })
