@@ -217,6 +217,18 @@ describe("Codegen tests", () => {
         expect(() => fn(100)).to.throw
         expect(() => fn([])).to.throw
       })
+
+      it("stream of keyvalue", () => {
+        const ctx = generateFunctionSource("$[*].keyvalue()")
+        expect (ctx.source).to.equal("return ƒ.keyvalue(ƒ.boxStar($))")
+        const fn = createFunction(ctx)
+        const arrayTypes = fn([{a: 1}, {b: 2}, {c: 3}])
+        expect(arrayTypes).to.deep.equal([
+          {id: 0, key: "a", value: 1},
+          {id: 1, key: "b", value: 2},
+          {id: 2, key: "c", value: 3}
+        ])
+      })
     })
 
     describe("datetime()", () => {

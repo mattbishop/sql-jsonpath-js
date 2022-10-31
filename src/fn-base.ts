@@ -159,31 +159,22 @@ export class FnBase {
       .map((key) => ({id, key, value: obj[key]}))
   }
 
-  private _keyvalue(input: any): IteratorWithOperators<KeyValue> {
-    const type = _type(input)
-    if (type === "object") {
-      return this._toKV(input, 0)
-    }
-    if (!this.lax) {
-      throw new Error(`keyvalue() param must be an object but is an array (in strict mode), found ${JSON.stringify(input)}.`)
-    }
-    if (Array.isArray(input)) {
-      let id = 0
-      return iterate(input)
-        .map((row) => {
-          if (_type(row) !== "object") {
-            // Only sequence one level of an array.
-            throw new Error(`keyvalue() array must have object values, found ${JSON.stringify(row)}.`)
-          }
-          return this._toKV(row, id++)
-        })
-        .flatten()
-    }
-    throw new Error(`keyvalue() param must be an object or array (in lax mode), found ${JSON.stringify(input)}.`)
-  }
-
   keyvalue(input: any): IteratorWithOperators<KeyValue> {
-    return this._autoMapWithFlatten(input, (i) => this._keyvalue(i))
+    if (Array.isArray(input)) {
+      if (!this.lax) {
+        throw new Error(`keyvalue() param must be an object but is an array (in strict mode), found ${JSON.stringify(input)}.`)
+      }
+      input = iterate(input)
+    }
+    let id = 0
+    const mapƒ = (row: any) => {
+      if (_type(row) !== "object") {
+        // Only sequence one level of an array.
+        throw new Error(`keyvalue() param must have object values, found ${JSON.stringify(row)}.`)
+      }
+      return this._toKV(row, id++)
+    }
+    return this._autoMapWithFlatten(input, mapƒ)
   }
 
 
