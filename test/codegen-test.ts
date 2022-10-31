@@ -47,24 +47,34 @@ describe("Codegen tests", () => {
   })
 
   describe("item methods", () => {
-    it("type()", () => {
-      const ctx = generateFunctionSource("$.type()")
-      expect(ctx.source).to.equal("return ƒ.type($)")
-      const fn = createFunction(ctx)
-      const nullType = fn(null)
-      expect(nullType).to.deep.equal(["null"])
-      const stringType = fn("matt")
-      expect(stringType).to.deep.equal(["string"])
-      const numberType = fn(77.6)
-      expect(numberType).to.deep.equal(["number"])
-      const booleanType = fn(true)
-      expect(booleanType).to.deep.equal(["boolean"])
-      const objectType = fn({})
-      expect(objectType).to.deep.equal(["object"])
-      const arrayType = fn([])
-      expect(arrayType).to.deep.equal(["array"])
-      const undefinedType = fn(undefined)
-      expect (undefinedType).to.deep.equal(["undefined"])
+    describe("type()", () => {
+      it("single value", () => {
+        const ctx = generateFunctionSource("$.type()")
+        expect(ctx.source).to.equal("return ƒ.type($)")
+        const fn = createFunction(ctx)
+        const nullType = fn(null)
+        expect(nullType).to.deep.equal(["null"])
+        const stringType = fn("matt")
+        expect(stringType).to.deep.equal(["string"])
+        const numberType = fn(77.6)
+        expect(numberType).to.deep.equal(["number"])
+        const booleanType = fn(true)
+        expect(booleanType).to.deep.equal(["boolean"])
+        const objectType = fn({})
+        expect(objectType).to.deep.equal(["object"])
+        const arrayType = fn([])
+        expect(arrayType).to.deep.equal(["array"])
+        const undefinedType = fn(undefined)
+        expect (undefinedType).to.deep.equal(["undefined"])
+      })
+
+      it("stream of values", () => {
+        const ctx = generateFunctionSource("$[*].type()")
+        // expect (ctx.source).to.equal("function")
+        const fn = createFunction(ctx)
+        const arrayTypes = fn([true, 1, "hi"])
+        expect(arrayTypes).to.deep.equal(["boolean", "number", "string"])
+      })
     })
 
     it("size()", () => {
