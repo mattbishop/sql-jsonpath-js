@@ -300,6 +300,14 @@ describe("Codegen tests", () => {
         expect(() => fn(707)).to.throw
         expect(() => fn(false)).to.throw
       })
+
+      it(".* stream values", () => {
+        const ctx = generateFunctionSource("$[*].*")
+        expect (ctx.source).to.equal("return ƒ.dotStar(ƒ.boxStar($))")
+        const fn = createFunction(ctx)
+        const arrayDates = fn([{"a": 1, "b": 2}, {"c": {d: "2"}}])
+        expect(arrayDates).to.deep.equal([1, 2, {d: "2"}])
+      })
     })
 
     describe("[*]", () => {
@@ -343,6 +351,14 @@ describe("Codegen tests", () => {
         expect(() => fn(9944.839)).to.throw
         expect(() => fn(true)).to.throw
         expect(() => fn({t: "shirt"})).to.throw
+      })
+
+      it("[*] stream values", () => {
+        const ctx = generateFunctionSource("$[*][*]")
+        expect (ctx.source).to.equal("return ƒ.boxStar(ƒ.boxStar($))")
+        const fn = createFunction(ctx)
+        const arrayDates = fn([[77, 88], [14, 16], [true, false], [["a", "b"]]])
+        expect(arrayDates).to.deep.equal([77, 88, 14, 16, true, false, ["a", "b"]])
       })
     })
   })
