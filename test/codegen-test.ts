@@ -77,37 +77,59 @@ describe("Codegen tests", () => {
       })
     })
 
-    it("size()", () => {
-      const ctx = generateFunctionSource("$.size()")
-      expect(ctx.source).to.equal("return ƒ.size($)")
-      const fn = createFunction(ctx)
-      const nullSize = fn(null)
-      expect(nullSize).to.deep.equal([1])
-      const stringSize = fn("matt")
-      expect(stringSize).to.deep.equal([1])
-      const numberSize = fn(77.6)
-      expect(numberSize).to.deep.equal([1])
-      const booleanSize = fn(true)
-      expect(booleanSize).to.deep.equal([1])
-      const objectSize = fn({})
-      expect(objectSize).to.deep.equal([1])
-      const arraySize = fn([1, 2, 3])
-      expect(arraySize).to.deep.equal([3])
+    describe("size()", () => {
+      it("single values", () => {
+        const ctx = generateFunctionSource("$.size()")
+        expect(ctx.source).to.equal("return ƒ.size($)")
+        const fn = createFunction(ctx)
+        const nullSize = fn(null)
+        expect(nullSize).to.deep.equal([1])
+        const stringSize = fn("matt")
+        expect(stringSize).to.deep.equal([1])
+        const numberSize = fn(77.6)
+        expect(numberSize).to.deep.equal([1])
+        const booleanSize = fn(true)
+        expect(booleanSize).to.deep.equal([1])
+        const objectSize = fn({})
+        expect(objectSize).to.deep.equal([1])
+        const arraySize = fn([1, 2, 3])
+        expect(arraySize).to.deep.equal([3])
+      })
+
+      it("stream of values", () => {
+        const ctx = generateFunctionSource("$[*].size()")
+        expect (ctx.source).to.equal("return ƒ.size(ƒ.boxStar($))")
+        const fn = createFunction(ctx)
+        const arrayTypes = fn([[1, 2, 3], [], ["a", "b"], true])
+        expect(arrayTypes).to.deep.equal([3, 0, 2, 1])
+      })
     })
 
-    it("double()", () => {
-      const ctx = generateFunctionSource("$.double()")
-      expect(ctx.source).to.equal("return ƒ.double($)")
-      const fn = createFunction(ctx)
-      const stringDouble = fn("45")
-      expect(stringDouble).to.deep.equal([45])
-      const numberDouble = fn(77.6)
-      expect(numberDouble).to.deep.equal([77.6])
-      expect(() => fn(null)).to.throw
-      expect(() => fn("bond")).to.throw
-      expect(() => fn(true)).to.throw
-      expect(() => fn({})).to.throw
-      expect(() => fn([])).to.throw
+    describe("double()", () => {
+      it ("single values", () => {
+        const ctx = generateFunctionSource("$.double()")
+        expect(ctx.source).to.equal("return ƒ.double($)")
+        const fn = createFunction(ctx)
+        let stringDouble = fn("45")
+        expect(stringDouble).to.deep.equal([45])
+        stringDouble = fn("9.1e7")
+        expect(stringDouble).to.deep.equal([91000000])
+        const numberDouble = fn(77.6)
+        expect(numberDouble).to.deep.equal([77.6])
+        expect(() => fn(null)).to.throw
+        expect(() => fn("bond")).to.throw
+        expect(() => fn(true)).to.throw
+        expect(() => fn({})).to.throw
+        expect(() => fn([])).to.throw
+      })
+
+      it("stream of values", () => {
+        const ctx = generateFunctionSource("$[*].double()")
+        expect (ctx.source).to.equal("return ƒ.double(ƒ.boxStar($))")
+        const fn = createFunction(ctx)
+        const arrayTypes = fn(["100", 289967, "-1.7e-4"])
+        expect(arrayTypes).to.deep.equal([100, 289967, -0.00017])
+      })
     })
 
     it("ceiling()", () => {
