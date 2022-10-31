@@ -70,7 +70,7 @@ describe("Codegen tests", () => {
 
       it("stream of values", () => {
         const ctx = generateFunctionSource("$[*].type()")
-        // expect (ctx.source).to.equal("function")
+        expect (ctx.source).to.equal("return ƒ.type(ƒ.boxStar($))")
         const fn = createFunction(ctx)
         const arrayTypes = fn([true, 1, "hi"])
         expect(arrayTypes).to.deep.equal(["boolean", "number", "string"])
