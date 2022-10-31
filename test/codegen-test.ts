@@ -132,30 +132,50 @@ describe("Codegen tests", () => {
       })
     })
 
-    it("ceiling()", () => {
-      const ctx = generateFunctionSource("$. ceiling ()")
-      expect(ctx.source).to.equal("return ƒ.ceiling($)")
-      const fn = createFunction(ctx)
-      const numberActual = fn(77.6)
-      expect(numberActual).to.deep.equal([78])
-      expect(() => fn(null)).to.throw
-      expect(() => fn("77.4")).to.throw
-      expect(() => fn(true)).to.throw
-      expect(() => fn({})).to.throw
-      expect(() => fn([])).to.throw
+    describe("ceiling()", () => {
+      it("single values", () => {
+        const ctx = generateFunctionSource("$. ceiling ()")
+        expect(ctx.source).to.equal("return ƒ.ceiling($)")
+        const fn = createFunction(ctx)
+        const numberActual = fn(77.6)
+        expect(numberActual).to.deep.equal([78])
+        expect(() => fn(null)).to.throw
+        expect(() => fn("77.4")).to.throw
+        expect(() => fn(true)).to.throw
+        expect(() => fn({})).to.throw
+        expect(() => fn([])).to.throw
+      })
+
+      it("stream of values", () => {
+        const ctx = generateFunctionSource("$[*].ceiling()")
+        expect (ctx.source).to.equal("return ƒ.ceiling(ƒ.boxStar($))")
+        const fn = createFunction(ctx)
+        const arrayTypes = fn([1.1, 9.9, -1.7e-4])
+        expect(arrayTypes).to.deep.equal([2, 10, -0])
+      })
     })
 
-    it("abs()", () => {
-      const ctx = generateFunctionSource("$ .abs (  )")
-      expect(ctx.source).to.equal("return ƒ.abs($)")
-      const fn = createFunction(ctx)
-      const numberActual = fn(-440.33)
-      expect(numberActual).to.deep.equal([440.33])
-      expect(() => fn(null)).to.throw
-      expect(() => fn("1977")).to.throw
-      expect(() => fn(true)).to.throw
-      expect(() => fn({})).to.throw
-      expect(() => fn([])).to.throw
+    describe("abs()", () => {
+      it("single values", () => {
+        const ctx = generateFunctionSource("$ .abs (  )")
+        expect(ctx.source).to.equal("return ƒ.abs($)")
+        const fn = createFunction(ctx)
+        const numberActual = fn(-440.33)
+        expect(numberActual).to.deep.equal([440.33])
+        expect(() => fn(null)).to.throw
+        expect(() => fn("1977")).to.throw
+        expect(() => fn(true)).to.throw
+        expect(() => fn({})).to.throw
+        expect(() => fn([])).to.throw
+      })
+
+      it("stream of values", () => {
+        const ctx = generateFunctionSource("$[*].abs()")
+        expect (ctx.source).to.equal("return ƒ.abs(ƒ.boxStar($))")
+        const fn = createFunction(ctx)
+        const arrayTypes = fn([33, -11, 9.1, -1.7e-4])
+        expect(arrayTypes).to.deep.equal([33, 11, 9.1, 0.00017])
+      })
     })
 
     describe("keyvalue()", () => {
