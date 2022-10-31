@@ -1,12 +1,7 @@
 import {iterate} from "iterare"
 import {IteratorWithOperators} from "iterare/lib/iterate"
 import {DateTime, FixedOffsetZone} from "luxon"
-import XRegExp from "xregexp"
 import {KeyValue} from "./json-path"
-
-
-// SQL JSONPath doesn't support unicode natively
-XRegExp.uninstall({astral: true})
 
 
 const EMPTY = iterate(Object.freeze([]))
@@ -437,12 +432,10 @@ export class FnBase {
   }
 
 
-  like(input: any, pattern: string, flags?: string): Pred {
+  like(input: any, pattern: RegExp): Pred {
     const type = _type(input)
     if (type === "string") {
-      // XRegExp has an internal cache
-      const regex = XRegExp(pattern, flags)
-      return _toPred(regex.test(input))
+      return _toPred(pattern.test(input))
     }
     return Pred.UNKNOWN
   }

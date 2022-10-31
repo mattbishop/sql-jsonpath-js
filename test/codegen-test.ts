@@ -525,7 +525,7 @@ describe("Codegen tests", () => {
     describe("can filter 'like_regex' predicates", () => {
       it("without flags", () => {
         const ctx = generateFunctionSource("$ ? (@ like_regex \"\\\\d+\")")
-        expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.like(v,\"\\\\d+\"))")
+        expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.like(v,/\\d+/))")
         const fn = createFunction(ctx)
         const actual = fn(["8854", "bear"])
         expect(actual).to.deep.equal(["8854"])
@@ -533,7 +533,7 @@ describe("Codegen tests", () => {
 
       it("with flags", () => {
         const ctx = generateFunctionSource("$ ? (@ like_regex \"court\" flag \"i\")")
-        expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.like(v,\"court\",\"i\"))")
+        expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.like(v,/court/i))")
         const fn = createFunction(ctx)
         const actual = fn(["cOuRt", "COURT", 17])
         expect(actual).to.deep.equal(["cOuRt", "COURT"])
