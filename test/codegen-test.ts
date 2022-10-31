@@ -255,6 +255,14 @@ describe("Codegen tests", () => {
         const actualDate = fn("2•21•1900@3#35#19+8")
         expect(actualDate[0].getTime()).to.equal(new Date("1900-02-21 3:35:19+8").getTime())
       })
+
+      it("handles date streams", () => {
+        const ctx = generateFunctionSource("$[*].datetime()")
+        expect (ctx.source).to.equal("return ƒ.datetime(ƒ.boxStar($))")
+        const fn = createFunction(ctx)
+        const arrayDates = fn(["2022-06-15", "2020-01-01 2:27:12+8"])
+        expect(arrayDates).to.deep.equal([new Date("2022-06-15"), new Date("2020-01-01 2:27:12+8")])
+      })
     })
   })
 
