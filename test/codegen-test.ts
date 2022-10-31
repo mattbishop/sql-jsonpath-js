@@ -423,6 +423,14 @@ describe("Codegen tests", () => {
       expect(() => fn(707)).to.throw
       expect(() => fn(true)).to.throw
     })
+
+    it("supports stream values", () => {
+      const ctx = generateFunctionSource("$[*].a")
+      expect (ctx.source).to.equal("return ƒ.member(ƒ.boxStar($),\"a\")")
+      const fn = createFunction(ctx)
+      const arrayDates = fn([{a: 1}, {a: 2}, {a: {a: 5}}])
+      expect(arrayDates).to.deep.equal([1, 2, {a: 5}])
+    })
   })
 
   describe("array accessor", () => {
