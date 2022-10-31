@@ -27,7 +27,7 @@ function _type(primary: any): string {
 }
 
 function _mustBeNumber(input: any, method: string): number {
-  if (typeof input === "number") {
+  if (_type(input) === "number") {
     return input
   }
 
@@ -35,7 +35,7 @@ function _mustBeNumber(input: any, method: string): number {
   if (input instanceof IteratorWithOperators) {
     num = input.next().value
   }
-  if (typeof num === "number") {
+  if (_type(num) === "number") {
     return num
   }
   throw new Error(`${method} param must be a number, found ${JSON.stringify(input)}.`)
@@ -141,7 +141,7 @@ export class FnBase {
 
 
   private _datetime(input: any, template?: string): Date {
-    if (typeof input !== "string") {
+    if (_type(input) !== "string") {
       throw new Error(`datetime() param must be a string, found ${JSON.stringify(input)}.`)
     }
     return template
@@ -290,7 +290,7 @@ export class FnBase {
   private _array(array: any, subscripts: any[]): IteratorWithOperators<any> {
     const values = iterate(subscripts)
       .map((s) => {
-        if (typeof s === "number") {
+        if (_type(s) === "number") {
           return this._maybeElement(array, s)
         }
         if (s instanceof IteratorWithOperators) {
