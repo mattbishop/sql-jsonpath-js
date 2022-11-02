@@ -487,8 +487,10 @@ describe("Codegen tests", () => {
       const ctx = generateFunctionSource("$.phones[0]")
       expect(ctx.source).to.equal("return ƒ.array(ƒ.pa(ƒ.member($,\"phones\")),[0])")
       const fn = createFunction(ctx)
-      const data = [ { name: "Fred", phones: [ "372-0453", "558-9345"] },
-          { name: "Manjit", phones: "906-2051" } ]
+      const data = [
+        { name: "Fred", phones: [ "372-0453", "558-9345"] },
+        { name: "Manjit", phones: "906-2051" }
+      ]
       const actual = fn(data)
       expect(actual).to.deep.equal(["372-0453", "906-2051"])
     })
@@ -497,8 +499,10 @@ describe("Codegen tests", () => {
       const ctx = generateFunctionSource("strict $.phones.type")
       expect(ctx.source).to.equal("return ƒ.member(ƒ.member($,\"phones\"),\"type\")")
       const fn = createFunction(ctx)
-      const data = { name: "Fred", phones: [ { type: "home", number: "372-0453" },
-          { type: "work", number: "506-2051" } ] }
+      const data = { name: "Fred", phones: [
+        { type: "home", number: "372-0453" },
+        { type: "work", number: "506-2051" }
+      ] }
       expect(() => fn(data)).to.throw
     })
 
@@ -616,6 +620,14 @@ describe("Codegen tests", () => {
       const fn = createFunction(ctx)
       const actual = fn(["apple", "orange", "argon"])
       expect(actual).to.deep.equal(["apple", "argon"])
+    })
+
+    it("can filter streaming 'starts with' predicates", () => {
+      const ctx = generateFunctionSource("$ ? (@[*] starts with \"m\")")
+      expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.startsWith(ƒ.boxStar(v),\"m\"))")
+      const fn = createFunction(ctx)
+      const actual = fn([["matt"], ["mark", "mary", "arjun"], ["abby"]])
+      expect(actual).to.deep.equal([["matt"], ["mark", "mary", "arjun"]])
     })
 
     describe("can filter 'like_regex' predicates", () => {

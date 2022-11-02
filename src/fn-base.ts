@@ -14,7 +14,7 @@ enum Pred {
 
 type Mapƒ<T> = (input: any) => T
 
-type Predƒ = Mapƒ<Pred>
+type Predƒ = Mapƒ<SingleOrIterator<Pred>>
 
 
 // Lives outside of class so function refs can use this without bind(this)
@@ -61,7 +61,7 @@ export class FnBase {
     this.lax = lax
   }
 
-  private _autoMapWithFlatten<I extends IteratorWithOperators<unknown>>(input: any, mapƒ: Mapƒ<I>): I {
+  private _autoFlatMap<I extends IteratorWithOperators<unknown>>(input: any, mapƒ: Mapƒ<I>): I {
     const mapped = this._autoMap(input, mapƒ) as I
     return input instanceof IteratorWithOperators
       ? mapped.flatten() as I
@@ -174,7 +174,7 @@ export class FnBase {
       }
       return this._toKV(row, id++)
     }
-    return this._autoMapWithFlatten(input, mapƒ)
+    return this._autoFlatMap(input, mapƒ)
   }
 
 
@@ -197,7 +197,7 @@ export class FnBase {
   }
 
   dotStar(input: any): IteratorWithOperators<any> {
-    return this._autoMapWithFlatten(input, (i) => this._dotStar(i))
+    return this._autoFlatMap(input, (i) => this._dotStar(i))
   }
 
 
@@ -212,7 +212,7 @@ export class FnBase {
   }
 
   boxStar(input: any): IteratorWithOperators<any> {
-    return this._autoMapWithFlatten(input, (i) => this._boxStar(i))
+    return this._autoFlatMap(input, (i) => this._boxStar(i))
   }
 
 
@@ -294,7 +294,7 @@ export class FnBase {
   }
 
   array(input: any, subscripts: any[]): IteratorWithOperators<any> {
-    return this._autoMapWithFlatten(input, (i) => this._array(i, subscripts))
+    return this._autoFlatMap(input, (i) => this._array(i, subscripts))
   }
 
 
@@ -319,7 +319,11 @@ export class FnBase {
 
   private _filter(filterExp: Predƒ, input: any): boolean {
     try {
-      return filterExp(input) === Pred.TRUE
+      const result = filterExp(input)
+      const pred = result instanceof IteratorWithOperators
+        ? result.next().value
+        : result
+      return pred === Pred.TRUE
     } catch (e) {
       return false
     }
@@ -415,11 +419,14 @@ export class FnBase {
   }
 
 
-  startsWith(input: any, start: string): Pred {
-    const type = _type(input)
-    return type === "string"
+  private _startsWith(input: any, start: string): Pred {
+    return _type(input) === "string"
       ? _toPred(input.startsWith(start))
       : Pred.UNKNOWN
+  }
+
+  startsWith(input: any, start: string): SingleOrIterator<Pred> {
+    return this._autoMap(input, (i) => this._startsWith(i, start))
   }
 
 
