@@ -626,8 +626,8 @@ describe("Codegen tests", () => {
       const ctx = generateFunctionSource("$ ? (@[*] starts with \"m\")")
       expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.startsWith(ƒ.boxStar(v),\"m\"))")
       const fn = createFunction(ctx)
-      const actual = fn([["matt"], ["mark", "mary", "arjun"], ["abby"]])
-      expect(actual).to.deep.equal([["matt"], ["mark", "mary", "arjun"]])
+      const actual = fn([["matt"], ["arjun", "mark", "mary"], ["abby"]])
+      expect(actual).to.deep.equal([["matt"], ["arjun", "mark", "mary"]])
     })
 
     describe("can filter 'like_regex' predicates", () => {

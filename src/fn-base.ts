@@ -320,11 +320,12 @@ export class FnBase {
   private _filter(filterExp: Predƒ, input: any): boolean {
     try {
       const result = filterExp(input)
-      const pred = result instanceof IteratorWithOperators
-        ? result.next().value
-        : result
-      return pred === Pred.TRUE
+      // look for at least one Pred.TRUE in the iterator
+      return result instanceof IteratorWithOperators
+        ? result.includes(Pred.TRUE)
+        : result === Pred.TRUE
     } catch (e) {
+      // filter silently consumes all errors
       return false
     }
   }
