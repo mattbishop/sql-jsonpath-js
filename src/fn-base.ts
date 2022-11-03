@@ -342,7 +342,7 @@ export class FnBase {
   }
 
 
-  compare(compOp: string, left: any, right: any): Pred {
+  private _compare(compOp: string, left: any, right: any): Pred {
     // check that left and right can be compared
     const typeLeft = _type(left)
     const typeRight = _type(right)
@@ -364,6 +364,10 @@ export class FnBase {
       }
     }
     return Pred.UNKNOWN
+  }
+
+  compare(compOp: string, left: any, right: any): SingleOrIterator<Pred> {
+    return this._autoMap(left, (l) => this._compare(compOp, l, right))
   }
 
 
@@ -415,8 +419,12 @@ export class FnBase {
 
     Because species == string cannot be tested true or false, where "bird" can be tested as false
    */
-  isUnknown(input: Pred): Pred {
+  private _isUnknown(input: Pred): Pred {
     return _toPred(input === Pred.UNKNOWN)
+  }
+
+  isUnknown(input: SingleOrIterator<Pred>): SingleOrIterator<Pred> {
+    return this._autoMap(input, (i) => this._isUnknown(i))
   }
 
 

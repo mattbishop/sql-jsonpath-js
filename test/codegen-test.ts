@@ -566,12 +566,22 @@ describe("Codegen tests", () => {
   })
 
   describe("filter", () => {
-    it("can filter comparison predicates", () => {
-      const ctx = generateFunctionSource("$ ? (@ == 1)")
-      expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.compare(\"==\",v,1))")
-      const fn = createFunction(ctx)
-      const actual = fn(1)
-      expect(actual).to.deep.equal([1])
+    describe("compare", () => {
+      it("can filter comparison predicates", () => {
+        const ctx = generateFunctionSource("$ ? (@ == 1)")
+        expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.compare(\"==\",v,1))")
+        const fn = createFunction(ctx)
+        const actual = fn(1)
+        expect(actual).to.deep.equal([1])
+      })
+
+      it("can filter comparison predicate iterators", () => {
+        const ctx = generateFunctionSource("$ ? (@[*] == 1)")
+        expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.compare(\"==\",ƒ.boxStar(v),1))")
+        const fn = createFunction(ctx)
+        const actual = fn([[1], [21, 7], [5, 1]])
+        expect(actual).to.deep.equal([[1], [5, 1]])
+      })
     })
 
     it("can filter value accessor predicates", () => {
@@ -598,12 +608,22 @@ describe("Codegen tests", () => {
       expect(actual).to.deep.equal([121.2])
     })
 
-    it("can filter 'is unknown' predicates", () => {
-      const ctx = generateFunctionSource("$ ? ((@.sleepy == true) is unknown)")
-      expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.isUnknown(ƒ.compare(\"==\",ƒ.member(v,\"sleepy\"),true)))")
-      const fn = createFunction(ctx)
-      const actual = fn([{sleepy: 77},{sleepy: true}, {sleepy: false}, {sleepy: "yes"}])
-      expect(actual).to.deep.equal([{sleepy: 77}, {sleepy: "yes"}])
+    describe("'is unknown'", () => {
+      it("can filter 'is unknown' predicates", () => {
+        const ctx = generateFunctionSource("$ ? ((@.sleepy == true) is unknown)")
+        expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.isUnknown(ƒ.compare(\"==\",ƒ.member(v,\"sleepy\"),true)))")
+        const fn = createFunction(ctx)
+        const actual = fn([{sleepy: 77},{sleepy: true}, {sleepy: false}, {sleepy: "yes"}])
+        expect(actual).to.deep.equal([{sleepy: 77}, {sleepy: "yes"}])
+      })
+
+      it("can filter 'is unknown' predicate iterators", () => {
+        const ctx = generateFunctionSource("$ ? ((@[*] == true) is unknown)")
+        expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.isUnknown(ƒ.compare(\"==\",ƒ.boxStar(v),true)))")
+        const fn = createFunction(ctx)
+        const actual = fn([[false, 100], [true], ["baby", true, {"g": 22}]])
+        expect(actual).to.deep.equal([[false, 100], ["baby", true, {"g": 22}]])
+      })
     })
 
     it("can filter multiple predicates with && and ||", () => {
