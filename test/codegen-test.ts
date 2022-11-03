@@ -653,7 +653,7 @@ describe("Codegen tests", () => {
     describe("can filter 'like_regex' predicates", () => {
       it("without flags", () => {
         const ctx = generateFunctionSource("$ ? (@ like_regex \"\\\\d+\")")
-        expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.like(v,/\\d+/))")
+        expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.match(v,/\\d+/))")
         const fn = createFunction(ctx)
         const actual = fn(["8854", "bear"])
         expect(actual).to.deep.equal(["8854"])
@@ -661,7 +661,7 @@ describe("Codegen tests", () => {
 
       it("with flags", () => {
         const ctx = generateFunctionSource("$ ? (@ like_regex \"court\" flag \"i\")")
-        expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.like(v,/court/i))")
+        expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.match(v,/court/i))")
         const fn = createFunction(ctx)
         const actual = fn(["cOuRt", "COURT", 17])
         expect(actual).to.deep.equal(["cOuRt", "COURT"])
@@ -669,7 +669,7 @@ describe("Codegen tests", () => {
 
       it("can filter an iterator of values", () => {
         const ctx = generateFunctionSource("$ ? (@[*] like_regex \"\\\\d+\")")
-        expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.like(ƒ.boxStar(v),/\\d+/))")
+        expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.match(ƒ.boxStar(v),/\\d+/))")
         const fn = createFunction(ctx)
         const actual = fn([true, ["bear", "8854"], ["not a number"], ["1", "-2"]])
         expect(actual).to.deep.equal([["bear", "8854"], ["1", "-2"]])

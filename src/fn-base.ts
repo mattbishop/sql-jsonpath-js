@@ -439,13 +439,13 @@ export class FnBase {
   }
 
 
-  private _like(input: any, pattern: RegExp): Pred {
+  private _match(input: any, pattern: RegExp): Pred {
     return _type(input) === "string"
       ? _toPred(pattern.test(input))
       : Pred.UNKNOWN
   }
 
-  like(input:any, pattern: RegExp): SingleOrIterator<Pred> {
-    return this._autoMap(input, (i) => this._like(i, pattern))
+  match(input:any, pattern: RegExp): SingleOrIterator<Pred> {
+    return this._autoMap(input, (i) => this._match(i, pattern))
   }
 }
