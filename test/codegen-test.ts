@@ -647,6 +647,14 @@ describe("Codegen tests", () => {
         expect(actual).to.deep.equal(["cOuRt", "COURT"])
       })
 
+      it("streaming like_regex", () => {
+        const ctx = generateFunctionSource("$ ? (@[*] like_regex \"\\\\d+\")")
+        expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.like(ƒ.boxStar(v),/\\d+/))")
+        const fn = createFunction(ctx)
+        const actual = fn([true, ["bear", "8854"], ["not a number"], ["1", "-2"]])
+        expect(actual).to.deep.equal([["bear", "8854"], ["1", "-2"]])
+      })
+
       it("with wrong flags", () => {
         expect(() => generateFunctionSource("$ ? (@ like_regex \"court\" flag \"not\")")).to.throw
       })
