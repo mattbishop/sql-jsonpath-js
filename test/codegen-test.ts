@@ -634,20 +634,22 @@ describe("Codegen tests", () => {
       expect(actual).to.deep.equal([{a: 1, c: "hi"}, {b: 2, c: "hi"}, {b: 3, c: "hi"}])
     })
 
-    it("can filter 'starts with' predicates", () => {
-      const ctx = generateFunctionSource("$ ? (@ starts with \"a\")")
-      expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.startsWith(v,\"a\"))")
-      const fn = createFunction(ctx)
-      const actual = fn(["apple", "orange", "argon"])
-      expect(actual).to.deep.equal(["apple", "argon"])
-    })
+    describe("starts with", () => {
+      it("can filter 'starts with' predicates", () => {
+        const ctx = generateFunctionSource("$ ? (@ starts with \"a\")")
+        expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.startsWith(v,\"a\"))")
+        const fn = createFunction(ctx)
+        const actual = fn(["apple", "orange", "argon"])
+        expect(actual).to.deep.equal(["apple", "argon"])
+      })
 
-    it("can filter iterator values", () => {
-      const ctx = generateFunctionSource("$ ? (@[*] starts with \"m\")")
-      expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.startsWith(ƒ.boxStar(v),\"m\"))")
-      const fn = createFunction(ctx)
-      const actual = fn([["matt"], ["arjun", "mark", "mary"], ["abby"]])
-      expect(actual).to.deep.equal([["matt"], ["arjun", "mark", "mary"]])
+      it("can filter iterator values", () => {
+        const ctx = generateFunctionSource("$ ? (@[*] starts with \"m\")")
+        expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.startsWith(ƒ.boxStar(v),\"m\"))")
+        const fn = createFunction(ctx)
+        const actual = fn([["matt"], ["arjun", "mark", "mary"], ["abby"]])
+        expect(actual).to.deep.equal([["matt"], ["arjun", "mark", "mary"]])
+      })
     })
 
     describe("can filter 'like_regex' predicates", () => {

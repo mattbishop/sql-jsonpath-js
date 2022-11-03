@@ -348,7 +348,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
         }
         fnSource += flags
       }
-      return {...ctx, source: `ƒ.like(${fnSource})`}
+      return {...ctx, source: `ƒ.match(${fnSource})`}
     }
 
 
