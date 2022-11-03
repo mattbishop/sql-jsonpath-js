@@ -68,7 +68,7 @@ describe("Codegen tests", () => {
         expect (undefinedType).to.deep.equal(["undefined"])
       })
 
-      it("stream of values", () => {
+      it("iterator of values", () => {
         const ctx = generateFunctionSource("$[*].type()")
         expect (ctx.source).to.equal("return ƒ.type(ƒ.boxStar($))")
         const fn = createFunction(ctx)
@@ -96,7 +96,7 @@ describe("Codegen tests", () => {
         expect(arraySize).to.deep.equal([3])
       })
 
-      it("stream of values", () => {
+      it("iterator of values", () => {
         const ctx = generateFunctionSource("$[*].size()")
         expect (ctx.source).to.equal("return ƒ.size(ƒ.boxStar($))")
         const fn = createFunction(ctx)
@@ -123,7 +123,7 @@ describe("Codegen tests", () => {
         expect(() => fn([])).to.throw
       })
 
-      it("stream of values", () => {
+      it("iterator of values", () => {
         const ctx = generateFunctionSource("$[*].double()")
         expect (ctx.source).to.equal("return ƒ.double(ƒ.boxStar($))")
         const fn = createFunction(ctx)
@@ -146,7 +146,7 @@ describe("Codegen tests", () => {
         expect(() => fn([])).to.throw
       })
 
-      it("stream of values", () => {
+      it("iterator of values", () => {
         const ctx = generateFunctionSource("$[*].ceiling()")
         expect (ctx.source).to.equal("return ƒ.ceiling(ƒ.boxStar($))")
         const fn = createFunction(ctx)
@@ -169,7 +169,7 @@ describe("Codegen tests", () => {
         expect(() => fn([])).to.throw
       })
 
-      it("stream of values", () => {
+      it("iterator of values", () => {
         const ctx = generateFunctionSource("$[*].abs()")
         expect (ctx.source).to.equal("return ƒ.abs(ƒ.boxStar($))")
         const fn = createFunction(ctx)
@@ -218,7 +218,7 @@ describe("Codegen tests", () => {
         expect(() => fn([])).to.throw
       })
 
-      it("stream of keyvalue", () => {
+      it("iterator of keyvalue", () => {
         const ctx = generateFunctionSource("$[*].keyvalue()")
         expect (ctx.source).to.equal("return ƒ.keyvalue(ƒ.boxStar($))")
         const fn = createFunction(ctx)
@@ -256,7 +256,7 @@ describe("Codegen tests", () => {
         expect(actualDate[0].getTime()).to.equal(new Date("1900-02-21 3:35:19+8").getTime())
       })
 
-      it("handles date streams", () => {
+      it("handles date iterators", () => {
         const ctx = generateFunctionSource("$[*].datetime()")
         expect (ctx.source).to.equal("return ƒ.datetime(ƒ.boxStar($))")
         const fn = createFunction(ctx)
@@ -301,7 +301,7 @@ describe("Codegen tests", () => {
         expect(() => fn(false)).to.throw
       })
 
-      it(".* stream values", () => {
+      it(".* iterator values", () => {
         const ctx = generateFunctionSource("$[*].*")
         expect (ctx.source).to.equal("return ƒ.dotStar(ƒ.boxStar($))")
         const fn = createFunction(ctx)
@@ -353,7 +353,7 @@ describe("Codegen tests", () => {
         expect(() => fn({t: "shirt"})).to.throw
       })
 
-      it("[*] stream values", () => {
+      it("[*] iterator values", () => {
         const ctx = generateFunctionSource("$[*][*]")
         expect (ctx.source).to.equal("return ƒ.boxStar(ƒ.boxStar($))")
         const fn = createFunction(ctx)
@@ -424,7 +424,7 @@ describe("Codegen tests", () => {
       expect(() => fn(true)).to.throw
     })
 
-    it("supports stream values", () => {
+    it("supports iterator values", () => {
       const ctx = generateFunctionSource("$[*].a")
       expect (ctx.source).to.equal("return ƒ.member(ƒ.boxStar($),\"a\")")
       const fn = createFunction(ctx)
@@ -622,7 +622,7 @@ describe("Codegen tests", () => {
       expect(actual).to.deep.equal(["apple", "argon"])
     })
 
-    it("can filter streaming 'starts with' predicates", () => {
+    it("can filter iterator values", () => {
       const ctx = generateFunctionSource("$ ? (@[*] starts with \"m\")")
       expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.startsWith(ƒ.boxStar(v),\"m\"))")
       const fn = createFunction(ctx)
@@ -647,7 +647,7 @@ describe("Codegen tests", () => {
         expect(actual).to.deep.equal(["cOuRt", "COURT"])
       })
 
-      it("streaming like_regex", () => {
+      it("can filter an iterator of values", () => {
         const ctx = generateFunctionSource("$ ? (@[*] like_regex \"\\\\d+\")")
         expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.like(ƒ.boxStar(v),/\\d+/))")
         const fn = createFunction(ctx)
