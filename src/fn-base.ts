@@ -31,10 +31,7 @@ function _mustBeNumber(input: any, method: string): number {
     return input
   }
 
-  let num
-  if (input instanceof IteratorWithOperators) {
-    num = input.next().value
-  }
+  const num = input.next()?.value
   if (_type(num) === "number") {
     return num
   }
@@ -248,7 +245,7 @@ export class FnBase {
 
 
   // called to set the array for the accessor statements to use it before going into array()
-  pa(a: any) {
+  a(a: any) {
     if (!Array.isArray(a)) {
       if (this.lax) {
         // lax mode auto-wraps things that are not an array

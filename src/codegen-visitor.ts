@@ -233,7 +233,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       const {source: primary} = ctx
       const subscripts = subscript
         .map((s) => this.visit(s, {...ctx, source: ""}).source)
-      return {...ctx, source: `ƒ.array(ƒ.pa(${primary}),[${subscripts}])`}
+      return {...ctx, source: `ƒ.array(ƒ.a(${primary}),[${subscripts}])`}
     }
 
 

@@ -437,7 +437,7 @@ describe("Codegen tests", () => {
     it("single elements", () => {
       // tests $.size() which is out of bounds, but in lax mode, ignores the access
       const ctx = generateFunctionSource("$[0,4,last,$.size()]")
-      expect(ctx.source).to.equal("return ƒ.array(ƒ.pa($),[0,4,ƒ.last(),ƒ.size($)])")
+      expect(ctx.source).to.equal("return ƒ.array(ƒ.a($),[0,4,ƒ.last(),ƒ.size($)])")
       const fn = createFunction(ctx)
       const actualArray = fn(["a", "b", "c", "d", [66,77], "f", "g", "h"])
       expect(actualArray).to.deep.equal(["a", [66,77], "h"])
@@ -445,14 +445,14 @@ describe("Codegen tests", () => {
 
     it("rejects out-of-bounds array access in strict mode", () => {
       const ctx = generateFunctionSource("strict $[100]")
-      expect(ctx.source).to.equal("return ƒ.array(ƒ.pa($),[100])")
+      expect(ctx.source).to.equal("return ƒ.array(ƒ.a($),[100])")
       const fn = createFunction(ctx)
       expect(() => fn(["tea", "Cookies"])).to.throw
     })
 
     it("auto-wraps non-arrays in lax mode", () => {
       const ctx = generateFunctionSource("$[last]")
-      expect(ctx.source).to.equal("return ƒ.array(ƒ.pa($),[ƒ.last()])")
+      expect(ctx.source).to.equal("return ƒ.array(ƒ.a($),[ƒ.last()])")
       const fn = createFunction(ctx)
       const actualArray = fn("coffee")
       expect(actualArray).to.deep.equal(["coffee"])
@@ -460,14 +460,14 @@ describe("Codegen tests", () => {
 
     it("rejects non-arrays in strict mode", () => {
       const ctx = generateFunctionSource("strict $[last]")
-      expect(ctx.source).to.equal("return ƒ.array(ƒ.pa($),[ƒ.last()])")
+      expect(ctx.source).to.equal("return ƒ.array(ƒ.a($),[ƒ.last()])")
       const fn = createFunction(ctx)
       expect(() => fn("tea")).to.throw
     })
 
     it("range elements", () => {
       const ctx = generateFunctionSource("$[1 to 3]")
-      expect(ctx.source).to.equal("return ƒ.array(ƒ.pa($),[ƒ.range(1,3)])")
+      expect(ctx.source).to.equal("return ƒ.array(ƒ.a($),[ƒ.range(1,3)])")
       const fn = createFunction(ctx)
       const actualArray = fn(["a", "b", "c", "d", [66,77]])
       expect(actualArray).to.deep.equal(["b", "c", "d"])
@@ -485,7 +485,7 @@ describe("Codegen tests", () => {
 
     it("nested array unwrapping", () => {
       const ctx = generateFunctionSource("$.phones[0]")
-      expect(ctx.source).to.equal("return ƒ.array(ƒ.pa(ƒ.member($,\"phones\")),[0])")
+      expect(ctx.source).to.equal("return ƒ.array(ƒ.a(ƒ.member($,\"phones\")),[0])")
       const fn = createFunction(ctx)
       const data = [
         { name: "Fred", phones: [ "372-0453", "558-9345"] },
@@ -508,7 +508,7 @@ describe("Codegen tests", () => {
 
     it("nested elements", () => {
       const ctx = generateFunctionSource("$[0,$[last][1]]")
-      expect(ctx.source).to.equal("return ƒ.array(ƒ.pa($),[0,ƒ.array(ƒ.pa(ƒ.array(ƒ.pa($),[ƒ.last()])),[1])])")
+      expect(ctx.source).to.equal("return ƒ.array(ƒ.a($),[0,ƒ.array(ƒ.a(ƒ.array(ƒ.a($),[ƒ.last()])),[1])])")
       const fn = createFunction(ctx)
       const actualArray = fn([27, "testy", true, [1, 2]])
       expect(actualArray).to.deep.equal([27, true])
@@ -550,7 +550,7 @@ describe("Codegen tests", () => {
 
     it("can divide by a function", () => {
       const ctx = generateFunctionSource("$[0] / $.size()")
-      expect(ctx.source).to.equal("return ƒ.num(ƒ.array(ƒ.pa($),[0]))/ƒ.num(ƒ.size($))")
+      expect(ctx.source).to.equal("return ƒ.num(ƒ.array(ƒ.a($),[0]))/ƒ.num(ƒ.size($))")
       const fn = createFunction(ctx)
       const actualNumber = fn([20, 0])
       expect(actualNumber).to.deep.equal([10])
@@ -558,7 +558,7 @@ describe("Codegen tests", () => {
 
     it("chain arithmetic statements", () => {
       const ctx = generateFunctionSource("$[0] / ($.size() + 2)")
-      expect(ctx.source).to.equal("return ƒ.num(ƒ.array(ƒ.pa($),[0]))/ƒ.num((ƒ.num(ƒ.size($))+ƒ.num(2)))")
+      expect(ctx.source).to.equal("return ƒ.num(ƒ.array(ƒ.a($),[0]))/ƒ.num((ƒ.num(ƒ.size($))+ƒ.num(2)))")
       const fn = createFunction(ctx)
       const actualNumber = fn([20, 0])
       expect(actualNumber).to.deep.equal([5])
