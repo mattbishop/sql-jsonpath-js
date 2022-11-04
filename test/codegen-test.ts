@@ -592,20 +592,30 @@ describe("Codegen tests", () => {
       expect(actual).to.deep.equal([{sleepy: true}])
     })
 
-    it("can filter 'exists' predicates on members", () => {
-      const ctx = generateFunctionSource("strict $ ? (exists(@.z))")
-      expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.exists(()=>(ƒ.member(v,\"z\"))))")
-      const fn = createFunction(ctx)
-      const actual = fn([{z: true}, {y: false}, {a: "yes"}])
-      expect(actual).to.deep.equal([{z: true}])
-    })
+    describe("exists", () => {
+      it("can filter predicates on members", () => {
+        const ctx = generateFunctionSource("strict $ ? (exists(@.z))")
+        expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.exists(()=>(ƒ.member(v,\"z\"))))")
+        const fn = createFunction(ctx)
+        const actual = fn([{z: true}, {y: false}, {a: "yes"}])
+        expect(actual).to.deep.equal([{z: true}])
+      })
 
-    it("can filter 'exists' predicates and extract members", () => {
-      const ctx = generateFunctionSource("strict $ ? (exists(@.z)).z")
-      expect(ctx.source).to.equal("return ƒ.member(ƒ.filter($,v=>ƒ.exists(()=>(ƒ.member(v,\"z\")))),\"z\")")
-      const fn = createFunction(ctx)
-      const actual = fn([{z: 121.2}, {y: -99.828}, {a: "yes"}])
-      expect(actual).to.deep.equal([121.2])
+      it("can filter predicates and extract members", () => {
+        const ctx = generateFunctionSource("strict $ ? (exists(@.z)).z")
+        expect(ctx.source).to.equal("return ƒ.member(ƒ.filter($,v=>ƒ.exists(()=>(ƒ.member(v,\"z\")))),\"z\")")
+        const fn = createFunction(ctx)
+        const actual = fn([{z: 121.2}, {y: -99.828}, {a: "yes"}])
+        expect(actual).to.deep.equal([121.2])
+      })
+
+      it("can filter predicate iterators", () => {
+        const ctx = generateFunctionSource("$ ? (exists(@[*].z))")
+        expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.exists(()=>(ƒ.member(ƒ.boxStar(v),\"z\"))))")
+        const fn = createFunction(ctx)
+        const actual = fn([[{z: true}, {y: false}], [{a: "yes"}], [{q: 6, z: 1}]])
+        expect(actual).to.deep.equal([[{z: true}, {y: false}], [{q: 6, z: 1}]])
+      })
     })
 
     describe("'is unknown'", () => {

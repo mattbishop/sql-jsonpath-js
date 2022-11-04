@@ -394,9 +394,16 @@ export class FnBase {
   exists(wff: () => SingleOrIterator<any>): Pred {
     try {
       const seq = wff()
-      const exists = seq instanceof IteratorWithOperators
-        ? !!seq.next().done
-        : seq !== EMPTY
+      let value
+      if (seq instanceof IteratorWithOperators) {
+        const next = seq.next()
+        value = next.done
+          ? EMPTY
+          : next.value
+      } else {
+        value = seq
+      }
+      const exists = value !== EMPTY
       return _toPred(exists)
     } catch (e) {
       return Pred.UNKNOWN
