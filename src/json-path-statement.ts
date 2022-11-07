@@ -2,7 +2,7 @@ import {Lexer} from "chevrotain"
 import {iterate} from "iterare"
 import {IteratorWithOperators} from "iterare/lib/iterate"
 import {isIterable} from "iterare/lib/utils"
-import {newCodegenVisitor} from "./codegen-visitor"
+import {CodegenContext, newCodegenVisitor} from "./codegen-visitor"
 import {FnBase} from "./fn-base"
 import {Input, NamedVariables, SqlJsonPathStatement, ValueConfig} from "./json-path"
 import {JsonPathParser} from "./parser"
@@ -14,7 +14,7 @@ const parser = new JsonPathParser()
 const codegenVisitor = newCodegenVisitor(parser.getBaseCstVisitorConstructor())
 
 
-export function createStatement(text: string): SqlJsonPathStatement {
+export function generateFunctionSource(text: string): CodegenContext {
   const {tokens, errors} = jsonPathLexer.tokenize(text)
 
   if (errors?.length) {
@@ -29,26 +29,38 @@ export function createStatement(text: string): SqlJsonPathStatement {
     throw parser.errors[0]
   }
 
-  const {source, lax} = codegenVisitor.visit(cst, {lax: true, source: ""})
+  return codegenVisitor.visit(cst, {lax: true, source: ""})
+}
+
+
+export type SJPFn = ($: any, $named?: NamedVariables) => IteratorWithOperators<any>
+
+export function createFunction({source, lax}: CodegenContext): SJPFn {
   const fn = Function("ƒ", "$", "$$", source)
   const ƒ = new FnBase(lax)
 
-  const find = ($: any, $named: NamedVariables = {}): any => {
+  return ($, $named = {}) => {
     const $$ = (name: string): any => {
       if ($named.hasOwnProperty(name)) {
         return $named[name]
       }
       throw new Error(`no variable named '${name}'`)
     }
-    const result = fn(ƒ, $, $$)
+    let result = fn(ƒ, $, $$)
     return result instanceof IteratorWithOperators
       ? result
       : iterate([result])
   }
+}
+
+
+export function createStatement(text: string): SqlJsonPathStatement {
+  const ctx = generateFunctionSource(text)
+  const find = createFunction(ctx)
   return {
     source: text,
 
-    mode: lax ? "lax" : "strict",
+    mode: ctx.lax ? "lax" : "strict",
 
     exists(input: any, namedVariables?: NamedVariables): IterableIterator<boolean> {
       return wrapIterator(input)

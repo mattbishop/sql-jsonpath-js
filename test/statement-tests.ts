@@ -2,7 +2,7 @@ import {expect} from "chai"
 import {iterate} from "iterare"
 import {compile} from "../src"
 
-describe("statement tests", () => {
+describe("Statement tests", () => {
   it("exists", () => {
     const stmt = compile("$")
     const actual = stmt.exists("matt")
