@@ -34,7 +34,7 @@ export function generateFunctionSource(text: string): CodegenContext {
 
 
 // todo decide if this should be deleted or move to test
-type JSONPathFunction = ($: unknown, $named?: NamedVariables) => [unknown]
+type JSONPathFunction = ($: unknown, $named?: NamedVariables) => [any]
 
 export function createFunction({source, lax}: CodegenContext): JSONPathFunction {
   const fn = Function("ƒ", "$", "$$", source)
