@@ -57,7 +57,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
   return new class CodegenVisitor extends ctor {
     constructor() {
       super()
-      // this.validateVisitor()
+      this.validateVisitor()
     }
 
 
