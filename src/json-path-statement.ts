@@ -50,12 +50,12 @@ export function createStatement(text: string): SqlJsonPathStatement {
 
     mode: lax ? "lax" : "strict",
 
-    exists(input: any, namedVariables?: NamedVariables): Iterator<boolean> {
+    exists(input: any, namedVariables?: NamedVariables): IterableIterator<boolean> {
       return wrapIterator(input)
         .map((i) => find(i, namedVariables) !== FnBase.EMPTY)
     },
 
-    query<T>(input: Input<T>, namedVariables?: NamedVariables): Iterator<T> {
+    query<T>(input: Input<T>, namedVariables?: NamedVariables): IterableIterator<T> {
       let current: T
       const tapped = tap(wrapIterator<T>(input), (v) => current = v)
       const existsIterator = this.exists(tapped, namedVariables) as IteratorWithOperators<boolean>
@@ -64,7 +64,7 @@ export function createStatement(text: string): SqlJsonPathStatement {
         .map(() => current)
     },
 
-    value<T>(input: Input<T>, config?: ValueConfig): Iterator<unknown> {
+    value<T>(input: Input<T>, config?: ValueConfig): IterableIterator<unknown> {
       const {defaultOnError, defaultOnEmpty} = config || {}
       let result
       if (defaultOnError !== undefined) {

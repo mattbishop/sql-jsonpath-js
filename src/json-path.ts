@@ -52,7 +52,7 @@ export interface SqlJsonPathStatement {
    * @param input A single value, an iterable of values or a value iterator.
    * @param namedVariables Named variables to use in the SQL JSONPath evaluation.
    */
-  exists<T>(input: Input<T>, namedVariables?: NamedVariables): Iterator<boolean>
+  exists<T>(input: Input<T>, namedVariables?: NamedVariables): IterableIterator<boolean>
 
   /**
    * Filters the JSON input by matching the SQL JSONPath statement. Returns inputs that match.
@@ -60,7 +60,7 @@ export interface SqlJsonPathStatement {
    * @param input A single value, an iterable of values or a value iterator.
    * @param namedVariables Named variables to use in the SQL JSONPath evaluation.
    */
-  query<T>(input: Input<T>, namedVariables?: NamedVariables): Iterator<T>
+  query<T>(input: Input<T>, namedVariables?: NamedVariables): IterableIterator<T>
 
   /**
    * Searches the JSON input for values that match the SQL JSONPath statement, returning the extracted value
@@ -70,7 +70,7 @@ export interface SqlJsonPathStatement {
    * @param config Contains default values for misses and errors as well as named variables to use in the
    * SQL JSONPath evaluation.
    */
-  value<T>(input: Input<T>, config?: ValueConfig): Iterator<unknown>
+  value<T>(input: Input<T>, config?: ValueConfig): IterableIterator<unknown>
 }
 
 
