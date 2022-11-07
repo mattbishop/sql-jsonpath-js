@@ -3,7 +3,7 @@ import {iterate} from "iterare"
 import {IteratorWithOperators} from "iterare/lib/iterate"
 import {isIterable} from "iterare/lib/utils"
 import {newCodegenVisitor} from "./codegen-visitor"
-import {EMPTY, FnBase} from "./fn-base"
+import {FnBase} from "./fn-base"
 import {Input, NamedVariables, SqlJsonPathStatement, ValueConfig} from "./json-path"
 import {JsonPathParser} from "./parser"
 import {allTokens} from "./tokens"
@@ -52,7 +52,7 @@ export function createStatement(text: string): SqlJsonPathStatement {
 
     exists(input: any, namedVariables?: NamedVariables): Iterator<boolean> {
       return wrapIterator(input)
-        .map((i) => find(i, namedVariables) !== EMPTY)
+        .map((i) => find(i, namedVariables) !== FnBase.EMPTY)
     },
 
     query<T>(input: Input<T>, namedVariables?: NamedVariables): Iterator<T> {
@@ -77,10 +77,10 @@ export function createStatement(text: string): SqlJsonPathStatement {
       } else {
         result = find(input, config?.namedVariables)
       }
-      if (result === EMPTY && defaultOnEmpty !== undefined) {
+      if (result === FnBase.EMPTY && defaultOnEmpty !== undefined) {
         return iterate([defaultOnEmpty])
       }
-      return result.filter((v: any) => v !== EMPTY)
+      return result.filter((v: any) => v !== FnBase.EMPTY)
     }
   }
 }
