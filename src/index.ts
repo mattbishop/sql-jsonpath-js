@@ -1,17 +1,16 @@
 import {IteratorWithOperators} from "iterare/lib/iterate"
 import {FnBase} from "./fn-base"
 import {CodegenContext, newCodegenVisitor} from "./codegen-visitor"
+import {createStatement} from "./json-path-statement"
 import {JsonPathParser} from "./parser"
 import {allTokens} from "./tokens"
 import {Lexer} from "chevrotain"
-import {newJsonPathVisitor} from "./visitor"
-import {SqlJsonPath, SqlJsonPathStatement} from "./json-path"
+import {NamedVariables, SqlJsonPathStatement} from "./json-path"
 
 
 const jsonPathLexer = new Lexer(allTokens)
 const parser = new JsonPathParser()
 
-const origVisitor = newJsonPathVisitor(parser.getBaseCstVisitorConstructor())
 const codegenVisitor = newCodegenVisitor(parser.getBaseCstVisitorConstructor())
 
 
@@ -34,14 +33,15 @@ export function generateFunctionSource(text: string): CodegenContext {
 }
 
 
-type JSONPathFunction = ($: any, $named?: Record<string, any>) => [any]
+// todo decide if this should be deleted or move to test
+type JSONPathFunction = ($: unknown, $named?: NamedVariables) => [unknown]
 
 export function createFunction({source, lax}: CodegenContext): JSONPathFunction {
   const fn = Function("ƒ", "$", "$$", source)
   const ƒ = new FnBase(lax)
 
   return ($, $named = {}) => {
-    const $$ = (name: string): any => {
+    const $$ = (name: string): unknown => {
       if ($named.hasOwnProperty(name)) {
         return $named[name]
       }
@@ -58,35 +58,6 @@ export function createFunction({source, lax}: CodegenContext): JSONPathFunction 
 }
 
 
-export function compile(text: string): SqlJsonPath {
-  const lexingResult = jsonPathLexer.tokenize(text)
-
-  // "input" is a setter which will reset the parser's state.
-  parser.input = lexingResult.tokens
-
-  const cst = parser.jsonPathStatement()
-  if (parser.errors.length > 0) {
-    throw new Error(`sad sad panda, Parsing errors detected: ${parser.errors[0]}`)
-  }
-
-
-  const statement = origVisitor.visit(cst) as SqlJsonPathStatement
-  return {
-    statement,
-    exists,
-    value,
-    query
-  }
-}
-
-function exists(): boolean {
-  return false
-}
-
-function value(): boolean {
-  return false
-}
-
-function query(): any {
-  return []
+export function compile(text: string): SqlJsonPathStatement {
+  return createStatement(text)
 }

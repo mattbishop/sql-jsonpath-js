@@ -4,7 +4,7 @@ import {DateTime, FixedOffsetZone} from "luxon"
 import {KeyValue} from "./json-path"
 
 
-const EMPTY = iterate(Object.freeze([]))
+export const EMPTY = iterate(Object.freeze([]))
 
 enum Pred {
   TRUE,
