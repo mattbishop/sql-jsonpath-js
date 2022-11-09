@@ -63,14 +63,14 @@ export interface SqlJsonPathStatement {
   query<T>(input: Input<T>, namedVariables?: NamedVariables): IterableIterator<T>
 
   /**
-   * Searches the JSON input for values that match the SQL JSONPath statement, returning the extracted value
+   * Searches the JSON input for values that match the SQL JSONPath statement, returning the extracted values
    * when found.
    *
    * @param input A single value, an iterable of values or a value iterator.
    * @param config Contains default values for misses and errors as well as named variables to use in the
    * SQL JSONPath evaluation.
    */
-  value<T>(input: Input<T>, config?: ValueConfig): IterableIterator<unknown>
+  values<T>(input: Input<T>, config?: ValueConfig): IterableIterator<unknown>
 }
 
 

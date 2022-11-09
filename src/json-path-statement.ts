@@ -44,7 +44,7 @@ export function createFunction({source, lax}: CodegenContext): SJPFn {
       if ($named.hasOwnProperty(name)) {
         return $named[name]
       }
-      throw new Error(`no variable named '${name}'`)
+      throw new Error(`no variable named '$${name}'`)
     }
     let result = fn(ƒ, $, $$)
     return result instanceof IteratorWithOperators
@@ -64,7 +64,7 @@ export function createStatement(text: string): SqlJsonPathStatement {
 
     exists(input: any, namedVariables?: NamedVariables): IterableIterator<boolean> {
       return wrapIterator(input)
-        .map((i) => find(i, namedVariables) !== FnBase.EMPTY)
+        .map((i) => !find(i, namedVariables).next().done)
     },
 
     query<T>(input: Input<T>, namedVariables?: NamedVariables): IterableIterator<T> {
@@ -76,8 +76,9 @@ export function createStatement(text: string): SqlJsonPathStatement {
         .map(() => current)
     },
 
-    value<T>(input: Input<T>, config?: ValueConfig): IterableIterator<unknown> {
+    values<T>(input: Input<T>, config?: ValueConfig): IterableIterator<unknown> {
       const {defaultOnError, defaultOnEmpty} = config || {}
+      input = wrapIterator(input)
       let result
       if (defaultOnError !== undefined) {
         // this may not to work because it won't throw errors until the iterator is pulled

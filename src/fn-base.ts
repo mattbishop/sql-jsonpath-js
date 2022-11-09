@@ -70,13 +70,14 @@ export class FnBase {
     throw new Error(`${method} param must be a number, found ${JSON.stringify(input)}.`)
   }
 
-  type(input: any): SingleOrIterator<string> {
-    return FnBase._autoMap(input, FnBase._type)
-  }
-
 
   num(input: any): number {
     return FnBase._mustBeNumber(input, "arithmetic")
+  }
+
+
+  type(input: any): SingleOrIterator<string> {
+    return FnBase._autoMap(input, FnBase._type)
   }
 
 
@@ -328,8 +329,7 @@ export class FnBase {
   filter(input: any, filterExp: Predƒ): IteratorWithOperators<any> {
     if (Array.isArray(input)) {
       input = iterate(input)
-    }
-    if (!(input instanceof IteratorWithOperators)) {
+    } else if (!(input instanceof IteratorWithOperators)) {
       // must return empty iterator if nothing matches
       input = iterate([input])
     }

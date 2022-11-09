@@ -2,7 +2,7 @@ import {expect} from "chai"
 import {iterate} from "iterare"
 import {CodegenContext} from "../src/codegen-visitor"
 import {NamedVariables} from "../src/json-path"
-import {createFunction, generateFunctionSource, SJPFn} from "../src/json-path-statement"
+import {createFunction, generateFunctionSource} from "../src/json-path-statement"
 
 
 function createFunctionForTest(ctx: CodegenContext): ($: any, $named?: NamedVariables) => any[] {
@@ -552,6 +552,14 @@ describe("Codegen tests", () => {
       const fn = createFunctionForTest(ctx)
       const actualNumber = fn(2)
       expect(actualNumber).to.deep.equal([20])
+    })
+
+    it("can modulo an array of numbers", () => {
+      const ctx = generateFunctionSource("$ ? (@ % 2 == 0)")
+      expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.compare(\"==\",ƒ.num(v)%ƒ.num(2),0))")
+      const fn = createFunctionForTest(ctx)
+      const actual = fn([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+      expect(actual).to.deep.equal([0, 2, 4, 6, 8])
     })
 
     it("can divide by a function", () => {
