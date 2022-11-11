@@ -483,10 +483,13 @@ describe("Codegen tests", () => {
       const ctx = generateFunctionSource("$.phones.type")
       expect(ctx.source).to.equal("return ƒ.member(ƒ.member($,\"phones\"),\"type\")")
       const fn = createFunctionForTest(ctx)
-      const data = { name: "Fred", phones: [ { type: "home", number: "372-0453" },
-          { type: "work", number: "506-2051" } ] }
+      const data = {phones: [
+        {type: "cell", number: "abc-defg"},
+        {number: "pqr-wxyz"},
+        {type: "home", number: "hij-klmn"}
+      ]}
       const actual = fn(data)
-      expect(actual).to.deep.equal(["home", "work"])
+      expect(actual).to.deep.equal(["cell", "home"])
     })
 
     it("nested array unwrapping", () => {

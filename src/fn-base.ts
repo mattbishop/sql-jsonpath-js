@@ -39,6 +39,32 @@ export class FnBase {
         : typeof primary
   }
 
+  private _wrap<I>(input: I, strictError?: string): I[] {
+    if (Array.isArray(input)) {
+      return input
+    }
+    if (!this.lax && strictError) {
+      throw new Error(`${strictError} Found: ${JSON.stringify(input)}`)
+    }
+    return [input]
+  }
+
+  /**
+   * Turn an array into an iterator, if in lax mode, and it can be done in strict mode
+   * @param input The input to unwrap
+   * @param strictError if present, means an error with this message should be thrown in strict mode if the input is an array.
+   * @private
+   */
+  private _unwrap(input: any, strictError?: string): SingleOrIterator<any> {
+    if (Array.isArray(input)) {
+      if (!this.lax && strictError) {
+        throw new Error(`${strictError} Found: ${JSON.stringify(input)}`)
+      }
+      input = iterate(input)
+    }
+    return input
+  }
+
   private static _autoFlatMap<I extends IteratorWithOperators<unknown>>(input: any, mapƒ: Mapƒ<I>): I {
     const mapped = this._autoMap(input, mapƒ) as I
     return input instanceof IteratorWithOperators
@@ -198,13 +224,8 @@ export class FnBase {
 
 
   private _boxStar(input: any): IteratorWithOperators<any> {
-    if (Array.isArray(input)) {
-      return iterate(input)
-    }
-    if (!this.lax) {
-      throw new Error(`[*] can only be applied to an array in strict mode, found ${JSON.stringify(input)}.`)
-    }
-    return iterate([input])
+    return iterate(
+      this._wrap(input, "[*] can only be applied to an array in strict mode."))
   }
 
   boxStar(input: any): IteratorWithOperators<any> {
@@ -212,7 +233,17 @@ export class FnBase {
   }
 
 
-  private _maybeMember(obj: Record<string, any>, member: string): any {
+  private _maybeMember(input: any, member: string): SingleOrIterator<any> {
+    const type = FnBase._type(input)
+    if (type === "object") {
+      return this._getMember(input, member)
+    } else if (!this.lax) {
+      throw new Error(`."${member}" can only be applied to an object in strict mode, found ${JSON.stringify(input)}.`)
+    }
+    return FnBase.EMPTY
+  }
+
+  private _getMember(obj: Record<string, any>, member: string): SingleOrIterator<any> {
     if (obj.hasOwnProperty(member)) {
       return obj[member]
     }
@@ -222,20 +253,14 @@ export class FnBase {
     throw new Error(`Object does not contain key ${member}, in strict mode.`)
   }
 
-  private _member(input: any, member: string): any {
-    const type = FnBase._type(input)
-    if (type === "object") {
+  private _member(input: any, member: string): SingleOrIterator<any> {
+    input = this._unwrap(input)
+    if (input instanceof IteratorWithOperators) {
+      return input.map((i) => this._maybeMember(i, member))
+        .filter((i) => i !== FnBase.EMPTY)
+    } else {
       return this._maybeMember(input, member)
     }
-    if (!this.lax) {
-      throw new Error(`."${member}" can only be applied to an object in strict mode, found ${JSON.stringify(input)}.`)
-    }
-    if (type === "array") {
-      return iterate(input)
-        .filter((o) => FnBase._type(o) === "object")
-        .map((obj) => this._maybeMember(obj as Record<string, any>, member))
-    }
-    return FnBase.EMPTY
   }
 
   member(input: any, member: string): SingleOrIterator<any> {
