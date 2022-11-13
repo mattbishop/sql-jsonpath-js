@@ -42,9 +42,9 @@ export interface SqlJsonPathStatement {
    * differences between the SQL JSONPath statement and the input will be thrown as Errors.
    *
    * In 'lax' mode, structural errors and type mismatches are ignored. Furthermore, inputs are auto-wrapped to
-   * single-element arrays, or unwrapped to single values in order to attempt a match.
+   * single-element arrays, or unwrapped to value sequences in order to attempt a match.
    */
-  mode:   Mode
+  mode: Mode
 
   /**
    * Determines if JSON input matches the SQL JSONPath statement.

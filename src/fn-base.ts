@@ -2,6 +2,7 @@ import {iterate} from "iterare"
 import {IteratorWithOperators} from "iterare/lib/iterate"
 import {DateTime, FixedOffsetZone} from "luxon"
 import {KeyValue} from "./json-path"
+import {SingletonIterator} from "./singleton-iterator"
 
 
 enum Pred {
@@ -39,7 +40,47 @@ export class FnBase {
         : typeof primary
   }
 
-  private _wrap<I>(input: I, strictError?: string): I[] {
+  private static _isSeq(input: any): input is IteratorWithOperators<any> {
+    return input instanceof IteratorWithOperators<any>
+  }
+
+
+  /**
+   * Turn an array into an iterator. Only used in lax mode.
+   * @param input The input to unwrap.
+   * @param strictError throws this error message if in strict mode and input is not an array.
+   * @private
+   */
+  private _newUnwrap(input: any, strictError?: string): IteratorWithOperators<any> {
+    if (Array.isArray(input)) {
+      input = iterate(input)
+    } else {
+      if (!this.lax && strictError) {
+        throw new Error(`In 'strict' mode! ${strictError} Found: ${JSON.stringify(input)}`)
+      }
+      input = iterate(new SingletonIterator(input))
+    }
+    return input
+  }
+
+
+  /**
+   * Turns an input into an array if it isn't already an array. Only used in lax mode.
+   * @param input the input to wrap as an array
+   * @param strictError throws this error message if in strict mode and input is not an array. TODO same err as unwrap?
+   * @private
+   */
+  private _newWrap(input: any, strictError?: string): IteratorWithOperators<any> {
+    if (FnBase._isSeq(input)) {
+      input = input.map((i) => this._maybeWrap(i, strictError))
+    } else {
+      const i = this._maybeWrap(input, strictError)
+      input = iterate(new SingletonIterator(i))
+    }
+    return input
+  }
+
+  private _maybeWrap(input: any, strictError?: string): any[] {
     if (Array.isArray(input)) {
       return input
     }
@@ -48,6 +89,9 @@ export class FnBase {
     }
     return [input]
   }
+
+
+
 
   /**
    * Turn an array into an iterator, if in lax mode, and it can be done in strict mode
@@ -220,8 +264,7 @@ export class FnBase {
 
 
   private _boxStar(input: any): IteratorWithOperators<any> {
-    return iterate(
-      this._wrap(input, "[*] can only be applied to an array in strict mode."))
+    return this._newUnwrap(input, "[*] can only be applied to an array in strict mode.")
   }
 
   boxStar(input: any): IteratorWithOperators<any> {

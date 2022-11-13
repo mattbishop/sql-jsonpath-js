@@ -6,6 +6,7 @@ import {CodegenContext, newCodegenVisitor} from "./codegen-visitor"
 import {FnBase} from "./fn-base"
 import {Input, NamedVariables, SqlJsonPathStatement, ValueConfig} from "./json-path"
 import {JsonPathParser} from "./parser"
+import {SingletonIterator} from "./singleton-iterator"
 import {allTokens} from "./tokens"
 
 
@@ -49,7 +50,7 @@ export function createFunction({source, lax}: CodegenContext): SJPFn {
     let result = fn(ƒ, $, $$)
     return result instanceof IteratorWithOperators
       ? result
-      : iterate([result])
+      : iterate(new SingletonIterator(result))
   }
 }
 
@@ -85,13 +86,13 @@ export function createStatement(text: string): SqlJsonPathStatement {
         try {
           result = find(input, config?.namedVariables)
         } catch (e) {
-          return iterate([defaultOnError])
+          return iterate(new SingletonIterator(defaultOnError))
         }
       } else {
         result = find(input, config?.namedVariables)
       }
       if (result === FnBase.EMPTY && defaultOnEmpty !== undefined) {
-        return iterate([defaultOnEmpty])
+        return iterate(new SingletonIterator(defaultOnEmpty))
       }
       return result.filter((v: any) => v !== FnBase.EMPTY)
     }
@@ -104,7 +105,7 @@ function wrapIterator<T>(input: any): IteratorWithOperators<T> {
     return input
   }
   if (!isIterable(input)) {
-    input = [input]
+    input = new SingletonIterator(input)
   }
   return iterate(input)
 }
