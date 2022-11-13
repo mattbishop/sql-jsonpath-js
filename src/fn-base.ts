@@ -200,22 +200,19 @@ export class FnBase {
   }
 
 
-  private _dotStar(input: any): IteratorWithOperators<any> {
-    const type = FnBase._type(input)
-    if (type === "object") {
-      return iterate(Object.values(input))
-    }
+  private static _objectValues(input: object): IteratorWithOperators<any> {
+    return FnBase._type(input) === "object"
+      ? iterate(Object.values(input))
+      : FnBase.EMPTY
+  }
 
-    if (!this.lax) {
-      throw new Error(`.* can only be applied to an object in strict mode, found ${JSON.stringify(input)}.`)
-    }
-    if (type === "array") {
-      return iterate(input)
-        .filter((o) => FnBase._type(o) === "object")
-        .map((obj) => Object.values(obj as object))
+  private _dotStar(input: any): IteratorWithOperators<any> {
+    const values = this._unwrap(input, ".* can only be applied to an object in strict mode.")
+    return values instanceof IteratorWithOperators
+      ? values
+        .map(FnBase._objectValues)
         .flatten()
-    }
-    return FnBase.EMPTY
+      : FnBase._objectValues(input)
   }
 
   dotStar(input: any): IteratorWithOperators<any> {
