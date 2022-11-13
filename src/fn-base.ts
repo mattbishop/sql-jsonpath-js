@@ -72,7 +72,7 @@ export class FnBase {
       : mapped
   }
 
-  private static _autoMap<T>(input: any, mapƒ: Mapƒ<T>): SingleOrIterator<T> {
+  private static _autoMap<T>(input: SingleOrIterator<any>, mapƒ: Mapƒ<T>): SingleOrIterator<T> {
     return input instanceof IteratorWithOperators
       ? input.map(mapƒ)
       : mapƒ(input)
@@ -84,16 +84,21 @@ export class FnBase {
       : Pred.FALSE
   }
 
-  private static _mustBeNumber(input: any, method: string): number {
+  private static _mustBeNumber(input: SingleOrIterator<any>, method: string): number {
     if (FnBase._type(input) === "number") {
       return input
     }
-
     const num = input.next()?.value
     if (FnBase._type(num) === "number") {
       return num
     }
     throw new Error(`${method} param must be a number, found ${JSON.stringify(input)}.`)
+  }
+
+  private static _objectValues(input: object): IteratorWithOperators<any> {
+    return FnBase._type(input) === "object"
+      ? iterate(Object.values(input))
+      : FnBase.EMPTY
   }
 
 
@@ -199,12 +204,6 @@ export class FnBase {
     return FnBase._autoFlatMap(input, mapƒ)
   }
 
-
-  private static _objectValues(input: object): IteratorWithOperators<any> {
-    return FnBase._type(input) === "object"
-      ? iterate(Object.values(input))
-      : FnBase.EMPTY
-  }
 
   private _dotStar(input: any): IteratorWithOperators<any> {
     const values = this._unwrap(input, ".* can only be applied to an object in strict mode.")
