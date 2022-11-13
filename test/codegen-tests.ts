@@ -295,7 +295,7 @@ describe("Codegen tests", () => {
         const ctx = generateFunctionSource("strict $.*")
         expect(ctx.source).to.equal("return ƒ.dotStar($)")
         const fn = createFunctionForTest(ctx)
-        const iteratorValue = fn(iterate([{"a": 1, "b": {c: "2"}, u: undefined}]))
+        const iteratorValue = fn({"a": 1, "b": {c: "2"}, u: undefined})
         expect(iteratorValue).to.deep.equal([1, {c: "2"}, undefined])
         expect(() => fn([{"a": 1}, 77, {"b": {c: "2"}}, true, "cats"])).to.throw
         expect(() => fn(undefined)).to.throw

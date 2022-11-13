@@ -44,23 +44,24 @@ export class FnBase {
     return input instanceof IteratorWithOperators<any>
   }
 
+  private static _isObject(input: any): boolean {
+    return FnBase._type(input) === "object"
+  }
 
   /**
    * Turn an array into an iterator. Only used in lax mode.
    * @param input The input to unwrap.
+   * @param strictTest Predicate function to see if input fails strict test for unwrap
    * @param strictError throws this error message if in strict mode and input is not an array.
    * @private
    */
-  private _newUnwrap(input: any, strictError?: string): IteratorWithOperators<any> {
-    if (Array.isArray(input)) {
-      input = iterate(input)
-    } else {
-      if (!this.lax && strictError) {
-        throw new Error(`In 'strict' mode! ${strictError} Found: ${JSON.stringify(input)}`)
-      }
-      input = iterate(new SingletonIterator(input))
+  private _newUnwrap(input: any, strictTest?: Mapƒ<boolean>, strictError?: string): IteratorWithOperators<any> {
+    if (!this.lax && strictTest && !strictTest(input)) {
+      throw new Error(`In 'strict' mode! ${strictError} Found: ${JSON.stringify(input)}`)
     }
-    return input
+    return Array.isArray(input)
+      ? iterate(input)
+      : iterate(new SingletonIterator(input))
   }
 
 
@@ -250,12 +251,9 @@ export class FnBase {
 
 
   private _dotStar(input: any): IteratorWithOperators<any> {
-    const values = this._unwrap(input, ".* can only be applied to an object in strict mode.")
-    return values instanceof IteratorWithOperators
-      ? values
+    return this._newUnwrap(input, FnBase._isObject, ".* can only be applied to an object.")
         .map(FnBase._objectValues)
         .flatten()
-      : FnBase._objectValues(input)
   }
 
   dotStar(input: any): IteratorWithOperators<any> {
@@ -264,7 +262,7 @@ export class FnBase {
 
 
   private _boxStar(input: any): IteratorWithOperators<any> {
-    return this._newUnwrap(input, "[*] can only be applied to an array in strict mode.")
+    return this._newUnwrap(input, Array.isArray, "[*] can only be applied to an array in strict mode.")
   }
 
   boxStar(input: any): IteratorWithOperators<any> {
