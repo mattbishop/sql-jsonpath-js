@@ -117,4 +117,106 @@ describe("Statement tests", () => {
       ])
     })
   })
+
+  describe("spec tests", () => {
+    const data = [{
+      name: "Fred",
+      phonetype: "work",
+      "phone#": "650-506-2051"
+    }, {
+      name: "Molly",
+      phones: [ {
+        phonetype: "work",
+        "phone#": "650-506-7000"
+      }, {
+        phonetype: "cell",
+        "phone#": "650-555-5555"
+      }]
+    }, {
+      name: "Afu",
+      phones: [{
+        phonetype: "cell",
+        "phone#": "88-888-8888"
+      }]
+    }, {
+      name: "Justin"
+    }, {
+      name: "U La La",
+      phones: []
+    }]
+
+    it("coalesce phones arrays", () => {
+      const stmt = compile("$.phones.\"phone#\"")
+      const actual = stmt.values(data)
+      expect(Array.from(actual)).to.deep.equal([
+        "650-506-7000",
+        "650-555-5555",
+        "88-888-8888"
+      ])
+    })
+
+    it("finds the folks who have a phone#", () => {
+      const stmt = compile("$ ? (exists(@.phones.\"phone#\") || exists(@.\"phone#\")).name")
+      const actual = stmt.values(data)
+      expect(Array.from(actual)).to.deep.equal([
+        "Fred",
+        "Molly",
+        "Afu"
+      ])
+    })
+
+    describe("reuse same statement", () => {
+      const stmt = compile("$ ? (@.name == $aName)")
+
+      it("sees if folks exist by name", () => {
+        let actual = stmt.exists(data, {aName: "Fred"})
+        // first
+        expect(actual.next().value).to.be.true
+        expect(actual.next().value).to.be.false
+        expect(actual.next().value).to.be.false
+        expect(actual.next().value).to.be.false
+        expect(actual.next().value).to.be.false
+        expect(actual.next().done).to.be.true
+        // third
+        actual = stmt.exists(data, {aName: "Afu"})
+        expect(actual.next().value).to.be.false
+        expect(actual.next().value).to.be.false
+        expect(actual.next().value).to.be.true
+        expect(actual.next().value).to.be.false
+        expect(actual.next().value).to.be.false
+        expect(actual.next().done).to.be.true
+        // fourth
+        actual = stmt.exists(data, {aName: "Justin"})
+        expect(actual.next().value).to.be.false
+        expect(actual.next().value).to.be.false
+        expect(actual.next().value).to.be.false
+        expect(actual.next().value).to.be.true
+        expect(actual.next().value).to.be.false
+        expect(actual.next().done).to.be.true
+      })
+
+      it("queries folks by name", () => {
+        let actual = stmt.query(data, {aName: "Fred"})
+        expect(actual.next().value).to.deep.equal(data[0])
+        actual = stmt.query(data,  {aName: "Afu"})
+        expect(actual.next().value).to.deep.equal(data[2])
+        actual = stmt.query(data,  {aName: "U La La"})
+        expect(actual.next().value).to.deep.equal(data[4])
+        actual = stmt.query(data,  {aName: "Snope"})
+        expect(actual.next().done).to.be.true
+      })
+
+      it("finds folk's value by name", () => {
+        const config = {defaultOnEmpty: "EMPTY"}
+        let actual = stmt.values(data, {...config, namedVariables: {aName: "Fred"}})
+        expect(actual.next().value).to.deep.equal(data[0])
+        actual = stmt.values(data,  {...config, namedVariables: {aName: "Afu"}})
+        expect(actual.next().value).to.deep.equal(data[2])
+        actual = stmt.values(data,  {...config, namedVariables: {aName: "U La La"}})
+        expect(actual.next().value).to.deep.equal(data[4])
+        actual = stmt.values(data,  {...config, namedVariables: {aName: "Snope"}})
+        expect(actual.next().value).to.deep.equal("EMPTY")
+      })
+    })
+  })
 })

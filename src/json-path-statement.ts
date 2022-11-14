@@ -41,13 +41,13 @@ export function createFunction({source, lax}: CodegenContext): SJPFn {
   const ƒ = new FnBase(lax)
 
   return ($, $named = {}) => {
-    const $$ = (name: string): any => {
+    const $$ = (name: string): unknown => {
       if ($named.hasOwnProperty(name)) {
         return $named[name]
       }
       throw new Error(`no variable named '$${name}'`)
     }
-    let result = fn(ƒ, $, $$)
+    const result = fn(ƒ, $, $$)
     return result instanceof IteratorWithOperators
       ? result
       : iterate(new SingletonIterator(result))
@@ -59,9 +59,9 @@ export function createStatement(text: string): SqlJsonPathStatement {
   const ctx = generateFunctionSource(text)
   const find = createFunction(ctx)
   return {
-    source: text,
-
-    mode: ctx.lax ? "lax" : "strict",
+    mode:     ctx.lax ? "lax" : "strict",
+    source:   text,
+    fnSource: ctx.source,
 
     exists(input: any, namedVariables?: NamedVariables): IterableIterator<boolean> {
       return wrapIterator(input)
@@ -86,15 +86,18 @@ export function createStatement(text: string): SqlJsonPathStatement {
         try {
           result = find(input, config?.namedVariables)
         } catch (e) {
-          return iterate(new SingletonIterator(defaultOnError))
+          result = iterate(new SingletonIterator(defaultOnError))
         }
       } else {
         result = find(input, config?.namedVariables)
       }
-      if (result === FnBase.EMPTY && defaultOnEmpty !== undefined) {
-        return iterate(new SingletonIterator(defaultOnEmpty))
+      if (defaultOnEmpty !== undefined) {
+        const first = result.next()
+        result = first.done
+          ? iterate(new SingletonIterator(defaultOnEmpty))
+          : iterate(new SingletonIterator(first.value)).concat(result)
       }
-      return result.filter((v: any) => v !== FnBase.EMPTY)
+      return result.filter((v) => v !== FnBase.EMPTY)
     }
   }
 }

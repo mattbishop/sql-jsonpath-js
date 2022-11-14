@@ -32,10 +32,6 @@ export type KeyValue = {
 }
 
 export interface SqlJsonPathStatement {
-  /**
-   * SQL JSONPath statement source.
-   */
-  source: string
 
   /**
    * Statement mode, either 'lax' or 'strict'. In 'strict' mode, missing data, type mismatches and other structural
@@ -45,6 +41,16 @@ export interface SqlJsonPathStatement {
    * single-element arrays, or unwrapped to value sequences in order to attempt a match.
    */
   mode: Mode
+
+  /**
+   * SQL JSONPath statement source.
+   */
+  source: string
+
+  /**
+   * Generated JS function source.
+   */
+  fnSource: string
 
   /**
    * Determines if JSON input matches the SQL JSONPath statement.
