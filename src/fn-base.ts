@@ -28,12 +28,10 @@ export class FnBase {
 
   static EMPTY = iterate(Object.freeze([]))
 
-  arrayStack: [][]
   lax:        boolean
 
 
   constructor(lax: boolean) {
-    this.arrayStack = []
     this.lax = lax
   }
 
@@ -269,7 +267,6 @@ export class FnBase {
         throw new Error(`Array accessors can only be applied to an array, found ${a}`)
       }
     }
-    this.arrayStack.push(a)
     return a
   }
 
@@ -289,15 +286,18 @@ export class FnBase {
   private _array(array: any, subscripts: any[]): Seq<any> {
     const values = iterate(subscripts)
       .map((sub) => {
-        if (FnBase._type(sub) === "number") {
+        const subType = FnBase._type(sub)
+        if (subType === "number") {
           return this._maybeElement(array, sub)
         }
         if (FnBase._isSeq(sub)) {
           return sub.map((s1) => this._maybeElement(array, s1))
         }
+        if (subType == "function") {
+          return this._maybeElement(array, sub(array))
+        }
         throw new Error("array accessor must be numbers")
       }).flatten()
-    this.arrayStack.pop()
     return values
   }
 
@@ -306,8 +306,7 @@ export class FnBase {
   }
 
 
-  last(): number {
-    const array = this.arrayStack.at(-1) as []
+  last(array: any): number {
     return array.length - 1
   }
 

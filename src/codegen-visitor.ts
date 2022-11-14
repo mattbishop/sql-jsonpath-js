@@ -157,7 +157,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
         ctx = {...ctx, source: `$$("${name}")`}
       }
       if (Last) {
-        ctx = {...ctx, source: `${ctx.source}ƒ.last()`}
+        ctx = {...ctx, source: `${ctx.source}ƒ.last`}
       }
       return ctx
     }
