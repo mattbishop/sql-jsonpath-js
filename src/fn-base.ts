@@ -61,7 +61,7 @@ export class FnBase {
    * @param strictError throws this error message if in strict mode and input is not an array.
    * @private
    */
-  private _newUnwrap(input: any, strictTest?: Mapƒ<boolean>, strictError?: string): IteratorWithOperators<any> {
+  private _unwrap(input: any, strictTest?: Mapƒ<boolean>, strictError?: string): IteratorWithOperators<any> {
     if (!this.lax && strictTest && !strictTest(input)) {
       throw new Error(`In 'strict' mode! ${strictError} Found: ${JSON.stringify(input)}`)
     }
@@ -77,7 +77,7 @@ export class FnBase {
    * @param strictError throws this error message if in strict mode and input is not an array. TODO same err as unwrap?
    * @private
    */
-  private _newWrap(input: any, strictError?: string): IteratorWithOperators<any> {
+  private _wrap(input: any, strictError?: string): IteratorWithOperators<any> {
     if (FnBase._isSeq(input)) {
       input = input.map((i) => this._maybeWrap(i, strictError))
     } else {
@@ -97,24 +97,6 @@ export class FnBase {
     return [input]
   }
 
-
-
-
-  /**
-   * Turn an array into an iterator, if in lax mode, and it can be done in strict mode
-   * @param input The input to unwrap
-   * @param strictError if present, means an error with this message should be thrown in strict mode if the input is an array.
-   * @private
-   */
-  private _unwrap(input: any, strictError?: string): SingleOrIterator<any> {
-    if (Array.isArray(input)) {
-      if (!this.lax && strictError) {
-        throw new Error(`${strictError} Found: ${JSON.stringify(input)}`)
-      }
-      input = iterate(input)
-    }
-    return input
-  }
 
   private static _autoFlatMap<I extends IteratorWithOperators<unknown>>(input: any, mapƒ: Mapƒ<I>): I {
     const mapped = this._autoMap(input, mapƒ) as I
@@ -137,6 +119,12 @@ export class FnBase {
       : Pred.FALSE
   }
 
+  private static _objectValues(input: object): IteratorWithOperators<any> {
+    return FnBase._type(input) === "object"
+      ? iterate(Object.values(input))
+      : FnBase.EMPTY
+  }
+
   private static _mustBeNumber(input: SingleOrIterator<any>, method: string): number {
     const num = FnBase._next<number>(input)
     if (FnBase._type(num) === "number") {
@@ -144,13 +132,6 @@ export class FnBase {
     }
     throw new Error(`${method} param must be a number, found ${JSON.stringify(input)}.`)
   }
-
-  private static _objectValues(input: object): IteratorWithOperators<any> {
-    return FnBase._type(input) === "object"
-      ? iterate(Object.values(input))
-      : FnBase.EMPTY
-  }
-
 
   num(input: any): number {
     return FnBase._mustBeNumber(input, "arithmetic")
@@ -256,7 +237,7 @@ export class FnBase {
 
 
   private _dotStar(input: any): IteratorWithOperators<any> {
-    return this._newUnwrap(input, FnBase._isObject, ".* can only be applied to an object.")
+    return this._unwrap(input, FnBase._isObject, ".* can only be applied to an object.")
         .map(FnBase._objectValues)
         .flatten()
   }
@@ -267,7 +248,7 @@ export class FnBase {
 
 
   private _boxStar(input: any): IteratorWithOperators<any> {
-    return this._newUnwrap(input, Array.isArray, "[*] can only be applied to an array in strict mode.")
+    return this._unwrap(input, Array.isArray, "[*] can only be applied to an array in strict mode.")
   }
 
   boxStar(input: any): IteratorWithOperators<any> {
@@ -286,7 +267,7 @@ export class FnBase {
   }
 
   private _member(input: any, member: string): IteratorWithOperators<any> {
-    return this._newUnwrap(input, FnBase._isObject, ".member can only be applied to an object.")
+    return this._unwrap(input, FnBase._isObject, ".member can only be applied to an object.")
       .map((i) => this._getMember(i, member))
       .filter((i) => i !== FnBase.EMPTY)
   }
