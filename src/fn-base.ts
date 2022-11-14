@@ -19,6 +19,10 @@ type Predƒ = Mapƒ<SingleOrIterator<Pred>>
 
 type SingleOrIterator<T> = T | Seq<T>
 
+type StrictConfig = {
+  test:   Mapƒ<boolean>
+  error:  string
+}
 
 export class FnBase {
 
@@ -59,13 +63,12 @@ export class FnBase {
   /**
    * Turn an array into an iterator. Only used in lax mode.
    * @param input The input to unwrap.
-   * @param strictTest Predicate function to see if input fails strict test for unwrap
-   * @param strictError throws this error message if in strict mode and input is not an array.
+   * @param strict strict config, if any.
    * @private
    */
-  private _unwrap(input: any, strictTest?: Mapƒ<boolean>, strictError?: string): Seq<any> {
-    if (!this.lax && strictTest && !strictTest(input)) {
-      throw new Error(`In 'strict' mode! ${strictError} Found: ${JSON.stringify(input)}`)
+  private _unwrap(input: any, strict?: StrictConfig): Seq<any> {
+    if (!this.lax && strict && !strict.test(input)) {
+      throw new Error(`In 'strict' mode! ${strict.error} Found: ${JSON.stringify(input)}`)
     }
     if (!FnBase._isSeq(input)) {
       input = iterate(Array.isArray(input)
@@ -240,7 +243,7 @@ export class FnBase {
 
 
   private _dotStar(input: any): Seq<any> {
-    return this._unwrap(input, FnBase._isObject, ".* can only be applied to an object.")
+    return this._unwrap(input, { test: FnBase._isObject, error: ".* can only be applied to an object." })
         .map(FnBase._objectValues)
         .flatten()
   }
@@ -251,7 +254,7 @@ export class FnBase {
 
 
   private _boxStar(input: any): Seq<any> {
-    return this._unwrap(input, Array.isArray, "[*] can only be applied to an array in strict mode.")
+    return this._unwrap(input, { test: Array.isArray, error: "[*] can only be applied to an array in strict mode." })
   }
 
   boxStar(input: any): Seq<any> {
@@ -270,7 +273,7 @@ export class FnBase {
   }
 
   private _member(input: any, member: string): Seq<any> {
-    return this._unwrap(input, FnBase._isObject, ".member can only be applied to an object.")
+    return this._unwrap(input, { test: FnBase._isObject, error: ".member can only be applied to an object." })
       .map((i) => this._getMember(i, member))
       .filter((i) => i !== FnBase.EMPTY)
   }
