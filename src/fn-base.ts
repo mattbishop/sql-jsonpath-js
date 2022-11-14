@@ -40,11 +40,17 @@ export class FnBase {
         : typeof primary
   }
 
+  private static _next<T>(input: any): T {
+    return FnBase._isSeq(input)
+      ? input.next().value
+      : input
+  }
+
   private static _isSeq(input: any): input is IteratorWithOperators<any> {
     return input instanceof IteratorWithOperators<any>
   }
 
-  private static _isObject(input: any): boolean {
+  private static _isObject(input: any): input is Record<string, any> {
     return FnBase._type(input) === "object"
   }
 
@@ -118,9 +124,11 @@ export class FnBase {
   }
 
   private static _autoMap<T>(input: SingleOrIterator<any>, mapƒ: Mapƒ<T>): SingleOrIterator<T> {
-    return input instanceof IteratorWithOperators
-      ? input.map(mapƒ)
-      : mapƒ(input)
+    if (input instanceof IteratorWithOperators) {
+      return input.map(mapƒ)
+    } else {
+      return mapƒ(input)
+    }
   }
 
   private static _toPred(condition: boolean): Pred {
@@ -130,10 +138,7 @@ export class FnBase {
   }
 
   private static _mustBeNumber(input: SingleOrIterator<any>, method: string): number {
-    if (FnBase._type(input) === "number") {
-      return input
-    }
-    const num = input.next()?.value
+    const num = FnBase._next<number>(input)
     if (FnBase._type(num) === "number") {
       return num
     }
@@ -270,18 +275,8 @@ export class FnBase {
   }
 
 
-  private _maybeMember(input: any, member: string): SingleOrIterator<any> {
-    const type = FnBase._type(input)
-    if (type === "object") {
-      return this._getMember(input, member)
-    } else if (!this.lax) {
-      throw new Error(`."${member}" can only be applied to an object in strict mode, found ${JSON.stringify(input)}.`)
-    }
-    return FnBase.EMPTY
-  }
-
-  private _getMember(obj: Record<string, any>, member: string): SingleOrIterator<any> {
-    if (obj.hasOwnProperty(member)) {
+  private _getMember(obj: any, member: string): SingleOrIterator<any> {
+    if (FnBase._isObject(obj) && obj.hasOwnProperty(member)) {
       return obj[member]
     }
     if (this.lax) {
@@ -290,18 +285,14 @@ export class FnBase {
     throw new Error(`Object does not contain key ${member}, in strict mode.`)
   }
 
-  private _member(input: any, member: string): SingleOrIterator<any> {
-    input = this._unwrap(input)
-    if (input instanceof IteratorWithOperators) {
-      return input.map((i) => this._maybeMember(i, member))
-        .filter((i) => i !== FnBase.EMPTY)
-    } else {
-      return this._maybeMember(input, member)
-    }
+  private _member(input: any, member: string): IteratorWithOperators<any> {
+    return this._newUnwrap(input, FnBase._isObject, ".member can only be applied to an object.")
+      .map((i) => this._getMember(i, member))
+      .filter((i) => i !== FnBase.EMPTY)
   }
 
-  member(input: any, member: string): SingleOrIterator<any> {
-    return FnBase._autoMap(input, (i) => this._member(i, member))
+  member(input: any, member: string): IteratorWithOperators<any> {
+    return FnBase._autoFlatMap(input, (i) => this._member(i, member))
   }
 
 
@@ -430,7 +421,7 @@ export class FnBase {
 
   and(preds: Pred[]): Pred {
     for (const pred of preds) {
-      if (pred !== Pred.TRUE) {
+      if (FnBase._next(pred) !== Pred.TRUE) {
         return Pred.FALSE
       }
     }
@@ -440,7 +431,7 @@ export class FnBase {
 
   or(preds: Pred[]): Pred {
     for (const pred of preds) {
-      if (pred === Pred.TRUE) {
+      if (FnBase._next(pred) === Pred.TRUE) {
         return Pred.TRUE
       }
     }
@@ -452,7 +443,7 @@ export class FnBase {
     try {
       const seq = wff()
       let value
-      if (seq instanceof IteratorWithOperators) {
+      if (FnBase._isSeq(seq)) {
         const next = seq.next()
         value = next.done
           ? FnBase.EMPTY

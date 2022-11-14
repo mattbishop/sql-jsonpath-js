@@ -1,5 +1,4 @@
 import {expect} from "chai"
-import {iterate} from "iterare"
 import {CodegenContext} from "../src/codegen-visitor"
 import {NamedVariables} from "../src/json-path"
 import {createFunction, generateFunctionSource} from "../src/json-path-statement"
@@ -707,6 +706,29 @@ describe("Codegen tests", () => {
       it("with wrong flags", () => {
         expect(() => generateFunctionSource("$ ? (@ like_regex \"court\" flag \"not\")")).to.throw
       })
+    })
+
+    it("chains filters", () => {
+      const data = [[{"z": true}, {"y": false}], [{"a": "yes"}], [{"z": 1}]]
+      let ctx = generateFunctionSource("$ ? (exists(@[*].z))")
+      expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.exists(()=>(ƒ.member(ƒ.boxStar(v),\"z\"))))")
+      const existsFn = createFunctionForTest(ctx)
+      const actualExists = existsFn(data)
+      expect(actualExists).to.deep.equal([[{"z": true}, {"y": false}], [{"z": 1}]])
+
+      ctx = generateFunctionSource("$ ? (@.size() > 0)")
+      expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.compare(\">\",ƒ.size(v),0))")
+      const sizeFn = createFunctionForTest(ctx)
+      const actualSize = sizeFn(data)
+      expect(actualSize).to.deep.equal(data)
+
+/*
+      ctx = generateFunctionSource("$ ? (exists(@[*].z)) ? (@.size() > 0)")
+      expect(ctx.source).to.equal("return ƒ.filter(ƒ.filter($,v=>ƒ.exists(()=>(ƒ.member(ƒ.boxStar(v),\"z\")))),v=>ƒ.compare(\">\",ƒ.size(v),0))")
+      const chainFn = createFunctionForTest(ctx)
+      const actualChain = chainFn(data)
+      expect(actualChain).to.deep.equal([{"z": true}, {"y": false}, {"z": 1}])
+*/
     })
   })
 })
