@@ -61,9 +61,9 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
     }
 
 
-    // make the context immutable so visitors don't edit it but send back new ones
     visit(cstNode: CstNode | CstNode[], ctx: CodegenContext): CodegenContext {
       if (ctx) {
+        // make the context immutable so visitors don't edit it but send back new ones
         ctx = Object.freeze(ctx)
       }
       const result = super.visit(cstNode, ctx)
@@ -151,12 +151,10 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       ctx = maybeAppend(ContextVariable, ctx)
       if (FilterValue) {
         ctx = {...ctx, source: `${ctx.source}v`}
-      }
-      if (NamedVariable) {
+      } else if (NamedVariable) {
         const name = NamedVariable[0].image.substring(1)
         ctx = {...ctx, source: `$$("${name}")`}
-      }
-      if (Last) {
+      } else if (Last) {
         ctx = {...ctx, source: `${ctx.source}ƒ.last`}
       }
       return ctx
@@ -184,7 +182,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       ctx = this.maybeVisit(array, ctx)
       ctx = this.maybeVisit(filter, ctx)
       const {source: primary} = ctx
-      let source = ""
+      let source
       if (ItemMethod) {
         const methodName = ItemMethod[0].payload[0]
         let methodImpl = ""
@@ -202,21 +200,17 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
             throw new Error(`Item methodName unrecognized: ${methodName}`)
         }
         source = methodImpl
-      }
-      if (DatetimeMethod) {
+      } else if (DatetimeMethod) {
         let template = DatetimeMethod[0].payload[0] || ""
         if (template) {
           template = `,${template}`
         }
         source = `ƒ.datetime(${primary}${template})`
-      }
-      if (WildcardMember) {
+      } else if (WildcardMember) {
         source = `ƒ.dotStar(${primary})`
-      }
-      if (WildcardArray) {
+      } else if (WildcardArray) {
         source = `ƒ.boxStar(${primary})`
-      }
-      if (Member) {
+      } else if (Member) {
         const payloads = Member[0].payload
         const member = payloads[0] || payloads[1]
         source = `ƒ.member(${primary},"${member}")`

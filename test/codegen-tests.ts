@@ -45,7 +45,7 @@ describe("Codegen tests", () => {
       const ctx = generateFunctionSource("$n")
       expect(ctx.source).to.equal("return $$(\"n\")")
       const fn = createFunctionForTest(ctx)
-      const value = fn("", {"n": "frosty"})
+      const value = fn("", {n: "frosty"})
       expect(value).to.deep.equal(["frosty"])
       expect(() => fn(null, {wrong: true})).to.throw
     })
