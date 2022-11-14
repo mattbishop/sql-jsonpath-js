@@ -78,34 +78,6 @@ export class FnBase {
     return input
   }
 
-
-  /**
-   * Turns an input into an array if it isn't already an array. Only used in lax mode.
-   * @param input the input to wrap as an array
-   * @param strictError throws this error message if in strict mode and input is not an array. TODO same err as unwrap?
-   * @private
-   */
-  private _wrap(input: any, strictError?: string): Seq<any> {
-    if (FnBase._isSeq(input)) {
-      input = input.map((i) => this._maybeWrap(i, strictError))
-    } else {
-      const i = this._maybeWrap(input, strictError)
-      input = iterate(new SingletonIterator(i))
-    }
-    return input
-  }
-
-  private _maybeWrap(input: any, strictError?: string): any[] {
-    if (Array.isArray(input)) {
-      return input
-    }
-    if (!this.lax && strictError) {
-      throw new Error(`${strictError} Found: ${JSON.stringify(input)}`)
-    }
-    return [input]
-  }
-
-
   private static _autoFlatMap<I extends Seq<unknown>>(input: any, mapƒ: Mapƒ<I>): I {
     const mapped = this._autoMap(input, mapƒ) as I
     return FnBase._isSeq(input)
