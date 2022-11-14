@@ -36,30 +36,34 @@ export class FnBase {
   }
 
 
-  private static _type(primary: any): string {
-    return Array.isArray(primary)
+  private static _type(input: unknown): string {
+    return Array.isArray(input)
       ? "array"
-      : primary === null
+      : input === null
         ? "null"
-        : typeof primary
+        : typeof input
   }
 
-  private static _next<T>(input: any): T {
+  private static _isString(input: unknown): input is string {
+    return typeof input === "string"
+  }
+
+  private static _next<T>(input: unknown): T {
     return FnBase._isSeq(input)
       ? input.next().value
       : input
   }
 
-  private static _isSeq(input: any): input is Seq<any> {
-    return input instanceof IteratorWithOperators<any>
+  private static _isSeq(input: unknown): input is Seq<unknown> {
+    return input instanceof IteratorWithOperators
   }
 
-  private static _isObject(input: any): input is Record<string, any> {
+  private static _isObject(input: unknown): input is Record<string, unknown> {
     return FnBase._type(input) === "object"
   }
 
 
-  private _wrap(input: any, strict?: StrictConfig): Array<any> {
+  private _wrap(input: unknown, strict?: StrictConfig): Array<unknown> {
     if (!this.lax && strict && !strict.test(input)) {
       throw new Error(`In 'strict' mode! ${strict.error} Found: ${JSON.stringify(input)}`)
     }
@@ -81,7 +85,7 @@ export class FnBase {
    * @param strict strict config, if any.
    * @private
    */
-  private _unwrap(input: any, strict?: StrictConfig): Seq<any> {
+  private _unwrap(input: unknown, strict?: StrictConfig): Seq<unknown> {
     if (!this.lax && strict && !strict.test(input)) {
       throw new Error(`In 'strict' mode! ${strict.error} Found: ${JSON.stringify(input)}`)
     }
@@ -96,14 +100,14 @@ export class FnBase {
     return output
   }
 
-  private static _autoFlatMap<I extends Seq<unknown>>(input: any, mapƒ: Mapƒ<I>): I {
+  private static _autoFlatMap<I extends Seq<unknown>>(input: unknown, mapƒ: Mapƒ<I>): I {
     const mapped = this._autoMap(input, mapƒ) as I
     return FnBase._isSeq(input)
       ? mapped.flatten() as I
       : mapped
   }
 
-  private static _autoMap<T>(input: SingleOrIterator<any>, mapƒ: Mapƒ<T>): SingleOrIterator<T> {
+  private static _autoMap<T>(input: SingleOrIterator<unknown>, mapƒ: Mapƒ<T>): SingleOrIterator<T> {
     return FnBase._isSeq(input)
       ? input.map(mapƒ)
       : mapƒ(input)
@@ -115,13 +119,13 @@ export class FnBase {
       : Pred.FALSE
   }
 
-  private static _objectValues(input: object): Seq<any> {
-    return FnBase._type(input) === "object"
+  private static _objectValues(input: unknown): Seq<unknown> {
+    return FnBase._isObject(input)
       ? iterate(Object.values(input))
       : FnBase.EMPTY
   }
 
-  private static _mustBeNumber(input: SingleOrIterator<any>, method: string): number {
+  private static _mustBeNumber(input: SingleOrIterator<unknown>, method: string): number {
     const num = FnBase._next<number>(input)
     if (FnBase._type(num) === "number") {
       return num
@@ -129,130 +133,125 @@ export class FnBase {
     throw new Error(`${method} param must be a number, found ${JSON.stringify(input)}.`)
   }
 
-  num(input: any): number {
+  num(input: unknown): number {
     return FnBase._mustBeNumber(input, "arithmetic")
   }
 
 
-  type(input: any): SingleOrIterator<string> {
+  type(input: unknown): SingleOrIterator<string> {
     return FnBase._autoMap(input, FnBase._type)
   }
 
 
-  private static _size(value: any) {
+  private static _size(value: unknown) {
     return Array.isArray(value)
       ? value.length
       : 1
   }
 
-  size(input: any): SingleOrIterator<number> {
+  size(input: unknown): SingleOrIterator<number> {
     return FnBase._autoMap(input, FnBase._size)
   }
 
 
-  private static _double(input: any): number {
-    const type = FnBase._type(input)
-    if (type !== "number" && type !== "string") {
-      throw new Error(`double() value must be a number or string, found ${JSON.stringify(input)}.`)
+  private static _double(input: unknown): number {
+    let num
+    if (FnBase._isString(input)) {
+      num = Number(input)
+      if (Number.isNaN(num)) {
+        throw new Error(`double() param ${input} is not a representation of a number.`)
+      }
+    } else {
+      num = FnBase._mustBeNumber(input, "double()")
     }
-    const n = Number(input)
-    if (Number.isNaN(n)) {
-      throw new Error(`double() param ${input} is not a representation of a number.`)
-    }
-    return n
+    return num
   }
 
-  double(input: any): SingleOrIterator<number> {
+  double(input: unknown): SingleOrIterator<number> {
     return FnBase._autoMap(input, FnBase._double)
   }
 
 
-  private static _ceiling(input: any): number {
+  private static _ceiling(input: unknown): number {
     return Math.ceil(FnBase._mustBeNumber(input, "ceiling()"))
   }
 
-  ceiling(input: any): SingleOrIterator<number> {
+  ceiling(input: unknown): SingleOrIterator<number> {
     return FnBase._autoMap(input, FnBase._ceiling)
   }
 
 
-  private static _floor(input: any): number {
+  private static _floor(input: unknown): number {
     return Math.floor(FnBase._mustBeNumber(input, "floor()"))
   }
 
-  floor(input: any): SingleOrIterator<number> {
+  floor(input: unknown): SingleOrIterator<number> {
     return FnBase._autoMap(input, FnBase._floor)
   }
 
 
-  private static _abs(input: any): number {
+  private static _abs(input: unknown): number {
     return Math.abs(FnBase._mustBeNumber(input, "abs()"))
   }
 
-  abs(input: any): SingleOrIterator<number> {
+  abs(input: unknown): SingleOrIterator<number> {
     return FnBase._autoMap(input, FnBase._abs)
   }
 
 
-  private static _datetime(input: any, template?: string): Date {
-    if (FnBase._type(input) !== "string") {
-      throw new Error(`datetime() param must be a string, found ${JSON.stringify(input)}.`)
+  private static _datetime(input: unknown, template?: string): Date {
+    if (FnBase._isString(input)) {
+      return template
+        ? DateTime.fromFormat(input, template, {zone: FixedOffsetZone.utcInstance}).toJSDate()
+        : new Date(input)
     }
-    return template
-      ? DateTime.fromFormat(input, template, {zone: FixedOffsetZone.utcInstance}).toJSDate()
-      : new Date(input)
+    throw new Error(`datetime() param must be a string, found ${JSON.stringify(input)}.`)
   }
 
-  datetime(input: any, template?: string): SingleOrIterator<Date> {
-    return FnBase._autoMap(input, (v: any) => FnBase._datetime(v, template))
+  datetime(input: unknown, template?: string): SingleOrIterator<Date> {
+    return FnBase._autoMap(input, (v: unknown) => FnBase._datetime(v, template))
   }
 
 
-  private static _toKV(obj: Record<string, any>, id: number): Seq<KeyValue> {
+  private static _toKV(obj: Record<string, unknown>, id: number): Seq<KeyValue> {
     return iterate(Object.keys(obj))
       .map((key) => ({id, key, value: obj[key]}))
   }
 
-  keyvalue(input: any): Seq<KeyValue> {
-    if (Array.isArray(input)) {
-      if (!this.lax) {
-        throw new Error(`keyvalue() param must be an object but is an array (in strict mode), found ${JSON.stringify(input)}.`)
-      }
-      input = iterate(input)
-    }
+  keyvalue(input: unknown): Seq<KeyValue> {
+    const wrapped = this._unwrap(input, {test: FnBase._isObject, error: "keyvalue() param must be an object."})
     let id = 0
-    const mapƒ = (row: any) => {
-      if (FnBase._type(row) !== "object") {
-        // Only sequence one level of an array.
-        throw new Error(`keyvalue() param must have object values, found ${JSON.stringify(row)}.`)
+    const mapƒ = (row: unknown) => {
+      if (FnBase._isObject(row)) {
+        return FnBase._toKV(row, id++)
       }
-      return FnBase._toKV(row, id++)
+      throw new Error(`keyvalue() param must have object values, found ${JSON.stringify(row)}.`)
     }
-    return FnBase._autoFlatMap(input, mapƒ)
+    return FnBase._autoFlatMap(wrapped, mapƒ)
   }
 
 
-  private _dotStar(input: any): Seq<any> {
+  private _dotStar(input: unknown): Seq<unknown> {
     return this._unwrap(input, { test: FnBase._isObject, error: ".* can only be applied to an object." })
         .map(FnBase._objectValues)
         .flatten()
   }
 
-  dotStar(input: any): Seq<any> {
+  dotStar(input: unknown): Seq<unknown> {
     return FnBase._autoFlatMap(input, (i) => this._dotStar(i))
   }
 
 
-  private _boxStar(input: any): Seq<any> {
+  private _boxStar(input: unknown): Seq<unknown> {
     return this._unwrap(input, { test: Array.isArray, error: "[*] can only be applied to an array in strict mode." })
   }
 
-  boxStar(input: any): Seq<any> {
+  boxStar(input: unknown): Seq<unknown> {
     return FnBase._autoFlatMap(input, (i) => this._boxStar(i))
   }
 
 
-  private _getMember(obj: any, member: string): SingleOrIterator<any> {
+  private _getMember(obj: unknown, member: string): SingleOrIterator<unknown> {
     if (FnBase._isObject(obj) && obj.hasOwnProperty(member)) {
       return obj[member]
     }
@@ -262,18 +261,18 @@ export class FnBase {
     throw new Error(`Object does not contain key ${member}, in strict mode.`)
   }
 
-  private _member(input: any, member: string): Seq<any> {
+  private _member(input: unknown, member: string): Seq<unknown> {
     return this._unwrap(input, { test: FnBase._isObject, error: ".member can only be applied to an object." })
       .map((i) => this._getMember(i, member))
       .filter((i) => i !== FnBase.EMPTY)
   }
 
-  member(input: any, member: string): Seq<any> {
+  member(input: unknown, member: string): Seq<unknown> {
     return FnBase._autoFlatMap(input, (i) => this._member(i, member))
   }
 
 
-  private _maybeElement(array: Array<any>, pos: number): any {
+  private _maybeElement(array: Array<unknown>, pos: any): unknown {
     if (pos < array.length) {
       const value = array[pos]
       return Array.isArray(value)
@@ -283,10 +282,10 @@ export class FnBase {
     if (this.lax) {
       return FnBase.EMPTY
     }
-    throw new Error (`array subscript [${pos}] is out of bounds.`)
+    throw new Error (`In 'strict' mode. Array subscript [${pos}] is out of bounds.`)
   }
 
-  private _array(input: any, subscripts: any[]): Seq<any> {
+  private _array(input: unknown, subscripts: any[]): Seq<any> {
     const array = this._wrap(input, { test: Array.isArray, error: "Array accessors can only be applied to an array." })
     return iterate(subscripts)
       .map((sub) => {
@@ -304,12 +303,12 @@ export class FnBase {
       }).flatten()
   }
 
-  array(input: any, subscripts: any[]): Seq<any> {
+  array(input: unknown, subscripts: unknown[]): Seq<any> {
     return FnBase._autoFlatMap(input, (i) => this._array(i, subscripts))
   }
 
 
-  last(array: any): number {
+  last(array: Array<unknown>): number {
     return array.length - 1
   }
 
@@ -320,14 +319,14 @@ export class FnBase {
     }
   }
 
-  range(from: any, to: any): Seq<number> {
+  range(from: unknown, to: unknown): Seq<number> {
     const start = FnBase._mustBeNumber(from, "'from'")
     const end = FnBase._mustBeNumber(to, "'to'")
     return iterate(FnBase._range(start, end))
   }
 
 
-  private static _filter(filterExp: Predƒ, input: any): boolean {
+  private static _filter(input: unknown, filterExp: Predƒ): boolean {
     try {
       const result = filterExp(input)
       // look for at least one Pred.TRUE in the iterator
@@ -340,9 +339,9 @@ export class FnBase {
     }
   }
 
-  filter(input: any, filterExp: Predƒ): Seq<any> {
+  filter(input: any, filterExp: Predƒ): Seq<unknown> {
     return this._unwrap(input)
-      .filter((i: any) => FnBase._filter(filterExp, i))
+      .filter((i) => FnBase._filter(i, filterExp))
   }
 
 
@@ -370,7 +369,7 @@ export class FnBase {
     return Pred.UNKNOWN
   }
 
-  compare(compOp: string, left: any, right: any): SingleOrIterator<Pred> {
+  compare(compOp: string, left: unknown, right: any): SingleOrIterator<Pred> {
     return FnBase._autoMap(left, (l) => FnBase._compare(compOp, l, right))
   }
 
@@ -395,20 +394,19 @@ export class FnBase {
   }
 
 
-  exists(wff: () => SingleOrIterator<any>): Pred {
+  exists(wff: () => SingleOrIterator<unknown>): Pred {
     try {
-      const seq = wff()
+      const result = wff()
       let value
-      if (FnBase._isSeq(seq)) {
-        const next = seq.next()
+      if (FnBase._isSeq(result)) {
+        const next = result.next()
         value = next.done
           ? FnBase.EMPTY
           : next.value
       } else {
-        value = seq
+        value = result
       }
-      const exists = value !== FnBase.EMPTY
-      return FnBase._toPred(exists)
+      return FnBase._toPred(value !== FnBase.EMPTY)
     } catch (e) {
       return Pred.UNKNOWN
     }
@@ -439,24 +437,24 @@ export class FnBase {
   }
 
 
-  private static _startsWith(input: any, start: string): Pred {
-    return FnBase._type(input) === "string"
+  private static _startsWith(input: unknown, start: string): Pred {
+    return FnBase._isString(input)
       ? FnBase._toPred(input.startsWith(start))
       : Pred.UNKNOWN
   }
 
-  startsWith(input: any, start: string): SingleOrIterator<Pred> {
+  startsWith(input: unknown, start: string): SingleOrIterator<Pred> {
     return FnBase._autoMap(input, (i) => FnBase._startsWith(i, start))
   }
 
 
-  private static _match(input: any, pattern: RegExp): Pred {
-    return FnBase._type(input) === "string"
+  private static _match(input: unknown, pattern: RegExp): Pred {
+    return FnBase._isString(input)
       ? FnBase._toPred(pattern.test(input))
       : Pred.UNKNOWN
   }
 
-  match(input:any, pattern: RegExp): SingleOrIterator<Pred> {
+  match(input: unknown, pattern: RegExp): SingleOrIterator<Pred> {
     return FnBase._autoMap(input, (i) => FnBase._match(i, pattern))
   }
 }
