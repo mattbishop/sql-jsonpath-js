@@ -65,9 +65,12 @@ export class FnBase {
     if (!this.lax && strictTest && !strictTest(input)) {
       throw new Error(`In 'strict' mode! ${strictError} Found: ${JSON.stringify(input)}`)
     }
-    return Array.isArray(input)
-      ? iterate(input)
-      : iterate(new SingletonIterator(input))
+    if (!FnBase._isSeq(input)) {
+      input = iterate(Array.isArray(input)
+        ? input
+        : new SingletonIterator(input))
+    }
+    return input
   }
 
 
@@ -361,13 +364,8 @@ export class FnBase {
   }
 
   filter(input: any, filterExp: Predƒ): IteratorWithOperators<any> {
-    if (Array.isArray(input)) {
-      input = iterate(input)
-    } else if (!(input instanceof IteratorWithOperators)) {
-      // must return empty iterator if nothing matches
-      input = iterate([input])
-    }
-    return input.filter((i: any) => FnBase._filter(filterExp, i))
+    return this._unwrap(input)
+      .filter((i: any) => FnBase._filter(filterExp, i))
   }
 
 
