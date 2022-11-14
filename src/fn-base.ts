@@ -11,11 +11,13 @@ enum Pred {
   UNKNOWN
 }
 
+type Seq<T> = IteratorWithOperators<T>
+
 type Mapƒ<T> = (input: any) => T
 
 type Predƒ = Mapƒ<SingleOrIterator<Pred>>
 
-type SingleOrIterator<T> = T | IteratorWithOperators<T>
+type SingleOrIterator<T> = T | Seq<T>
 
 
 export class FnBase {
@@ -46,7 +48,7 @@ export class FnBase {
       : input
   }
 
-  private static _isSeq(input: any): input is IteratorWithOperators<any> {
+  private static _isSeq(input: any): input is Seq<any> {
     return input instanceof IteratorWithOperators<any>
   }
 
@@ -61,7 +63,7 @@ export class FnBase {
    * @param strictError throws this error message if in strict mode and input is not an array.
    * @private
    */
-  private _unwrap(input: any, strictTest?: Mapƒ<boolean>, strictError?: string): IteratorWithOperators<any> {
+  private _unwrap(input: any, strictTest?: Mapƒ<boolean>, strictError?: string): Seq<any> {
     if (!this.lax && strictTest && !strictTest(input)) {
       throw new Error(`In 'strict' mode! ${strictError} Found: ${JSON.stringify(input)}`)
     }
@@ -80,7 +82,7 @@ export class FnBase {
    * @param strictError throws this error message if in strict mode and input is not an array. TODO same err as unwrap?
    * @private
    */
-  private _wrap(input: any, strictError?: string): IteratorWithOperators<any> {
+  private _wrap(input: any, strictError?: string): Seq<any> {
     if (FnBase._isSeq(input)) {
       input = input.map((i) => this._maybeWrap(i, strictError))
     } else {
@@ -101,19 +103,17 @@ export class FnBase {
   }
 
 
-  private static _autoFlatMap<I extends IteratorWithOperators<unknown>>(input: any, mapƒ: Mapƒ<I>): I {
+  private static _autoFlatMap<I extends Seq<unknown>>(input: any, mapƒ: Mapƒ<I>): I {
     const mapped = this._autoMap(input, mapƒ) as I
-    return input instanceof IteratorWithOperators
+    return FnBase._isSeq(input)
       ? mapped.flatten() as I
       : mapped
   }
 
   private static _autoMap<T>(input: SingleOrIterator<any>, mapƒ: Mapƒ<T>): SingleOrIterator<T> {
-    if (input instanceof IteratorWithOperators) {
-      return input.map(mapƒ)
-    } else {
-      return mapƒ(input)
-    }
+    return FnBase._isSeq(input)
+      ? input.map(mapƒ)
+      : mapƒ(input)
   }
 
   private static _toPred(condition: boolean): Pred {
@@ -122,7 +122,7 @@ export class FnBase {
       : Pred.FALSE
   }
 
-  private static _objectValues(input: object): IteratorWithOperators<any> {
+  private static _objectValues(input: object): Seq<any> {
     return FnBase._type(input) === "object"
       ? iterate(Object.values(input))
       : FnBase.EMPTY
@@ -215,12 +215,12 @@ export class FnBase {
   }
 
 
-  private static _toKV(obj: Record<string, any>, id: number): IteratorWithOperators<KeyValue> {
+  private static _toKV(obj: Record<string, any>, id: number): Seq<KeyValue> {
     return iterate(Object.keys(obj))
       .map((key) => ({id, key, value: obj[key]}))
   }
 
-  keyvalue(input: any): IteratorWithOperators<KeyValue> {
+  keyvalue(input: any): Seq<KeyValue> {
     if (Array.isArray(input)) {
       if (!this.lax) {
         throw new Error(`keyvalue() param must be an object but is an array (in strict mode), found ${JSON.stringify(input)}.`)
@@ -239,22 +239,22 @@ export class FnBase {
   }
 
 
-  private _dotStar(input: any): IteratorWithOperators<any> {
+  private _dotStar(input: any): Seq<any> {
     return this._unwrap(input, FnBase._isObject, ".* can only be applied to an object.")
         .map(FnBase._objectValues)
         .flatten()
   }
 
-  dotStar(input: any): IteratorWithOperators<any> {
+  dotStar(input: any): Seq<any> {
     return FnBase._autoFlatMap(input, (i) => this._dotStar(i))
   }
 
 
-  private _boxStar(input: any): IteratorWithOperators<any> {
+  private _boxStar(input: any): Seq<any> {
     return this._unwrap(input, Array.isArray, "[*] can only be applied to an array in strict mode.")
   }
 
-  boxStar(input: any): IteratorWithOperators<any> {
+  boxStar(input: any): Seq<any> {
     return FnBase._autoFlatMap(input, (i) => this._boxStar(i))
   }
 
@@ -269,13 +269,13 @@ export class FnBase {
     throw new Error(`Object does not contain key ${member}, in strict mode.`)
   }
 
-  private _member(input: any, member: string): IteratorWithOperators<any> {
+  private _member(input: any, member: string): Seq<any> {
     return this._unwrap(input, FnBase._isObject, ".member can only be applied to an object.")
       .map((i) => this._getMember(i, member))
       .filter((i) => i !== FnBase.EMPTY)
   }
 
-  member(input: any, member: string): IteratorWithOperators<any> {
+  member(input: any, member: string): Seq<any> {
     return FnBase._autoFlatMap(input, (i) => this._member(i, member))
   }
 
@@ -285,7 +285,7 @@ export class FnBase {
     if (!Array.isArray(a)) {
       if (this.lax) {
         // lax mode auto-wraps things that are not an array
-        if (a instanceof IteratorWithOperators) {
+        if (FnBase._isSeq(a)) {
           a = a.map((v) => Array.isArray(v) ? v : [v])
         } else {
           a = [a]
@@ -311,13 +311,13 @@ export class FnBase {
     throw new Error (`array subscript [${pos}] is out of bounds.`)
   }
 
-  private _array(array: any, subscripts: any[]): IteratorWithOperators<any> {
+  private _array(array: any, subscripts: any[]): Seq<any> {
     const values = iterate(subscripts)
       .map((s) => {
         if (FnBase._type(s) === "number") {
           return this._maybeElement(array, s)
         }
-        if (s instanceof IteratorWithOperators) {
+        if (FnBase._isSeq(s)) {
           return s.map((s1) => this._maybeElement(array, s1))
         }
         throw new Error("array accessor must be numbers")
@@ -326,7 +326,7 @@ export class FnBase {
     return values
   }
 
-  array(input: any, subscripts: any[]): IteratorWithOperators<any> {
+  array(input: any, subscripts: any[]): Seq<any> {
     return FnBase._autoFlatMap(input, (i) => this._array(i, subscripts))
   }
 
@@ -343,7 +343,7 @@ export class FnBase {
     }
   }
 
-  range(from: any, to: any): IteratorWithOperators<number> {
+  range(from: any, to: any): Seq<number> {
     const start = FnBase._mustBeNumber(from, "'from'")
     const end = FnBase._mustBeNumber(to, "'to'")
     return iterate(FnBase._range(start, end))
@@ -354,7 +354,7 @@ export class FnBase {
     try {
       const result = filterExp(input)
       // look for at least one Pred.TRUE in the iterator
-      return result instanceof IteratorWithOperators
+      return FnBase._isSeq(result)
         ? result.includes(Pred.TRUE)
         : result === Pred.TRUE
     } catch (e) {
@@ -363,7 +363,7 @@ export class FnBase {
     }
   }
 
-  filter(input: any, filterExp: Predƒ): IteratorWithOperators<any> {
+  filter(input: any, filterExp: Predƒ): Seq<any> {
     return this._unwrap(input)
       .filter((i: any) => FnBase._filter(filterExp, i))
   }
