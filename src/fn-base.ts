@@ -288,12 +288,12 @@ export class FnBase {
 
   private _array(array: any, subscripts: any[]): Seq<any> {
     const values = iterate(subscripts)
-      .map((s) => {
-        if (FnBase._type(s) === "number") {
-          return this._maybeElement(array, s)
+      .map((sub) => {
+        if (FnBase._type(sub) === "number") {
+          return this._maybeElement(array, sub)
         }
-        if (FnBase._isSeq(s)) {
-          return s.map((s1) => this._maybeElement(array, s1))
+        if (FnBase._isSeq(sub)) {
+          return sub.map((s1) => this._maybeElement(array, s1))
         }
         throw new Error("array accessor must be numbers")
       }).flatten()
@@ -307,8 +307,8 @@ export class FnBase {
 
 
   last(): number {
-    const a = this.arrayStack.at(-1) as []
-    return a.length - 1
+    const array = this.arrayStack.at(-1) as []
+    return array.length - 1
   }
 
 
