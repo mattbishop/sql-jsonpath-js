@@ -58,6 +58,23 @@ export class FnBase {
     return FnBase._type(input) === "object"
   }
 
+
+  private _wrap(input: any, strict?: StrictConfig): Array<any> {
+    if (!this.lax && strict && !strict.test(input)) {
+      throw new Error(`In 'strict' mode! ${strict.error} Found: ${JSON.stringify(input)}`)
+    }
+    let output
+    if (FnBase._isSeq(input)) {
+      output = input.map((v) => Array.isArray(v) ? v : [v])
+        .toArray()
+    } else if (Array.isArray(input)) {
+      output = input
+    } else {
+      output = [input]
+    }
+    return output
+  }
+
   /**
    * Turn an array into an iterator. Only used in lax mode.
    * @param input The input to unwrap.
@@ -68,12 +85,15 @@ export class FnBase {
     if (!this.lax && strict && !strict.test(input)) {
       throw new Error(`In 'strict' mode! ${strict.error} Found: ${JSON.stringify(input)}`)
     }
-    if (!FnBase._isSeq(input)) {
-      input = iterate(Array.isArray(input)
+    let output
+    if (FnBase._isSeq(input)) {
+      output = input
+    } else {
+      output = iterate(Array.isArray(input)
         ? input
         : new SingletonIterator(input))
     }
-    return input
+    return output
   }
 
   private static _autoFlatMap<I extends Seq<unknown>>(input: any, mapƒ: Mapƒ<I>): I {
@@ -253,26 +273,9 @@ export class FnBase {
   }
 
 
-  // called to set the array for the accessor statements to use it before going into array()
-  a(a: any) {
-    if (!Array.isArray(a)) {
-      if (this.lax) {
-        // lax mode auto-wraps things that are not an array
-        if (FnBase._isSeq(a)) {
-          a = a.map((v) => Array.isArray(v) ? v : [v])
-        } else {
-          a = [a]
-        }
-      } else {
-        throw new Error(`Array accessors can only be applied to an array, found ${a}`)
-      }
-    }
-    return a
-  }
-
-  private _maybeElement(arr: [], pos: number): any {
-    if (pos < arr.length) {
-      const value = arr[pos]
+  private _maybeElement(array: Array<any>, pos: number): any {
+    if (pos < array.length) {
+      const value = array[pos]
       return Array.isArray(value)
         ? [value]
         : value
@@ -283,8 +286,9 @@ export class FnBase {
     throw new Error (`array subscript [${pos}] is out of bounds.`)
   }
 
-  private _array(array: any, subscripts: any[]): Seq<any> {
-    const values = iterate(subscripts)
+  private _array(input: any, subscripts: any[]): Seq<any> {
+    const array = this._wrap(input, { test: Array.isArray, error: "Array accessors can only be applied to an array." })
+    return iterate(subscripts)
       .map((sub) => {
         const subType = FnBase._type(sub)
         if (subType === "number") {
@@ -298,7 +302,6 @@ export class FnBase {
         }
         throw new Error("array accessor must be numbers")
       }).flatten()
-    return values
   }
 
   array(input: any, subscripts: any[]): Seq<any> {
