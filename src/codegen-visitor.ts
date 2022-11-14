@@ -312,8 +312,6 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
     }
 
 
-    private validFlags = /[ims]{1,3}/
-
     likeRegex(node: LikeRegexCstChildren, ctx: CodegenContext): CodegenContext {
       const {Pattern, FlagValue} = node
       const regex = Pattern[0].image
@@ -321,25 +319,26 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
         .replace("\\\\", "\\")
       let fnSource = `${ctx.source},/${regex}/`
       if (FlagValue) {
-        const flags = FlagValue[0].image.slice(1, -1)
         /*
           The spec states that SQL like_regex should be used. That states XQuery flags should be used:
 
-          • i makes the regex match case-insensitive.
-          • s enables "single-line mode" or "dot-all" mode. In this mode, the dot matches every character, including newlines, so the string is treated as a single line.
-          • m enables "multi-line mode". In this mode, the anchors "^" and "$" match before and after newlines in the string as well in addition to applying to the string as a whole.
-          • x enables "free-spacing mode". In this mode, whitespace in regex pattern is ignored. This is mainly used when one has divided a complicated regex over several lines, but do not intend the newlines to be matched.
+          • 'i' makes the regex match case-insensitive.
+          • 's' enables "single-line mode" or "dot-all" mode. In this mode, the dot matches every character, including
+                newlines, so the string is treated as a single line.
+          • 'm' enables "multi-line mode". In this mode, the anchors "^" and "$" match before and after newlines in the
+                string as well in addition to applying to the string as a whole.
+          • 'x' enables "free-spacing mode". In this mode, whitespace in regex pattern is ignored. This is mainly used
+                when one has divided a complicated regex over several lines, but do not intend the newlines to be matched.
 
           i -> JS i
           s -> JS s
           m -> JS m
           x -> JS none, don't support.
 
-          I'd like to add a JS mode that uses Javascript flags. Much more useful.
+          However, JS has more Javascript flags. Much more useful, so just pass them in. I could create a 'spec' mode
+          that only accepts i, s, and m, but let's see if anyone asks for that.
          */
-        if (!this.validFlags.test(flags)) {
-          throw new Error(`Invalid like_regex flag. Expected i, m, s but found '${flags}'. Please use XQuery regex flags ('x' not supported though).`)
-        }
+        const flags = FlagValue[0].image.slice(1, -1)
         fnSource += flags
       }
       return {...ctx, source: `ƒ.match(${fnSource})`}
