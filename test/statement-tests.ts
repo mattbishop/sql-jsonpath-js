@@ -75,6 +75,28 @@ describe("Statement tests", () => {
     expect(Array.from(actual)).to.deep.equal([0, 2, 4, 6, 8])
   })
 
+  describe("default values", () => {
+    it("uses default value on error", () => {
+      const stmt = compile("strict $.thing")
+      let actual = stmt.values({zz: "top"}, {defaultOnError: "Rock band"})
+      expect (actual.next().value).to.equal("Rock band")
+      actual = stmt.exists({zz: "top"}, {defaultOnError: true})
+      expect (actual.next().value).to.equal(true)
+      actual = stmt.query({zz: "top"}, {defaultOnError: {y: "azoo"}})
+      expect (actual.next().value).to.deep.equal({y: "azoo"})
+    })
+
+    it("uses default value on empty", () => {
+      const stmt = compile("$.thing")
+      let actual = stmt.values({zz: "top"}, {defaultOnEmpty: "Rock band"})
+      expect (actual.next().value).to.equal("Rock band")
+      actual = stmt.exists({zz: "top"}, {defaultOnEmpty: false})
+      expect (actual.next().value).to.be.false
+      actual = stmt.query({zz: "top"}, {defaultOnEmpty: {y: "azoo"}})
+      expect (actual.next().value).to.deep.equal({y: "azoo"})
+    })
+  })
+
   describe("filter generators", () => {
     const numberGen = function* () {
       for (let i = 0; i < 10; i++) {
@@ -169,7 +191,7 @@ describe("Statement tests", () => {
       const stmt = compile("$ ? (@.name == $aName)")
 
       it("sees if folks exist by name", () => {
-        let actual = stmt.exists(data, {aName: "Fred"})
+        let actual = stmt.exists(data, {variables: {aName: "Fred"}})
         // first
         expect(actual.next().value).to.be.true
         expect(actual.next().value).to.be.false
@@ -178,7 +200,7 @@ describe("Statement tests", () => {
         expect(actual.next().value).to.be.false
         expect(actual.next().done).to.be.true
         // third
-        actual = stmt.exists(data, {aName: "Afu"})
+        actual = stmt.exists(data, {variables: {aName: "Afu"}})
         expect(actual.next().value).to.be.false
         expect(actual.next().value).to.be.false
         expect(actual.next().value).to.be.true
@@ -186,7 +208,7 @@ describe("Statement tests", () => {
         expect(actual.next().value).to.be.false
         expect(actual.next().done).to.be.true
         // fourth
-        actual = stmt.exists(data, {aName: "Justin"})
+        actual = stmt.exists(data, {variables: {aName: "Justin"}})
         expect(actual.next().value).to.be.false
         expect(actual.next().value).to.be.false
         expect(actual.next().value).to.be.false
@@ -196,26 +218,23 @@ describe("Statement tests", () => {
       })
 
       it("queries folks by name", () => {
-        let actual = stmt.query(data, {aName: "Fred"})
+        let actual = stmt.query(data, {variables: {aName: "Fred"}})
         expect(actual.next().value).to.deep.equal(data[0])
-        actual = stmt.query(data,  {aName: "Afu"})
+        actual = stmt.query(data, {variables: {aName: "Afu"}})
         expect(actual.next().value).to.deep.equal(data[2])
-        actual = stmt.query(data,  {aName: "U La La"})
+        actual = stmt.query(data, {variables: {aName: "U La La"}})
         expect(actual.next().value).to.deep.equal(data[4])
-        actual = stmt.query(data,  {aName: "Snope"})
+        actual = stmt.query(data, {variables: {aName: "Snape"}})
         expect(actual.next().done).to.be.true
       })
 
       it("finds folk's value by name", () => {
-        const config = {defaultOnEmpty: "EMPTY"}
-        let actual = stmt.values(data, {...config, namedVariables: {aName: "Fred"}})
+        let actual = stmt.values(data, {variables: {aName: "Fred"}})
         expect(actual.next().value).to.deep.equal(data[0])
-        actual = stmt.values(data,  {...config, namedVariables: {aName: "Afu"}})
+        actual = stmt.values(data, {variables: {aName: "Afu"}})
         expect(actual.next().value).to.deep.equal(data[2])
-        actual = stmt.values(data,  {...config, namedVariables: {aName: "U La La"}})
+        actual = stmt.values(data, {variables: {aName: "U La La"}})
         expect(actual.next().value).to.deep.equal(data[4])
-        actual = stmt.values(data,  {...config, namedVariables: {aName: "Snope"}})
-        expect(actual.next().value).to.deep.equal("EMPTY")
       })
     })
   })

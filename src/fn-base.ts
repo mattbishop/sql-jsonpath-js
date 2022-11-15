@@ -2,7 +2,7 @@ import {iterate} from "iterare"
 import {IteratorWithOperators} from "iterare/lib/iterate"
 import {DateTime, FixedOffsetZone} from "luxon"
 import {KeyValue} from "./json-path"
-import {SingletonIterator} from "./singleton-iterator"
+import {SingletonIterator} from "./iterators"
 
 
 enum Pred {
@@ -28,12 +28,7 @@ export class FnBase {
 
   static EMPTY = iterate(Object.freeze([]))
 
-  lax:        boolean
-
-
-  constructor(lax: boolean) {
-    this.lax = lax
-  }
+  constructor(private readonly lax: boolean) { }
 
 
   private static _type(input: unknown): string {

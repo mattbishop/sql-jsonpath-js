@@ -4,9 +4,9 @@ import {IteratorWithOperators} from "iterare/lib/iterate"
 import {isIterable} from "iterare/lib/utils"
 import {CodegenContext, newCodegenVisitor} from "./codegen-visitor"
 import {FnBase} from "./fn-base"
-import {Input, NamedVariables, SqlJsonPathStatement, ValueConfig} from "./json-path"
+import {DefaultOnEmptyIterator, DefaultOnErrorIterator, SingletonIterator} from "./iterators"
+import {Input, NamedVariables, SqlJsonPathStatement, StatementConfig} from "./json-path"
 import {JsonPathParser} from "./parser"
-import {SingletonIterator} from "./singleton-iterator"
 import {allTokens} from "./tokens"
 
 
@@ -34,7 +34,7 @@ export function generateFunctionSource(text: string): CodegenContext {
 }
 
 
-export type SJPFn = ($: any, $named?: NamedVariables) => IteratorWithOperators<any>
+export type SJPFn = ($: unknown, $named?: NamedVariables) => IteratorWithOperators<unknown>
 
 export function createFunction({source, lax}: CodegenContext): SJPFn {
   const fn = Function("ƒ", "$", "$$", source)
@@ -63,62 +63,66 @@ export function createStatement(text: string): SqlJsonPathStatement {
     source:   text,
     fnSource: ctx.source,
 
-    exists(input: any, namedVariables?: NamedVariables): IterableIterator<boolean> {
-      return wrapIterator(input)
-        .map((i) => !find(i, namedVariables).next().done)
+    exists(input: any, config: StatementConfig<boolean> = {}): IterableIterator<boolean> {
+      const {variables} = config
+      const iterator = wrapInput(input)
+      // have to walk through the inputs one at a time and test them against find()
+      // because filter() will omit the exists == false elements
+      return defaultsIterator<boolean>(
+        iterator.map((i) => !find(i, variables).next().done), config)
     },
 
-    query<T>(input: Input<T>, namedVariables?: NamedVariables): IterableIterator<T> {
+    query<T>(input: Input<T>, config: StatementConfig<T> = {}): IterableIterator<T> {
+      const {defaultOnEmpty, defaultOnError, variables} = config
       let current: T
-      const tapped = tap(wrapIterator<T>(input), (v) => current = v)
-      const existsIterator = this.exists(tapped, namedVariables) as IteratorWithOperators<boolean>
-      return existsIterator
-        .filter((e) => e)
-        .map(() => current)
+      const tapped = tap(wrapInput<T>(input), (v) => current = v)
+      return defaultsIterator(find(tapped, variables), config)
+        .filter((v) => v !== FnBase.EMPTY)
+        .map((v) => (v === defaultOnEmpty || v === defaultOnError) ? v as T : current)
     },
 
-    values<T>(input: Input<T>, config?: ValueConfig): IterableIterator<unknown> {
-      const {defaultOnError, defaultOnEmpty} = config || {}
-      input = wrapIterator(input)
-      let result
-      if (defaultOnError !== undefined) {
-        // this may not to work because it won't throw errors until the iterator is pulled
-        try {
-          result = find(input, config?.namedVariables)
-        } catch (e) {
-          result = iterate(new SingletonIterator(defaultOnError))
-        }
-      } else {
-        result = find(input, config?.namedVariables)
-      }
-      if (defaultOnEmpty !== undefined) {
-        const first = result.next()
-        result = first.done
-          ? iterate(new SingletonIterator(defaultOnEmpty))
-          : iterate(new SingletonIterator(first.value)).concat(result)
-      }
-      return result.filter((v) => v !== FnBase.EMPTY)
+    values<T>(input: Input<T>, config: StatementConfig = {}): IterableIterator<unknown> {
+      const {variables} = config
+      const iterator = wrapInput(input)
+      return defaultsIterator(find(iterator, variables), config)
+        .filter((v) => v !== FnBase.EMPTY)
     }
   }
 }
 
 
-function wrapIterator<T>(input: any): IteratorWithOperators<T> {
-  if (input instanceof IteratorWithOperators) {
-    return input
+function wrapInput<T>(input: any): IteratorWithOperators<T> {
+  let iterator
+  if (typeof input === "string" || !isIterable(input)) {
+    iterator = new SingletonIterator(input)
+  } else {
+    iterator = input
   }
-  if (!isIterable(input)) {
-    input = new SingletonIterator(input)
-  }
-  return iterate(input)
+  return iterate(iterator)
 }
 
 
-function tap<T>(source: IteratorWithOperators<T>, callback: (value: T) => void): IteratorWithOperators<T> {
+function defaultsIterator<T>(input: Iterator<T>, config: StatementConfig<T>): IteratorWithOperators<T> {
+  let iterator = input
+  const {defaultOnEmpty, defaultOnError} = config
+  // test against undefined so methods can default to false, "", 0, and other truthy values.
+  if (defaultOnError !== undefined) {
+    iterator = new DefaultOnErrorIterator<T>(defaultOnError, iterator)
+  }
+  if (defaultOnEmpty !== undefined) {
+    iterator = new DefaultOnEmptyIterator<T>(defaultOnEmpty, iterator)
+  }
+  return iterator instanceof IteratorWithOperators
+    ? iterator
+    : iterate(iterator)
+}
+
+
+function tap<T>(source: Iterator<T>, callback: (value: T) => void): IteratorWithOperators<T> {
   return iterate(_tap(source, callback))
 }
 
-function* _tap<T>(source: IteratorWithOperators<T>, callback: (value: T) => void): Generator<T> {
+function* _tap<T>(source: Iterator<T>, callback: (value: T) => void): Generator<T> {
   let next
   while (!(next = source.next()).done) {
     const {value} = next

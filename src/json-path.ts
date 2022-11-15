@@ -1,23 +1,23 @@
 export type NamedVariables = Record<string, any>
 
 /**
- * Configuration object for the value() method.
+ * Configuration object for the statement method.
  */
-export type ValueConfig = {
+export type StatementConfig<DEFAULT = unknown> = {
   /**
    * When an input does not match the SQL JSONPath statement, return this value instead.
    */
-  defaultOnEmpty?:  unknown
+  defaultOnEmpty?:  DEFAULT
 
   /**
-   * In strict mode, when Errors occur during matching, catch the error and return this value instead.
+   * When Errors occur during matching, catch the error and return this value instead.
    */
-  defaultOnError?:  unknown
+  defaultOnError?:  DEFAULT
 
   /**
-   * Named variables to use in the SQL JSONPath evaluation.
+   * Variables to use in the SQL JSONPath evaluation.
    */
-  namedVariables?:  NamedVariables
+  variables?:  NamedVariables
 }
 
 
@@ -56,17 +56,19 @@ export interface SqlJsonPathStatement {
    * Determines if JSON input matches the SQL JSONPath statement.
    *
    * @param input A single value, an iterable of values or a value iterator.
-   * @param namedVariables Named variables to use in the SQL JSONPath evaluation.
+   * @param config Contains default values for misses and errors as well as named variables to use in the
+   * SQL JSONPath evaluation.
    */
-  exists<T>(input: Input<T>, namedVariables?: NamedVariables): IterableIterator<boolean>
+  exists<T>(input: Input<T>, config?: StatementConfig<boolean>): IterableIterator<boolean>
 
   /**
    * Filters the JSON input by matching the SQL JSONPath statement. Returns inputs that match.
    *
    * @param input A single value, an iterable of values or a value iterator.
-   * @param namedVariables Named variables to use in the SQL JSONPath evaluation.
+   * @param config Contains default values for misses and errors as well as named variables to use in the
+   * SQL JSONPath evaluation.
    */
-  query<T>(input: Input<T>, namedVariables?: NamedVariables): IterableIterator<T>
+  query<T>(input: Input<T>, config?: StatementConfig<T>): IterableIterator<T>
 
   /**
    * Searches the JSON input for values that match the SQL JSONPath statement, returning the extracted values
@@ -76,7 +78,7 @@ export interface SqlJsonPathStatement {
    * @param config Contains default values for misses and errors as well as named variables to use in the
    * SQL JSONPath evaluation.
    */
-  values<T>(input: Input<T>, config?: ValueConfig): IterableIterator<unknown>
+  values<T>(input: Input<T>, config?: StatementConfig): IterableIterator<unknown>
 }
 
 
