@@ -32,11 +32,16 @@ export class FnBase {
 
 
   private static _type(input: unknown): string {
-    return Array.isArray(input)
-      ? "array"
-      : input === null
-        ? "null"
-        : typeof input
+    if (Array.isArray(input)) {
+      return "array"
+    }
+    if (input === null) {
+      return "null"
+    }
+    const type = typeof input
+    return type === "object" && input instanceof Date
+      ? "date"
+      : type
   }
 
   private static _isString(input: unknown): input is string {

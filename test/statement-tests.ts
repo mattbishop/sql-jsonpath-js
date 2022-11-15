@@ -75,6 +75,12 @@ describe("Statement tests", () => {
     expect(Array.from(actual)).to.deep.equal([0, 2, 4, 6, 8])
   })
 
+  it("understands dates", () => {
+    const stmt = compile("$.datetime().type()")
+    const actual = stmt.values("2020-02-01")
+    expect(actual.next().value).to.equal("date")
+  })
+
   describe("default values", () => {
     it("uses default value on error", () => {
       const stmt = compile("strict $.thing")
