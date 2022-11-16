@@ -91,7 +91,7 @@ export class FnBase {
     }
     let output
     if (FnBase._isSeq(input)) {
-      output = input
+      output = input.flatten()
     } else {
       output = iterate(Array.isArray(input)
         ? input
@@ -394,6 +394,7 @@ export class FnBase {
   }
 
 
+  // bug !exists() doesn't work on Pred
   exists(wff: () => SingleOrIterator<unknown>): Pred {
     try {
       const result = wff()

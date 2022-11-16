@@ -243,5 +243,90 @@ describe("Statement tests", () => {
         expect(actual.next().value).to.deep.equal(data[4])
       })
     })
+
+    describe("doc examples", () => {
+      it("reuses statement", () => {
+        // compile a statement
+        const statement = compile("$.name")
+
+        const data = [
+          { name: "scripty" },
+          { name: "readme" },
+          { noName: true }
+        ]
+
+        const existsIterator = statement.exists(data)
+        expect(Array.from(existsIterator)).to.deep.equal([true, true, false])
+
+        const queryIterator = statement.query(data)
+        expect(Array.from(queryIterator)).to.deep.equal([{name: "scripty"}, {name: "readme"}])
+
+        const valuesIterator = statement.values(data)
+        expect(Array.from(valuesIterator)).to.deep.equal(["scripty", "readme"])
+      })
+    })
+
+    it("queries the store", () => {
+      const store = {
+        "store": {
+          "book": [
+            { "category": "reference",
+              "author": "Nigel Rees",
+              "title": "Sayings of the Century",
+              "price": 8.95
+            },
+            { "category": "fiction",
+              "author": "Evelyn Waugh",
+              "title": "Sword of Honour",
+              "price": 12.99
+            },
+            { "category": "fiction",
+              "author": "Herman Melville",
+              "title": "Moby Dick",
+              "isbn": "0-553-21311-3",
+              "price": 8.99
+            },
+            { "category": "fiction",
+              "author": "J. R. R. Tolkien",
+              "title": "The Lord of the Rings",
+              "isbn": "0-395-19395-8",
+              "price": 22.99
+            }
+          ],
+          "bicycle": {
+            "colour": "red",
+            "price": 19.95
+          }
+        }
+      }
+
+      let stmt = compile("$.store.book[*].author")
+      let actual = stmt.values(store)
+      expect(Array.from(actual)).to.deep.equal(["Nigel Rees", "Evelyn Waugh", "Herman Melville", "J. R. R. Tolkien"])
+
+      stmt = compile("$.store")
+      actual = stmt.values(store)
+      expect (Array.from(actual)[0]).to.deep.equal(store.store)
+
+      stmt = compile("$.store.book[2]")
+      actual = stmt.values(store)
+      expect (Array.from(actual)[0]).to.deep.equal(store.store.book[2])
+
+      stmt = compile("$.store.book[last]")
+      actual = stmt.values(store)
+      expect (Array.from(actual)[0]).to.deep.equal(store.store.book.at(-1))
+
+      stmt = compile("$.store.book[0 to 2]")
+      actual = stmt.values(store)
+      expect (Array.from(actual)).to.deep.equal([store.store.book[0], store.store.book[1], store.store.book[2]])
+
+      stmt = compile("$.store.book ? (exists(@.isbn))")
+      actual = stmt.values(store)
+      expect (Array.from(actual)).to.deep.equal([store.store.book[2], store.store.book[3]])
+
+      stmt = compile("$.store.book ? (!exists(@.isbn))")
+      actual = stmt.values(store)
+      expect (Array.from(actual)).to.deep.equal([store.store.book[0], store.store.book[1]])
+    })
   })
 })
