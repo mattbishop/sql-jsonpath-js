@@ -282,8 +282,15 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
     neg(node: NegCstChildren, ctx: CodegenContext): CodegenContext {
       const {pred, NotOp, delPred} = node
       ctx = this.maybeVisit(pred, ctx)
-      ctx = maybeAppend(NotOp, ctx)
-      return this.maybeVisit(delPred, ctx)
+      if (delPred) {
+        ctx = this.visit(delPred, ctx)
+        let source = ctx.source
+        if (!source.startsWith("(")) {
+          source  = `(${source})`
+        }
+        ctx = {...ctx, source: `ƒ.not${source}`}
+      }
+      return ctx
     }
 
 

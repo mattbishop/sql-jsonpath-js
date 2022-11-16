@@ -374,6 +374,14 @@ export class FnBase {
   }
 
 
+  not(input: any): Pred {
+    return input === Pred.TRUE
+      ? Pred.FALSE
+      // UNKNOWN -> TRUE
+      : Pred.TRUE
+  }
+
+
   and(preds: Pred[]): Pred {
     for (const pred of preds) {
       if (FnBase._next(pred) !== Pred.TRUE) {
@@ -394,7 +402,6 @@ export class FnBase {
   }
 
 
-  // bug !exists() doesn't work on Pred
   exists(wff: () => SingleOrIterator<unknown>): Pred {
     try {
       const result = wff()

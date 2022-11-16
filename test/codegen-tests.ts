@@ -591,6 +591,14 @@ describe("Codegen tests", () => {
         expect(actual).to.deep.equal([1])
       })
 
+      it("can filter comparison ! predicates", () => {
+        const ctx = generateFunctionSource("$ ? (!(@ == 1))")
+        expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.not(ƒ.compare(\"==\",v,1)))")
+        const fn = createFunctionForTest(ctx)
+        const actual = fn(3)
+        expect(actual).to.deep.equal([3])
+      })
+
       it("can filter comparison predicate iterators", () => {
         const ctx = generateFunctionSource("$ ? (@[*] == 1)")
         expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.compare(\"==\",ƒ.boxStar(v),1))")
@@ -615,6 +623,14 @@ describe("Codegen tests", () => {
         const fn = createFunctionForTest(ctx)
         const actual = fn([{z: true}, {y: false}, {a: "yes"}])
         expect(actual).to.deep.equal([{z: true}])
+      })
+
+      it("can filter not predicates on members", () => {
+        const ctx = generateFunctionSource("$ ? (!exists(@.z))")
+        expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.not(ƒ.exists(()=>(ƒ.member(v,\"z\")))))")
+        const fn = createFunctionForTest(ctx)
+        const actual = fn([{z: true}, {y: false}, {a: "yes"}])
+        expect(actual).to.deep.equal([{y: false}, {a: "yes"}])
       })
 
       it("can filter predicates and extract members", () => {
@@ -650,6 +666,14 @@ describe("Codegen tests", () => {
         const actual = fn([[false, 100], [true], ["baby", true, {"g": 22}]])
         expect(actual).to.deep.equal([[false, 100], ["baby", true, {"g": 22}]])
       })
+    })
+
+    it("can filter not 'is unknown' predicate iterators", () => {
+      const ctx = generateFunctionSource("$ ? (!(@[*] == true) is unknown)")
+      expect(ctx.source).to.equal("return ƒ.filter($,v=>ƒ.not(ƒ.isUnknown(ƒ.compare(\"==\",ƒ.boxStar(v),true))))")
+      const fn = createFunctionForTest(ctx)
+      const actual = fn([[false, 100], [true], ["baby", true, {"g": 22}]])
+      expect(actual).to.deep.equal([[false, 100], [true], ["baby", true, {"g": 22}]])
     })
 
     it("can filter multiple predicates with && and ||", () => {
