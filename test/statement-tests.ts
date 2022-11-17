@@ -81,6 +81,12 @@ describe("Statement tests", () => {
     expect(actual.next().value).to.equal("date")
   })
 
+  it("compares dates", () => {
+    const stmt = compile("$ ? (@.datetime() == $a)")
+    const actual = stmt.exists("2020-02-01", {variables: {a: new Date("2020-02-01")}})
+    expect(actual.next().value).to.equal(true)
+  })
+
   describe("default values", () => {
     it("uses default value on error", () => {
       const stmt = compile("strict $.thing")

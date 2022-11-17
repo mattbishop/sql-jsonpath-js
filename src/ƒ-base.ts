@@ -342,6 +342,10 @@ export class ƒBase {
     const typeLeft = ƒBase._type(left)
     const typeRight = ƒBase._type(right)
     if (typeLeft === typeRight) {
+      if (typeLeft === "date") {
+        left = left.getTime()
+        right = right.getTime()
+      }
       switch (compOp) {
         case "==" :
           return ƒBase._toPred(left === right)
