@@ -38,10 +38,10 @@ export class ƒBase {
     if (input === null) {
       return "null"
     }
-    const type = typeof input
-    return type === "object" && input instanceof Date
-      ? "date"
-      : type
+    if (input instanceof Date) {
+      return "date"
+    }
+    return typeof input
   }
 
   private static _isString(input: unknown): input is string {
@@ -120,8 +120,8 @@ export class ƒBase {
   }
 
   private static _mustBeNumber(input: SingleOrIterator<unknown>, method: string): number {
-    const num = ƒBase._next<number>(input)
-    if (ƒBase._type(num) === "number") {
+    const num = ƒBase._next<unknown>(input)
+    if (typeof num === "number") {
       return num
     }
     throw new Error(`${method} param must be a number, found ${JSON.stringify(input)}.`)
@@ -285,11 +285,11 @@ export class ƒBase {
         if (subType === "number") {
           return this._maybeElement(array, sub)
         }
-        if (ƒBase._isSeq(sub)) {
-          return sub.map((s) => this._maybeElement(array, s))
-        }
         if (subType == "function") {
           return this._maybeElement(array, sub(array))
+        }
+        if (ƒBase._isSeq(sub)) {
+          return sub.map((s) => this._maybeElement(array, s))
         }
         throw new Error("array accessor must be numbers")
       }).flatten()
