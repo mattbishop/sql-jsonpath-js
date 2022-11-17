@@ -3,7 +3,7 @@ import {iterate} from "iterare"
 import {IteratorWithOperators} from "iterare/lib/iterate"
 import {isIterable} from "iterare/lib/utils"
 import {CodegenContext, newCodegenVisitor} from "./codegen-visitor"
-import {FnBase} from "./fn-base"
+import {ƒBase} from "./ƒ-base"
 import {DefaultOnEmptyIterator, DefaultOnErrorIterator, SingletonIterator} from "./iterators"
 import {Input, NamedVariables, SqlJsonPathStatement, StatementConfig} from "./json-path"
 import {JsonPathParser} from "./parser"
@@ -38,7 +38,7 @@ export type SJPFn = ($: unknown, $named?: NamedVariables) => IteratorWithOperato
 
 export function createFunction({source, lax}: CodegenContext): SJPFn {
   const fn = Function("ƒ", "$", "$$", source)
-  const ƒ = new FnBase(lax)
+  const ƒ = new ƒBase(lax)
 
   return ($, $named = {}) => {
     const $$ = (name: string): unknown => {
@@ -77,7 +77,7 @@ export function createStatement(text: string): SqlJsonPathStatement {
       let current: T
       const tapped = tap(wrapInput<T>(input), (v) => current = v)
       return defaultsIterator(find(tapped, variables), config)
-        .filter((v) => v !== FnBase.EMPTY)
+        .filter((v) => v !== ƒBase.EMPTY)
         .map((v) => (v === defaultOnEmpty || v === defaultOnError) ? v as T : current)
     },
 
@@ -85,7 +85,7 @@ export function createStatement(text: string): SqlJsonPathStatement {
       const {variables} = config
       const iterator = wrapInput(input)
       return defaultsIterator(find(iterator, variables), config)
-        .filter((v) => v !== FnBase.EMPTY)
+        .filter((v) => v !== ƒBase.EMPTY)
     }
   }
 }
