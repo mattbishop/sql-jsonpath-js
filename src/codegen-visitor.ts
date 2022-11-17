@@ -77,6 +77,12 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
         : ctx
     }
 
+    maybeParen(source: string): string {
+      return source.startsWith("(")
+        ? source
+        : `(${source})`
+    }
+
 
     stmt(node: StmtCstChildren): CodegenContext {
       const {Mode, wff} = node
@@ -134,7 +140,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
 
     accessExp(node: AccessExpCstChildren, ctx: CodegenContext): CodegenContext {
       const {primary, accessor} = node
-      const origSource = ctx.source
+      const {source: origSource} = ctx
       ctx = this.visit(primary, {...ctx, source: ""})
       if (accessor) {
         ctx = accessor.reduce((acc, a) => this.visit(a, acc), ctx)
@@ -194,7 +200,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
           case "floor" :
           case "abs" :
           case "keyvalue" :
-            methodImpl = `ƒ.${methodName}(${primary})`
+            methodImpl = `ƒ.${methodName}${this.maybeParen(primary)}`
             break
           default :
             throw new Error(`Item methodName unrecognized: ${methodName}`)
@@ -207,9 +213,9 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
         }
         source = `ƒ.datetime(${primary}${template})`
       } else if (WildcardMember) {
-        source = `ƒ.dotStar(${primary})`
+        source = `ƒ.dotStar${this.maybeParen(primary)}`
       } else if (WildcardArray) {
-        source = `ƒ.boxStar(${primary})`
+        source = `ƒ.boxStar${this.maybeParen(primary)}`
       } else if (Member) {
         const payloads = Member[0].payload
         const member = payloads[0] || payloads[1]
@@ -244,7 +250,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
 
     filter(node: FilterCstChildren, ctx: CodegenContext): CodegenContext {
       const {pathPred} = node
-      const origSource = ctx.source
+      const {source: origSource} = ctx
       ctx = this.visit(pathPred, {...ctx, source: ""})
       return {...ctx, source: `ƒ.filter(${origSource},v=>${ctx.source})`}
     }
@@ -280,15 +286,11 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
 
 
     neg(node: NegCstChildren, ctx: CodegenContext): CodegenContext {
-      const {pred, NotOp, delPred} = node
+      const {pred, delPred} = node
       ctx = this.maybeVisit(pred, ctx)
       if (delPred) {
         ctx = this.visit(delPred, ctx)
-        let source = ctx.source
-        if (!source.startsWith("(")) {
-          source  = `(${source})`
-        }
-        ctx = {...ctx, source: `ƒ.not${source}`}
+        ctx = {...ctx, source: `ƒ.not${this.maybeParen(ctx.source)}`}
       }
       return ctx
     }
@@ -315,7 +317,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       const {pathPred, IsUnknown} = node
       ctx = this.visit(pathPred, ctx)
       const unknown = IsUnknown ? "ƒ.isUnknown" : ""
-      return {...ctx, source: `${unknown}(${ctx.source})`}
+      return {...ctx, source: `${unknown}${this.maybeParen(ctx.source)}`}
     }
 
 

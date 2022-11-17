@@ -219,7 +219,7 @@ export class FnBase {
   }
 
   keyvalue(input: unknown): Seq<KeyValue> {
-    const wrapped = this._unwrap(input, {test: FnBase._isObject, error: "keyvalue() param must be an object."})
+    const objects = this._unwrap(input, {test: FnBase._isObject, error: "keyvalue() param must be an object."})
     let id = 0
     const mapƒ = (row: unknown) => {
       if (FnBase._isObject(row)) {
@@ -227,7 +227,7 @@ export class FnBase {
       }
       throw new Error(`keyvalue() param must have object values, found ${JSON.stringify(row)}.`)
     }
-    return FnBase._autoFlatMap(wrapped, mapƒ)
+    return FnBase._autoFlatMap(objects, mapƒ)
   }
 
 
@@ -294,7 +294,7 @@ export class FnBase {
           return this._maybeElement(array, sub)
         }
         if (FnBase._isSeq(sub)) {
-          return sub.map((s1) => this._maybeElement(array, s1))
+          return sub.map((s) => this._maybeElement(array, s))
         }
         if (subType == "function") {
           return this._maybeElement(array, sub(array))
