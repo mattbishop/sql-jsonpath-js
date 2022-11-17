@@ -67,16 +67,13 @@ export class FnBase {
     if (!this.lax && strict && !strict.test(input)) {
       throw new Error(`In 'strict' mode! ${strict.error} Found: ${JSON.stringify(input)}`)
     }
-    let output
     if (FnBase._isSeq(input)) {
-      output = input.map((v) => Array.isArray(v) ? v : [v])
+      return input.map((v) => Array.isArray(v) ? v : [v])
         .toArray()
     } else if (Array.isArray(input)) {
-      output = input
-    } else {
-      output = [input]
+      return input
     }
-    return output
+    return [input]
   }
 
   /**
@@ -89,15 +86,12 @@ export class FnBase {
     if (!this.lax && strict && !strict.test(input)) {
       throw new Error(`In 'strict' mode! ${strict.error} Found: ${JSON.stringify(input)}`)
     }
-    let output
     if (FnBase._isSeq(input)) {
-      output = input.flatten()
-    } else {
-      output = iterate(Array.isArray(input)
-        ? input
-        : new SingletonIterator(input))
+      return input.flatten()
     }
-    return output
+    return iterate(Array.isArray(input)
+      ? input
+      : new SingletonIterator(input))
   }
 
   private static _autoFlatMap<I extends Seq<unknown>>(input: unknown, mapƒ: Mapƒ<I>): I {
@@ -155,16 +149,14 @@ export class FnBase {
 
 
   private static _double(input: unknown): number {
-    let num
     if (FnBase._isString(input)) {
-      num = Number(input)
+      const num = Number(input)
       if (Number.isNaN(num)) {
         throw new Error(`double() param ${input} is not a representation of a number.`)
       }
-    } else {
-      num = FnBase._mustBeNumber(input, "double()")
+      return num
     }
-    return num
+    return FnBase._mustBeNumber(input, "double()")
   }
 
   double(input: unknown): SingleOrIterator<number> {
