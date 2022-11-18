@@ -333,6 +333,19 @@ describe("Statement tests", () => {
       stmt = compile("$.store.book ? (!exists(@.isbn))")
       actual = stmt.values(store)
       expect (Array.from(actual)).to.deep.equal([store.store.book[0], store.store.book[1]])
+
+      stmt = compile("$.store.book.price ? (@ > 10)")
+      actual = stmt.query(store)
+      expect (actual.next().value).to.deep.equal(store)
+      expect (actual.next().done).to.equal(true)
+
+      stmt = compile("$.store.book.title ? (@ starts with \"S\")")
+      actual = stmt.values(store)
+      expect (Array.from(actual)).to.deep.equal(["Sayings of the Century", "Sword of Honour"])
+
+      stmt = compile("$.store.bicycle ? (@.colour like_regex \"^RED$\" flag \"i\")")
+      actual = stmt.exists(store)
+      expect (Array.from(actual)).to.deep.equal([true])
     })
   })
 })

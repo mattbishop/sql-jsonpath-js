@@ -65,27 +65,31 @@ export function createStatement(text: string): SqlJsonPathStatement {
 
     exists(input: any, config: StatementConfig<boolean> = {}): IterableIterator<boolean> {
       const {variables} = config
+      // iterate through the inputs one at a time and test them against find()
+      // because ƒ.filter() will omit the exists == false elements
       const iterator = wrapInput(input)
-      // have to walk through the inputs one at a time and test them against find()
-      // because filter() will omit the exists == false elements
-      return defaultsIterator<boolean>(
-        iterator.map((i) => !find(i, variables).next().done), config)
+        .map((i) => !find(i, variables).next().done)
+      return defaultsIterator<boolean>(iterator, config)
     },
 
     query<T>(input: Input<T>, config: StatementConfig<T> = {}): IterableIterator<T> {
       const {defaultOnEmpty, defaultOnError, variables} = config
+      // iterate through the input elements because find() flattens inputs.
+      // No way to differentiate between input-level and internal-input matches.
       let current: T
-      const tapped = tap(wrapInput<T>(input), (v) => current = v)
-      return defaultsIterator(find(tapped, variables), config)
-        .filter((v) => v !== ƒBase.EMPTY)
+      const iterator = tap(wrapInput<T>(input), (v) => current = v)
+        // Just need one match
+        .map((i) => find(i, variables).take(1))
+        .filter((i) => !i.next().done)
         .map((v) => (v === defaultOnEmpty || v === defaultOnError) ? v as T : current)
+      return defaultsIterator<T>(iterator, config)
     },
 
     values<T>(input: Input<T>, config: StatementConfig = {}): IterableIterator<unknown> {
       const {variables} = config
-      const iterator = wrapInput(input)
-      return defaultsIterator(find(iterator, variables), config)
+      const iterator = find(wrapInput(input), variables)
         .filter((v) => v !== ƒBase.EMPTY)
+      return defaultsIterator(iterator, config)
     }
   }
 }
@@ -105,7 +109,7 @@ function wrapInput<T>(input: any): IteratorWithOperators<T> {
 function defaultsIterator<T>(input: Iterator<T>, config: StatementConfig<T>): IteratorWithOperators<T> {
   let iterator = input
   const {defaultOnEmpty, defaultOnError} = config
-  // test against undefined so methods can default to false, "", 0, and other truthy values.
+  // test against undefined so statements can default to false, "", 0, and other truthy values.
   if (defaultOnError !== undefined) {
     iterator = new DefaultOnErrorIterator<T>(defaultOnError, iterator)
   }
