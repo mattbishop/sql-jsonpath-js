@@ -355,9 +355,9 @@ describe("Statement tests", () => {
       actual = stmt.values(data)
       expect (Array.from(actual)).to.deep.equal([data.store])
 
-      stmt = compile("$.store ? ((@.book.price > 10) || (@.bicycle.price > 10))")
+      stmt = compile("$.* ? (exists(@.book) || exists(@.bicycle)).*[*] ? (@.price > 10)")
       actual = stmt.values(data)
-      expect (Array.from(actual)).to.deep.equal([data.store])
+      expect (Array.from(actual)).to.deep.equal([data.store.book[1], data.store.book[3], data.store.bicycle])
     })
 
     it("pg track", () => {
