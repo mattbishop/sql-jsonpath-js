@@ -200,4 +200,4 @@ This example is taken from Stefan Goessner’s original JSONPath documentation.
 | `$.store.book.title ? (@ starts with "S")`                 | All books whose title starts with the letter “S”             |
 | `$.store.bicycle ? (@.colour like_regex "^RED$" flag "i")` | All bicycles whose colour is “red”, case insensitive         |
 | `$.store.book.price ? (@ > 10)`                            | All books whose price is > 10                                |
-| `$.* ? (exists(@.book) || exists(@.bicycle)).*[*] ? (@.price > 10)` | All books and bicycles whose price > 10 |
+| `$.* ? (exists(@.book) \|\| exists(@.bicycle)).*[*] ? (@.price > 10)` | All books and bicycles whose price > 10 |
