@@ -3,14 +3,14 @@ import {compile} from "../src"
 
 describe("Statement tests", () => {
   it("exists", () => {
-    const stmt = compile("$")
+    const stmt = compile('$')
     const actual = stmt.exists("matt")
     expect(actual.next().value).to.equal(true)
     expect(actual.next().done).to.equal(true)
   })
 
   it("queries", () => {
-    const stmt = compile("$.a")
+    const stmt = compile('$.a')
     const actual = stmt.query([{a: 1}, {b: 2}, {a: 3}])
     expect(actual.next().value).to.deep.equal({a: 1})
     expect(actual.next().value).to.deep.equal({a: 3})
@@ -18,7 +18,7 @@ describe("Statement tests", () => {
   })
 
   it("values", () => {
-    const stmt = compile("$.a")
+    const stmt = compile('$.a')
     const actual = stmt.values([{a: 1}, {b: 2}, {a: 3}])
     expect(actual.next().value).to.equal(1)
     expect(actual.next().value).to.equal(3)
@@ -26,7 +26,7 @@ describe("Statement tests", () => {
   })
 
   it("applies function to sequence", () => {
-    const stmt = compile("$.type()")//[*].type()")
+    const stmt = compile('$.type()')//[*].type()")
     const actual = stmt.values(["matt", true, 100, ["mary", "abby"], {a: 4}])
     expect(actual.next().value).to.equal("string")
     expect(actual.next().value).to.equal("boolean")
@@ -37,7 +37,7 @@ describe("Statement tests", () => {
   })
 
   it("unwraps sequence", () => {
-    const stmt = compile("$[*]")
+    const stmt = compile('$[*]')
     const actual = stmt.values(["matt", true, 100, ["mary", "abby"], {a: 4}])
     expect(actual.next().value).to.equal("matt")
     expect(actual.next().value).to.equal(true)
@@ -49,7 +49,7 @@ describe("Statement tests", () => {
   })
 
   it("unwraps sequence and applies type()", () => {
-    const stmt = compile("$[*].type()")
+    const stmt = compile('$[*].type()')
     const actual = stmt.values(["matt", true, 100, ["mary", false], {a: 4}])
     expect(actual.next().value).to.equal("string")
     expect(actual.next().value).to.equal("boolean")
@@ -61,7 +61,7 @@ describe("Statement tests", () => {
   })
 
   it("extracts values from an array", () => {
-    const stmt = compile("$ ? (@ starts with \"m\")")
+    const stmt = compile('$ ? (@ starts with "m")')
     const actual = stmt.values(["matt", "angie", "mark", "mary", "abby"])
     expect(actual.next().value).to.equal("matt")
     expect(actual.next().value).to.equal("mark")
@@ -70,26 +70,26 @@ describe("Statement tests", () => {
   })
 
   it("can do arithmetic", () => {
-    const stmt = compile("$ ? (@ % 2 == 0)")
+    const stmt = compile('$ ? (@ % 2 == 0)')
     const actual = stmt.values([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
     expect(Array.from(actual)).to.deep.equal([0, 2, 4, 6, 8])
   })
 
   it("understands dates", () => {
-    const stmt = compile("$.datetime().type()")
+    const stmt = compile('$.datetime().type()')
     const actual = stmt.values("2020-02-01")
     expect(actual.next().value).to.equal("date")
   })
 
   it("compares dates", () => {
-    const stmt = compile("$ ? (@.datetime() == $a)")
+    const stmt = compile('$ ? (@.datetime() == $a)')
     const actual = stmt.exists("2020-02-01", {variables: {a: new Date("2020-02-01")}})
     expect(actual.next().value).to.equal(true)
   })
 
   describe("default values", () => {
     it("uses default value on error", () => {
-      const stmt = compile("strict $.thing")
+      const stmt = compile('strict $.thing')
       let actual = stmt.values({zz: "top"}, {defaultOnError: "Rock band"})
       expect (actual.next().value).to.equal("Rock band")
       actual = stmt.exists({zz: "top"}, {defaultOnError: true})
@@ -99,7 +99,7 @@ describe("Statement tests", () => {
     })
 
     it("uses default value on empty", () => {
-      const stmt = compile("$.thing")
+      const stmt = compile('$.thing')
       let actual = stmt.values({zz: "top"}, {defaultOnEmpty: "Rock band"})
       expect (actual.next().value).to.equal("Rock band")
       actual = stmt.exists({zz: "top"}, {defaultOnEmpty: false})
@@ -115,7 +115,7 @@ describe("Statement tests", () => {
         yield i
       }
     }
-    const stmt = compile("$ ? (@ % 2 == 0)")
+    const stmt = compile('$ ? (@ % 2 == 0)')
     it("*number values", () => {
       const actual = stmt.values(numberGen())
       expect(Array.from(actual)).to.deep.equal([0, 2, 4, 6, 8])
@@ -138,7 +138,7 @@ describe("Statement tests", () => {
         key = String.fromCharCode(key.charCodeAt(0) + 1)
       }
     }
-    const stmt = compile("$.keyvalue()")
+    const stmt = compile('$.keyvalue()')
 
     it("*object values", () =>  {
       const actual = stmt.values(objectGen())
@@ -180,7 +180,7 @@ describe("Statement tests", () => {
     }]
 
     it("coalesce phones arrays", () => {
-      const stmt = compile("$.phones.\"phone#\"")
+      const stmt = compile('$.phones."phone#"')
       const actual = stmt.values(data)
       expect(Array.from(actual)).to.deep.equal([
         "650-506-7000",
@@ -190,7 +190,7 @@ describe("Statement tests", () => {
     })
 
     it("finds the folks who have a phone#", () => {
-      const stmt = compile("$ ? (exists(@.phones.\"phone#\") || exists(@.\"phone#\")).name")
+      const stmt = compile('$ ? (exists(@.phones."phone#") || exists(@."phone#")).name')
       const actual = stmt.values(data)
       expect(Array.from(actual)).to.deep.equal([
         "Fred",
@@ -200,7 +200,7 @@ describe("Statement tests", () => {
     })
 
     describe("reuse same statement", () => {
-      const stmt = compile("$ ? (@.name == $aName)")
+      const stmt = compile('$ ? (@.name == $aName)')
 
       it("sees if folks exist by name", () => {
         let actual = stmt.exists(data, {variables: {aName: "Fred"}})
@@ -253,7 +253,7 @@ describe("Statement tests", () => {
     describe("doc examples", () => {
       it("reuses statement", () => {
         // compile a statement
-        const statement = compile("$.name")
+        const statement = compile('$.name')
 
         const data = [
           { name: "scripty" },
@@ -306,56 +306,56 @@ describe("Statement tests", () => {
         }
       }
 
-      let stmt = compile("$.store.book[*].author")
+      let stmt = compile('$.store.book[*].author')
       let actual = stmt.values(data)
       expect(Array.from(actual)).to.deep.equal(["Nigel Rees", "Evelyn Waugh", "Herman Melville", "J. R. R. Tolkien"])
 
-      stmt = compile("$.store")
+      stmt = compile('$.store')
       actual = stmt.values(data)
       expect (Array.from(actual)[0]).to.deep.equal(data.store)
 
-      stmt = compile("$.store.book[2]")
+      stmt = compile('$.store.book[2]')
       actual = stmt.values(data)
       expect (Array.from(actual)[0]).to.deep.equal(data.store.book[2])
 
-      stmt = compile("$.store.book[last]")
+      stmt = compile('$.store.book[last]')
       actual = stmt.values(data)
       expect (Array.from(actual)[0]).to.deep.equal(data.store.book.at(-1))
 
-      stmt = compile("$.store.book[0 to 2]")
+      stmt = compile('$.store.book[0 to 2]')
       actual = stmt.values(data)
       expect (Array.from(actual)).to.deep.equal([data.store.book[0], data.store.book[1], data.store.book[2]])
 
-      stmt = compile("$.store.book ? (exists(@.isbn))")
+      stmt = compile('$.store.book ? (exists(@.isbn))')
       actual = stmt.values(data)
       expect (Array.from(actual)).to.deep.equal([data.store.book[2], data.store.book[3]])
 
-      stmt = compile("$.store.book ? (!exists(@.isbn))")
+      stmt = compile('$.store.book ? (!exists(@.isbn))')
       actual = stmt.values(data)
       expect (Array.from(actual)).to.deep.equal([data.store.book[0], data.store.book[1]])
 
-      stmt = compile("$.store.book.price ? (@ > 10)")
+      stmt = compile('$.store.book.price ? (@ > 10)')
       actual = stmt.query(data)
       expect (actual.next().value).to.deep.equal(data)
       expect (actual.next().done).to.equal(true)
 
-      stmt = compile("$.store.book.title ? (@ starts with \"S\")")
+      stmt = compile('$.store.book.title ? (@ starts with "S")')
       actual = stmt.values(data)
       expect (Array.from(actual)).to.deep.equal(["Sayings of the Century", "Sword of Honour"])
 
-      stmt = compile("$.store.bicycle ? (@.colour like_regex \"^RED$\" flag \"i\")")
+      stmt = compile('$.store.bicycle ? (@.colour like_regex "^RED$" flag "i")')
       actual = stmt.exists(data)
       expect (Array.from(actual)).to.deep.equal([true])
 
-      stmt = compile("$.store.book ? (@.price > 10)")
+      stmt = compile('$.store.book ? (@.price > 10)')
       actual = stmt.values(data)
       expect (Array.from(actual)).to.deep.equal([data.store.book[1], data.store.book[3]])
 
-      stmt = compile("$.store ? ((@.book.price > 10) || (@.bicycle.price > 10))")
+      stmt = compile('$.store ? ((@.book.price > 10) || (@.bicycle.price > 10))')
       actual = stmt.values(data)
       expect (Array.from(actual)).to.deep.equal([data.store])
 
-      stmt = compile("$.* ? (exists(@.book) || exists(@.bicycle)).*[*] ? (@.price > 10)")
+      stmt = compile('$.* ? (exists(@.book) || exists(@.bicycle)).*[*] ? (@.price > 10)')
       actual = stmt.values(data)
       expect (Array.from(actual)).to.deep.equal([data.store.book[1], data.store.book[3], data.store.bicycle])
     })
@@ -378,35 +378,35 @@ describe("Statement tests", () => {
         }
       }
 
-      let stmt = compile("$.track.segments")
+      let stmt = compile('$.track.segments')
       let actual = stmt.values(data)
       expect(actual.next().value).to.deep.equal(data.track.segments)
 
-      stmt = compile("$.track.segments[*].location")
+      stmt = compile('$.track.segments[*].location')
       actual = stmt.values(data)
       expect(Array.from(actual)).to.deep.equal([data.track.segments[0].location, data.track.segments[1].location])
 
-      stmt = compile("$.track.segments[0].location")
+      stmt = compile('$.track.segments[0].location')
       actual = stmt.values(data)
       expect(actual.next().value).to.deep.equal(data.track.segments[0].location)
 
-      stmt = compile("$.track.segments.size()")
+      stmt = compile('$.track.segments.size()')
       actual = stmt.values(data)
       expect(actual.next().value).to.deep.equal(2)
 
-      stmt = compile("$.track.segments[*].HR ? (@ > 130)")
+      stmt = compile('$.track.segments[*].HR ? (@ > 130)')
       actual = stmt.values(data)
       expect(Array.from(actual)).to.deep.equal([135])
 
-      stmt = compile("$.track.segments[*] ? (@.HR > 130).\"start time\".datetime()")
+      stmt = compile('$.track.segments[*] ? (@.HR > 130)."start time".datetime()')
       actual = stmt.values(data)
       expect(Array.from(actual)).to.deep.equal([new Date("2018-10-14 10:39:21")])
 
-      stmt = compile("$.track.segments[*] ? (@.location[1] < 13.4).HR ? (@ > 130)")
+      stmt = compile('$.track.segments[*] ? (@.location[1] < 13.4).HR ? (@ > 130)')
       actual = stmt.values(data)
       expect(Array.from(actual)).to.deep.equal([135])
 
-      stmt = compile("$.track ? (exists(@.segments[*] ? (@.HR > 130))).segments.size()")
+      stmt = compile('$.track ? (exists(@.segments[*] ? (@.HR > 130))).segments.size()')
       actual = stmt.values(data)
       expect(Array.from(actual)).to.deep.equal([2])
     })
