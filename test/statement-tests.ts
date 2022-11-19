@@ -273,7 +273,7 @@ describe("Statement tests", () => {
     })
 
     it("queries the store", () => {
-      const store = {
+      const data = {
         "store": {
           "book": [
             { "category": "reference",
@@ -307,53 +307,108 @@ describe("Statement tests", () => {
       }
 
       let stmt = compile("$.store.book[*].author")
-      let actual = stmt.values(store)
+      let actual = stmt.values(data)
       expect(Array.from(actual)).to.deep.equal(["Nigel Rees", "Evelyn Waugh", "Herman Melville", "J. R. R. Tolkien"])
 
       stmt = compile("$.store")
-      actual = stmt.values(store)
-      expect (Array.from(actual)[0]).to.deep.equal(store.store)
+      actual = stmt.values(data)
+      expect (Array.from(actual)[0]).to.deep.equal(data.store)
 
       stmt = compile("$.store.book[2]")
-      actual = stmt.values(store)
-      expect (Array.from(actual)[0]).to.deep.equal(store.store.book[2])
+      actual = stmt.values(data)
+      expect (Array.from(actual)[0]).to.deep.equal(data.store.book[2])
 
       stmt = compile("$.store.book[last]")
-      actual = stmt.values(store)
-      expect (Array.from(actual)[0]).to.deep.equal(store.store.book.at(-1))
+      actual = stmt.values(data)
+      expect (Array.from(actual)[0]).to.deep.equal(data.store.book.at(-1))
 
       stmt = compile("$.store.book[0 to 2]")
-      actual = stmt.values(store)
-      expect (Array.from(actual)).to.deep.equal([store.store.book[0], store.store.book[1], store.store.book[2]])
+      actual = stmt.values(data)
+      expect (Array.from(actual)).to.deep.equal([data.store.book[0], data.store.book[1], data.store.book[2]])
 
       stmt = compile("$.store.book ? (exists(@.isbn))")
-      actual = stmt.values(store)
-      expect (Array.from(actual)).to.deep.equal([store.store.book[2], store.store.book[3]])
+      actual = stmt.values(data)
+      expect (Array.from(actual)).to.deep.equal([data.store.book[2], data.store.book[3]])
 
       stmt = compile("$.store.book ? (!exists(@.isbn))")
-      actual = stmt.values(store)
-      expect (Array.from(actual)).to.deep.equal([store.store.book[0], store.store.book[1]])
+      actual = stmt.values(data)
+      expect (Array.from(actual)).to.deep.equal([data.store.book[0], data.store.book[1]])
 
       stmt = compile("$.store.book.price ? (@ > 10)")
-      actual = stmt.query(store)
-      expect (actual.next().value).to.deep.equal(store)
+      actual = stmt.query(data)
+      expect (actual.next().value).to.deep.equal(data)
       expect (actual.next().done).to.equal(true)
 
       stmt = compile("$.store.book.title ? (@ starts with \"S\")")
-      actual = stmt.values(store)
+      actual = stmt.values(data)
       expect (Array.from(actual)).to.deep.equal(["Sayings of the Century", "Sword of Honour"])
 
       stmt = compile("$.store.bicycle ? (@.colour like_regex \"^RED$\" flag \"i\")")
-      actual = stmt.exists(store)
+      actual = stmt.exists(data)
       expect (Array.from(actual)).to.deep.equal([true])
 
       stmt = compile("$.store.book ? (@.price > 10)")
-      actual = stmt.values(store)
-      expect (Array.from(actual)).to.deep.equal([store.store.book[1], store.store.book[3]])
+      actual = stmt.values(data)
+      expect (Array.from(actual)).to.deep.equal([data.store.book[1], data.store.book[3]])
 
       stmt = compile("$.store ? ((@.book.price > 10) || (@.bicycle.price > 10))")
-      actual = stmt.values(store)
-      expect (Array.from(actual)).to.deep.equal([store.store])
+      actual = stmt.values(data)
+      expect (Array.from(actual)).to.deep.equal([data.store])
+
+      stmt = compile("$.store ? ((@.book.price > 10) || (@.bicycle.price > 10))")
+      actual = stmt.values(data)
+      expect (Array.from(actual)).to.deep.equal([data.store])
+    })
+
+    it("pg track", () => {
+      const data = {
+        "track": {
+          "segments": [
+            {
+              "location":   [ 47.763, 13.4034 ],
+              "start time": "2018-10-14 10:05:14",
+              "HR": 73
+            },
+            {
+              "location":   [ 47.706, 13.2635 ],
+              "start time": "2018-10-14 10:39:21",
+              "HR": 135
+            }
+          ]
+        }
+      }
+
+      let stmt = compile("$.track.segments")
+      let actual = stmt.values(data)
+      expect(actual.next().value).to.deep.equal(data.track.segments)
+
+      stmt = compile("$.track.segments[*].location")
+      actual = stmt.values(data)
+      expect(Array.from(actual)).to.deep.equal([data.track.segments[0].location, data.track.segments[1].location])
+
+      stmt = compile("$.track.segments[0].location")
+      actual = stmt.values(data)
+      expect(actual.next().value).to.deep.equal(data.track.segments[0].location)
+
+      stmt = compile("$.track.segments.size()")
+      actual = stmt.values(data)
+      expect(actual.next().value).to.deep.equal(2)
+
+      stmt = compile("$.track.segments[*].HR ? (@ > 130)")
+      actual = stmt.values(data)
+      expect(Array.from(actual)).to.deep.equal([135])
+
+      stmt = compile("$.track.segments[*] ? (@.HR > 130).\"start time\".datetime()")
+      actual = stmt.values(data)
+      expect(Array.from(actual)).to.deep.equal([new Date("2018-10-14 10:39:21")])
+
+      stmt = compile("$.track.segments[*] ? (@.location[1] < 13.4).HR ? (@ > 130)")
+      actual = stmt.values(data)
+      expect(Array.from(actual)).to.deep.equal([135])
+
+      stmt = compile("$.track ? (exists(@.segments[*] ? (@.HR > 130))).segments.size()")
+      actual = stmt.values(data)
+      expect(Array.from(actual)).to.deep.equal([2])
     })
   })
 })
