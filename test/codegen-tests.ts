@@ -542,7 +542,7 @@ describe("Codegen tests", () => {
 
     it("can add to a number", () => {
       const ctx = generateFunctionSource('$ + 4')
-      expect(ctx.source).to.equal('return ƒ.num($)+ƒ.num(4)')
+      expect(ctx.source).to.equal('return ƒ.num($)+4')
       const fn = createFunctionForTest(ctx)
       const actualNumber = fn(10)
       expect(actualNumber).to.deep.equal([14])
@@ -550,7 +550,7 @@ describe("Codegen tests", () => {
 
     it("can multiply a number", () => {
       const ctx = generateFunctionSource('$ * 10')
-      expect(ctx.source).to.equal('return ƒ.num($)*ƒ.num(10)')
+      expect(ctx.source).to.equal('return ƒ.num($)*10')
       const fn = createFunctionForTest(ctx)
       const actualNumber = fn(2)
       expect(actualNumber).to.deep.equal([20])
@@ -558,7 +558,7 @@ describe("Codegen tests", () => {
 
     it("can modulo an array of numbers", () => {
       const ctx = generateFunctionSource('$ ? (@ % 2 == 0)')
-      expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare("==",ƒ.num(v)%ƒ.num(2),0))')
+      expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare("==",ƒ.num(v)%2,0))')
       const fn = createFunctionForTest(ctx)
       const actual = fn([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
       expect(actual).to.deep.equal([0, 2, 4, 6, 8])
@@ -574,7 +574,7 @@ describe("Codegen tests", () => {
 
     it("chain arithmetic statements", () => {
       const ctx = generateFunctionSource('$[0] / ($.size() + 2)')
-      expect(ctx.source).to.equal('return ƒ.num(ƒ.array($,[0]))/ƒ.num((ƒ.num(ƒ.size($))+ƒ.num(2)))')
+      expect(ctx.source).to.equal('return ƒ.num(ƒ.array($,[0]))/ƒ.num((ƒ.num(ƒ.size($))+2))')
       const fn = createFunctionForTest(ctx)
       const actualNumber = fn([20, 0])
       expect(actualNumber).to.deep.equal([5])

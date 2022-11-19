@@ -46,6 +46,18 @@ function maybeImage(token: IToken[] | undefined, defaultValue = ""): string {
     : defaultValue
 }
 
+function maybeParen(source: string): string {
+  return source.startsWith("(")
+    ? source
+    : `(${source})`
+}
+
+function maybeNum(source: string): string {
+  return Number.isNaN(Number.parseFloat(source))
+    ? `ƒ.num(${source})`
+    : source
+}
+
 
 
 /**
@@ -77,12 +89,6 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
         : ctx
     }
 
-    maybeParen(source: string): string {
-      return source.startsWith("(")
-        ? source
-        : `(${source})`
-    }
-
 
     stmt(node: StmtCstChildren): CodegenContext {
       const {Mode, wff} = node
@@ -107,7 +113,9 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
         const {source: leftSource} = ctx
         const {source: rightSource} = this.visit(right, {...ctx, source: ""})
         const op = maybeImage(opToken)
-        ctx = {...ctx, source: `ƒ.num(${leftSource})${op}ƒ.num(${rightSource})`}
+        const leftNum = maybeNum(leftSource)
+        const rightNum = maybeNum(rightSource)
+        ctx = {...ctx, source: `${leftNum}${op}${rightNum}`}
       }
       return {...ctx, source: `${origSource}${ctx.source}`}
     }
@@ -132,6 +140,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
         const {source: origSource} = ctx
         const op = maybeImage(UnaryOp)
         ctx = this.visit(unary, {...ctx, source: ""})
+        // must be ƒ.num() because ---2 doesn't work in JS
         ctx = {...ctx, source: `${origSource}${op}ƒ.num(${ctx.source})`}
       }
       return ctx
@@ -200,7 +209,8 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
           case "floor" :
           case "abs" :
           case "keyvalue" :
-            methodImpl = `ƒ.${methodName}${this.maybeParen(primary)}`
+            const attrs = maybeParen(primary)
+            methodImpl = `ƒ.${methodName}${attrs}`
             break
           default :
             throw new Error(`Item methodName unrecognized: ${methodName}`)
@@ -213,9 +223,11 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
         }
         source = `ƒ.datetime(${primary}${template})`
       } else if (WildcardMember) {
-        source = `ƒ.dotStar${this.maybeParen(primary)}`
+        const attrs = maybeParen(primary)
+        source = `ƒ.dotStar${attrs}`
       } else if (WildcardArray) {
-        source = `ƒ.boxStar${this.maybeParen(primary)}`
+        const attrs = maybeParen(primary)
+        source = `ƒ.boxStar${attrs}`
       } else if (Member) {
         const payloads = Member[0].payload
         const member = payloads[0] || payloads[1]
@@ -290,7 +302,8 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       ctx = this.maybeVisit(pred, ctx)
       if (delPred) {
         ctx = this.visit(delPred, ctx)
-        ctx = {...ctx, source: `ƒ.not${this.maybeParen(ctx.source)}`}
+        const parenPred = maybeParen(ctx.source)
+        ctx = {...ctx, source: `ƒ.not${parenPred}`}
       }
       return ctx
     }
@@ -317,7 +330,8 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       const {pathPred, IsUnknown} = node
       ctx = this.visit(pathPred, ctx)
       const unknown = IsUnknown ? "ƒ.isUnknown" : ""
-      return {...ctx, source: `${unknown}${this.maybeParen(ctx.source)}`}
+      const parenPred = maybeParen(ctx.source)
+      return {...ctx, source: `${unknown}${parenPred}`}
     }
 
 
