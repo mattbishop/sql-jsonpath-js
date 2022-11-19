@@ -346,6 +346,14 @@ describe("Statement tests", () => {
       stmt = compile("$.store.bicycle ? (@.colour like_regex \"^RED$\" flag \"i\")")
       actual = stmt.exists(store)
       expect (Array.from(actual)).to.deep.equal([true])
+
+      stmt = compile("$.store.book ? (@.price > 10)")
+      actual = stmt.values(store)
+      expect (Array.from(actual)).to.deep.equal([store.store.book[1], store.store.book[3]])
+
+      stmt = compile("$.store ? ((@.book.price > 10) || (@.bicycle.price > 10))")
+      actual = stmt.values(store)
+      expect (Array.from(actual)).to.deep.equal([store.store])
     })
   })
 })
