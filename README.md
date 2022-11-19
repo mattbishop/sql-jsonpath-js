@@ -18,7 +18,7 @@ The UX is similar to Javascript’s RegExp class where one first compiles a SQL/
 import * as SJP from "sql-jsonpath-js"
 
 // compile a statement
-const statement = SJP.compile("$.name")
+const statement = SJP.compile('$.name')
 
 // data is an iterable of object values.
 const data = [
@@ -43,13 +43,50 @@ console.log(Array.from(valuesIterator))
 // [ 'scripty', 'readme' ]
 ```
 
-###### Iterators
+#### Iterators
 
  One important concept to note is that the SqlJsonPathStatement methods can consume single values, arrays, generators or other iterables. The statement’s methods all return an `Iterator`. These iterables are lazy, meaning they only advance through the data when `iterator.next()` is called.
 
 This laziness means the statement can handle large, even limitless, amounts of data. The statement holds no accumulating state other than it’s position in the data. This design suits streaming data use cases and matches SQL’s result set and cursor concepts.
 
-### About SQL/JSONPath
+#### Default Values
+
+A statement will return an empty iterator if no matches are found in the input data. In this case, one can tell the statement to return a default value on an empty match. The second parameter of all statement methods take a configuration object where these defaults are declared.
+
+```typescript
+const statement = SJP.compile('$ ? (@.startsWith("Z"))')
+const resultIterator = statement.query("A value that does not match", {defaultOnEmpty: "MISSING"})
+console.log(resultIterator.next().value)
+// 'MISSING'
+```
+
+Similarly, if a statement match throws an error, as can happen in `strict` mode, the statement can return a default value:
+
+```typescript
+const statement = SJP.compile('strict $.name ? (@.startsWith("Z"))')
+const resultIterator = statement.values({noName: true}, {defaultOnError: "NO NAME FOUND"})
+console.log(resultIterator.next().value)
+// 'NO NAME FOUND'
+```
+
+Default values can be of any type and do not have to match the input data types. Both `defaultOnEmpty` and `defaultOnError` can be specified in the same statement execution so that defaults will be provided when an Error occurs as well as when an empty match occurs.
+
+#### Named Variables
+
+SQL/JSONPath statements can include named variables that are supplied during execution. This makes statements reusable for different data values to match. In statements, named variables begin with `$` in the string, but the named variable configuration does not use the beginning `$`.
+
+```typescript
+const statement = SJP.compile('strict $.name ? (@ == $inputName)')
+const resultIterator = statement.exists({name: "Jeremy"}, {variables: {inputName: "Jeremy"}})
+console.log(resultIterator.next().value)
+// true
+
+const anotherResult = statement.exists({name: "Mika"}, {variables: {inputName: "Lau"}})
+console.log(resultIterator.next().value)
+// false
+```
+
+### SQL/JSONPath Language
 
 SQL/JSONPath takes much of its design from Stefan Goessner’s [ JSONPath](https://goessner.net/articles/JsonPath/index.html). Stefan’s goal was to create a JSON version of [XPath](https://developer.mozilla.org/en-US/docs/Web/XPath), an XML processing tool. SQL/JSONPath has a smaller set of requirements that focus on finding and extracting data from JSON data columns. To this end, the expression language has been simplified from JSONPath to take advantage of database indexes. Additionally, the expressions have been reorganized to provide a more query-oriented experience.
 
@@ -57,32 +94,28 @@ Many databases have implemented this specification in their products. This proje
 
 While many JSONPath libraries perform similar search tasks, they often include variations on the JSONPath expression language that make them incompatible with each other. SQL/JSONPath has a published specification, and multiple implementations in database products. An application can adopt SQL/JSONPath and gain the stability privided by a long-term standard.
 
-### Expressions
+#### Statements
 
-SQL/JSONPath expressions can match any form of JSON, including scalars, arrays and objects. The top level of a JSON structure starts with `$` and expressions progress their way down object properties and across arrays to reference fields and apply filtering query expressions.
+SQL/JSONPath statements can match any form of JSON, including scalars, arrays and objects. The top level of a JSON structure starts with `$` and navigate their way down object properties and across arrays to reference fields and apply filtering predicates.
 
-Expressions have three sections; the mode, the navigation statement and a filter expression. The mode and filter sections are optional. 
+Statements have three sections; the mode, the navigation expression and filter predicates. The mode and filter sections are optional. 
 
-#### `<mode?> <navigation> ? <filter?>`
+#### `<mode?> <expression> ? <filter?>...`
 
-Here is an example expression:
+Here is an example statement:
 
 `strict $.store.book[*].author ? (@ == "Evelyn Waugh" || @ == "Herman Mellville")`
 
 #### Mode
 
-Expressions can be evaluated in two modes: `strict` and `lax`, the default mode if omitted. The two modes have different behaviors for navigating to data properties.
+Statements can be evaluated in two modes: `strict` and `lax`, the default mode if omitted. The two modes have different behaviors for navigating to data properties.
 
 1. **Missing properties:** Strict mode expects the navigation statement to reference existing properties and will throw an error if they are not present in the data. Lax mode will ignore missing properties and treat the situation as an unmatched path.
 2. **Arrays:** If an operation expects an array, but the data value is not an array, lax mode treats the value as a single-element array. Conversely if the operation does not expect an array, but encounters an array, each array value will be tested. In strict mode, either of these conditions results in an error.
 
-#### Navigation
+#### Expressions
 
-Navigation can utilize dot notation, such as `$.store.book[0]`
-
-Navigation can also use bracket notation, such as `$["store"]["book"][0]`
-
-Bracket notation must use double quotes instead of single quotes.
+Expressions can utilize dot notation, such as `$.store.book[0]`. They can also use bracket notation, such as `$["store"]["book"][0]`. Bracket notation must use double quotes instead of single quotes.
 
 | Navigation Operator | Description                                                                                                                                      |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -96,9 +129,9 @@ Bracket notation must use double quotes instead of single quotes.
 
 At the completion of navigation, the values are represented as the `@` character in the filter section. The @ reference may be a singleton value or a sequenceof values, like an array.
 
-#### Filter
+#### Filters
 
-Filtering expressions come after the navigation expression. The two are separated by the `?` character. Filtering expressions look like javascript value tests, and one can use the `@` symbol as a reference to the navigation value, or sequence of values if the navigation lands on an array or a list of members (`.*`). In the case of a sequence, each value of the array is tested against the filter statement.
+Filtering predicates come after the navigation expression. The two are separated by the `?` character. Filtering expressions look like javascript value tests, and one can use the `@` symbol as a reference to the navigation value, or sequence of values if the navigation lands on an array or a list of members (`.*`). In the case of a sequence, each value of the array is tested against the filter statement.
 
 Predicates must be wrapped in parentheses `()` and can be internally combined with `&&` and `||` symbols. Their predicate result can be reversed with the `!` symbol. They utilize the `@` to reference the navigation value. For example:
 
