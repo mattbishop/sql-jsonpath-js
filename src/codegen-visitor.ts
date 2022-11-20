@@ -140,8 +140,12 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
         const {source: origSource} = ctx
         const op = maybeImage(UnaryOp)
         ctx = this.visit(unary, {...ctx, source: ""})
-        // must be ƒ.num() because ---2 doesn't work in JS
-        ctx = {...ctx, source: `${origSource}${op}ƒ.num(${ctx.source})`}
+        let right = maybeNum(ctx.source)
+        // might be ƒ.num() because ---2 doesn't work in JS
+        if (!right.startsWith("ƒ")) {
+          right = `(${right})`
+        }
+        ctx = {...ctx, source: `${origSource}${op}${right}`}
       }
       return ctx
     }

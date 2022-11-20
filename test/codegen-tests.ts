@@ -534,7 +534,7 @@ describe("Codegen tests", () => {
 
     it("can triple-negate a value", () => {
       const ctx = generateFunctionSource('---30')
-      expect(ctx.source).to.equal('return -ƒ.num(-ƒ.num(-30))')
+      expect(ctx.source).to.equal('return -ƒ.num(-(-30))')
       const fn = createFunctionForTest(ctx)
       const actualNumber = fn(null)
       expect(actualNumber).to.deep.equal([-30])
