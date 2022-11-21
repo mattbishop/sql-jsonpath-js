@@ -1,12 +1,11 @@
-const chevrotain = require('chevrotain')
-const fs = require('fs')
-const path = require('path')
-const JsonPathParser = require('../dist/parser').JsonPathParser
+import fs from 'fs'
+import chevrotain from 'chevrotain'
+import {JsonPathParser} from '../dist/parser.js'
 
 
 const parser = new JsonPathParser()
 
 const dtsString = chevrotain.generateCstDts(parser.getGAstProductions())
 
-const dtsPath = path.resolve(__dirname, '../src/sql_jsonpath_cst.d.ts')
+const dtsPath = new URL('../src/sql_jsonpath_cst.d.ts', import.meta.url)
 fs.writeFileSync(dtsPath, dtsString)

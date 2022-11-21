@@ -1,4 +1,4 @@
-import {createStatement} from "./json-path-statement"
+import {createStatement} from "./json-path-statement.js"
 import {SqlJsonPathStatement} from "./json-path"
 
 

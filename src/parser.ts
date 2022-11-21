@@ -33,7 +33,7 @@ import {
   UnaryOperator,
   WildcardArray,
   WildcardMember
-} from "./tokens"
+} from "./tokens.js"
 
 
 export class JsonPathParser extends CstParser {

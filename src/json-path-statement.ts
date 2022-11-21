@@ -1,13 +1,13 @@
 import {Lexer} from "chevrotain"
 import {iterate} from "iterare"
-import {IteratorWithOperators} from "iterare/lib/iterate"
-import {isIterable} from "iterare/lib/utils"
-import {CodegenContext, newCodegenVisitor} from "./codegen-visitor"
-import {ƒBase} from "./ƒ-base"
-import {DefaultOnEmptyIterator, DefaultOnErrorIterator, SingletonIterator} from "./iterators"
-import {Input, NamedVariables, SqlJsonPathStatement, StatementConfig} from "./json-path"
-import {JsonPathParser} from "./parser"
-import {allTokens} from "./tokens"
+import {IteratorWithOperators} from "iterare/lib/iterate.js"
+import {isIterable} from "iterare/lib/utils.js"
+import {CodegenContext, newCodegenVisitor} from "./codegen-visitor.js"
+import {ƒBase} from "./ƒ-base.js"
+import {DefaultOnEmptyIterator, DefaultOnErrorIterator, SingletonIterator} from "./iterators.js"
+import {Input, NamedVariables, SqlJsonPathStatement, StatementConfig} from "./json-path.js"
+import {JsonPathParser} from "./parser.js"
+import {allTokens} from "./tokens.js"
 
 
 const jsonPathLexer = new Lexer(allTokens)

@@ -1,8 +1,8 @@
 import {iterate} from "iterare"
-import {IteratorWithOperators} from "iterare/lib/iterate"
+import {IteratorWithOperators} from "iterare/lib/iterate.js"
 import {DateTime, FixedOffsetZone} from "luxon"
 import {KeyValue} from "./json-path"
-import {SingletonIterator} from "./iterators"
+import {SingletonIterator} from "./iterators.js"
 
 
 enum Pred {
