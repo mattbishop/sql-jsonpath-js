@@ -1,9 +1,10 @@
 import {expect} from "chai"
-import {compile} from "../src"
+import {compile, SqlJsonPathStatement} from "../dist/index"
+
 
 describe("Statement tests", () => {
   it("exists", () => {
-    const stmt = compile('$')
+    const stmt: SqlJsonPathStatement = compile('$')
     const actual = stmt.exists("matt")
     expect(actual.next().value).to.equal(true)
     expect(actual.next().done).to.equal(true)

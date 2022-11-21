@@ -36,6 +36,9 @@ import {
 } from "./tokens.js"
 
 
+/**
+ * @internal
+ */
 export class JsonPathParser extends CstParser {
   constructor() {
     super(allTokens)

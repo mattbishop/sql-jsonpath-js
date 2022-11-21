@@ -24,6 +24,9 @@ type StrictConfig = {
   error:  string
 }
 
+/**
+ * @internal
+ */
 export class ƒBase {
 
   static EMPTY = iterate(Object.freeze([]))

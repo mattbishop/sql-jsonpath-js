@@ -26,6 +26,9 @@ import {
 } from "./sql_jsonpath_cst"
 
 
+/**
+ * @internal
+ */
 export type CodegenContext = {
   lax:    boolean
   source: string
@@ -63,6 +66,7 @@ function maybeNum(source: string): string {
 /**
  * Construct a new Visitor that generates a JS function to execute the JsonPath query.
  *
+ * @internal
  * @param ctor the value from <code>parser.getBaseCstVisitorConstructor()</code>
  */
 export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<CodegenContext, CodegenContext> }) {

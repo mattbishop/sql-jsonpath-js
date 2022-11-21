@@ -1,3 +1,6 @@
+/**
+ * @internal
+ */
 export class SingletonIterator<T> implements Iterator<T> {
 
   private done: boolean = false
@@ -14,6 +17,9 @@ export class SingletonIterator<T> implements Iterator<T> {
 }
 
 
+/**
+ * @internal
+ */
 export class DefaultOnEmptyIterator<T> implements Iterator<T> {
 
   private started: boolean = false
@@ -36,6 +42,9 @@ export class DefaultOnEmptyIterator<T> implements Iterator<T> {
 }
 
 
+/**
+ * @internal
+ */
 export class DefaultOnErrorIterator<T> implements Iterator<T> {
 
   constructor(private readonly value:     T,

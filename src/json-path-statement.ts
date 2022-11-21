@@ -15,6 +15,9 @@ const parser = new JsonPathParser()
 const codegenVisitor = newCodegenVisitor(parser.getBaseCstVisitorConstructor())
 
 
+/**
+ * @internal
+ */
 export function generateFunctionSource(text: string): CodegenContext {
   const {tokens, errors} = jsonPathLexer.tokenize(text)
 
@@ -34,8 +37,15 @@ export function generateFunctionSource(text: string): CodegenContext {
 }
 
 
+/**
+ * @internal
+ */
 export type SJPFn = ($: unknown, $named?: NamedVariables) => IteratorWithOperators<unknown>
 
+
+/**
+ * @internal
+ */
 export function createFunction({source, lax}: CodegenContext): SJPFn {
   const fn = Function("ƒ", "$", "$$", source)
   const ƒ = new ƒBase(lax)
@@ -55,6 +65,9 @@ export function createFunction({source, lax}: CodegenContext): SJPFn {
 }
 
 
+/**
+ * @internal
+ */
 export function createStatement(text: string): SqlJsonPathStatement {
   const ctx = generateFunctionSource(text)
   const find = createFunction(ctx)
