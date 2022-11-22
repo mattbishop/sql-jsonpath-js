@@ -4,7 +4,7 @@ Javascript implementation of the SQL/JSONPath dialect, from SQL2016 which provid
 
 ### Installation
 
-This library supports both Common JS and EcmaScript module loading.
+This library supports EcmaScript module loading (ESM).
 
 `npm install sql-jsonpath-js`
 
@@ -15,10 +15,10 @@ This library includes TypeScript definitions so TS developers do not need to ins
 The UX is similar to Javascript’s RegExp class where one first compiles a SQL/JSONPath string into a `SqlJsonPathStatement` and then use that statement to examine data objects.
 
 ```typescript
-import * as SJP from "sql-jsonpath-js"
+import * as sjp from "sql-jsonpath-js"
 
 // compile a statement
-const statement = SJP.compile('$.name')
+const statement = sjp.compile('$.name')
 
 // data is an iterable of object values.
 const data = [
@@ -54,7 +54,7 @@ This laziness means the statement can handle large, even limitless, amounts of d
 A statement will return an empty iterator if no matches are found in the input data. In this case, one can tell the statement to return a default value on an empty match. The second parameter of all statement methods take a configuration object where these defaults are declared.
 
 ```typescript
-const statement = SJP.compile('$ ? (@.startsWith("Z"))')
+const statement = sjp.compile('$ ? (@.startsWith("Z"))')
 const resultIterator = statement.query("A value that does not match", {defaultOnEmpty: "MISSING"})
 console.log(resultIterator.next().value)
 // 'MISSING'
@@ -63,7 +63,7 @@ console.log(resultIterator.next().value)
 Similarly, if a statement match throws an error, as can happen in `strict` mode, the statement can return a default value:
 
 ```typescript
-const statement = SJP.compile('strict $.name ? (@.startsWith("Z"))')
+const statement = sjp.compile('strict $.name ? (@.startsWith("Z"))')
 const resultIterator = statement.values({noName: true}, {defaultOnError: "NO NAME FOUND"})
 console.log(resultIterator.next().value)
 // 'NO NAME FOUND'
@@ -76,7 +76,7 @@ Default values can be of any type and do not have to match the input data types.
 SQL/JSONPath statements can include named variables that are supplied during execution. This makes statements reusable for different data values to match. In statements, named variables begin with `$` in the string, but the named variable configuration does not use the beginning `$`.
 
 ```typescript
-const statement = SJP.compile('strict $.name ? (@ == $inputName)')
+const statement = sjp.compile('strict $.name ? (@ == $inputName)')
 const resultIterator = statement.exists({name: "Jeremy"}, {variables: {inputName: "Jeremy"}})
 console.log(resultIterator.next().value)
 // true

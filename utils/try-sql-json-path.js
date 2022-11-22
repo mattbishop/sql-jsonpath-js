@@ -1,6 +1,6 @@
-import {compile} from '../dist/index.js'
+import * as sjp from '../dist/index.js'
 
-const stmt = compile('$.a')
+const stmt = sjp.compile('$.a')
 const data = { a: "apple" }
 
 let result = stmt.exists(data)
