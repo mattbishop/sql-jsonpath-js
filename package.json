@@ -1,6 +1,6 @@
 {
   "name": "sql-jsonpath-js",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "JavaScript implementation of the SQL/JSONPath API from SQL2016.",
   "type": "module",
   "types": "./dist/index.d.ts",
