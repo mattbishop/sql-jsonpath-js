@@ -14,7 +14,7 @@ This library includes TypeScript definitions so TS developers do not need to ins
 
 The UX is similar to Javascript’s RegExp class where one first compiles a SQL/JSONPath string into a `SqlJsonPathStatement` and then use that statement to examine data objects.
 
-```typescript
+```javascript
 import * as sjp from "sql-jsonpath-js"
 
 // compile a statement
@@ -45,15 +45,33 @@ console.log(Array.from(valuesIterator))
 
 #### Iterators
 
- One important concept to note is that the SqlJsonPathStatement methods can consume single values, arrays, generators or other iterables. The statement’s methods all return an `Iterator`. These iterables are lazy, meaning they only advance through the data when `iterator.next()` is called.
+SqlJsonPathStatement methods consume single values, arrays, generators or other iterable input. However, the statement’s methods all return an `Iterator` (in TypeScript, it's an `IterableIterator`). These iterators are lazy, meaning they only advance through the data when `iterator.next()` is called.
 
 This laziness means the statement can handle large, even limitless, amounts of data. The statement holds no accumulating state other than it’s position in the data. This design suits streaming data use cases and matches SQL’s result set and cursor concepts.
+
+Array input values are treated as an iterable rather than as a single object to be examined. If one wants an array value to be treated as a single value, wrap the data in an array:
+
+```javascript
+const statement = sjp.compile('$ ? (@.size() > 3)')
+
+const data = [5, 65, 322, 78]
+
+const iteratedResult = statement.exists(data)
+console.log(Array.from(iteratedResult))
+// data is an interable, so statement iterates through the elements and applies the statement
+// [false, false, false, false]
+
+const singleResult = statement.exists([data])
+console.log(Array.from(singleResult))
+// input is a single value array, so statement examines 'data' as a single element
+// [true]
+```
 
 #### Default Values
 
 A statement will return an empty iterator if no matches are found in the input data. In this case, one can tell the statement to return a default value on an empty match. The second parameter of all statement methods take a configuration object where these defaults are declared.
 
-```typescript
+```javascript
 const statement = sjp.compile('$ ? (@.startsWith("Z"))')
 const resultIterator = statement.query("A value that does not match", {defaultOnEmpty: "MISSING"})
 console.log(resultIterator.next().value)
@@ -62,7 +80,7 @@ console.log(resultIterator.next().value)
 
 Similarly, if a statement match throws an error, as can happen in `strict` mode, the statement can return a default value:
 
-```typescript
+```javascript
 const statement = sjp.compile('strict $.name ? (@.startsWith("Z"))')
 const resultIterator = statement.values({noName: true}, {defaultOnError: "NO NAME FOUND"})
 console.log(resultIterator.next().value)
@@ -75,7 +93,7 @@ Default values can be of any type and do not have to match the input data types.
 
 SQL/JSONPath statements can include named variables that are supplied during execution. This makes statements reusable for different data values to match. In statements, named variables begin with `$` in the string, but the named variable configuration does not use the beginning `$`.
 
-```typescript
+```javascript
 const statement = sjp.compile('strict $.name ? (@ == $inputName)')
 const resultIterator = statement.exists({name: "Jeremy"}, {variables: {inputName: "Jeremy"}})
 console.log(resultIterator.next().value)
@@ -85,6 +103,43 @@ const anotherResult = statement.exists({name: "Mika"}, {variables: {inputName: "
 console.log(resultIterator.next().value)
 // false
 ```
+
+### SqlJsonPathStatement API Reference
+
+The `compile(sjpText)` method parses the SQL/JSONPath text and compiles it into a reusable `SqlJsonPathStatement` object. The `compile` step is fast, but reusing compiled statements is much faster. One can use named Variables to reuse statements across different data sets and use cases.
+
+#### Method Parameters
+
+All statement methods share the same method parameters.
+
+| Param    | Details                                                                                                                                                                                               |
+|----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `input`  | The data to examine. Can be a single value, an array of values, an iterable collection, a generator or anything that supplies an `Iterable` or `Iterator`. Cannot consume `Async` iterables, however. |
+| `config` | Optional, configures the method call with named variables and default values.                                                                                                                         |
+
+##### Config Object
+
+All methods can accept a config object to fulfill the statement or change it’s behaviour. Each field in the config object is optional, except for `variables` when a statement contains references to named variables.
+
+| Field            | Details                                                                                                                                                                                                                                                                                                                                                                                                                              |
+|------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `variables`      | An object containing the named variable values for this method call. Object keys match the named variables in the statement, which uses the associated value in evaluation. **Note:** Key names should not start with `$` as they do in the SQL/JSONPath text. For instance, `$ ? (@ == $thing)` has a named variable `$thing`. Pass `{thing: 2}` as `variables` to the statement to substitute `2` for `$thing` in the method call. |
+| `defaultOnEmpty` | An input element may not match the statement, which is considered an “empty” match. Normally, empty matches are filtered out of the result iterator. Use this field to emit a default value for these empty matches so that it will be seen in the iterator. Default values can be of any type, such as `"N/A"`,  `{}` or `0`.                                                                                                       |
+| `defaultOnError` | In strict mode, an input element may trigger a structural Error ([see Mode](#mode)). This property will change the method’s behaviour to return this default value instead of throwing an error. Default values can be of any type, such as `"MISSING"`,  `{}` or `false`.                                                                                                                                                           |
+
+#### Statement Methods
+
+##### `exists(input, config?) => IterableIterator<boolean>` 
+
+Tests the statement against the input elements and emits `true` if the statement finds a match and `false` otherwise. Every element in the input will produce a matching boolean output in the iterator result.
+
+##### `query(input, config?) => IterableIterator` 
+
+Tests the statement against the input elements and emits the input element if the statement finds a match. Elements that do not match the statement do not emit from the result iterator. This method is similar to interable filter methods.
+
+##### `values(input, config?) => IterableIterator` 
+
+Scans the input elements and emits matched values from within the elements. This method extracts matches across all elements in the input into a single iterator result.
 
 ### SQL/JSONPath Language
 
@@ -117,15 +172,16 @@ Statements can be evaluated in two modes: `strict` and `lax`, the default mode i
 
 Expressions can utilize dot notation, such as `$.store.book[0]`. They can also use bracket notation, such as `$["store"]["book"][0]`. Bracket notation must use double quotes instead of single quotes.
 
-| Navigation Operator | Description                                                                                                                                      |
-|---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
-| `$`                 | The input element reference. May be an object, an array, or a scalar value.                                                                      |
-| `.<name>`           | Member reference. Can be quoted for white space and other special characters, like `$."first name"`                                              |
-| `*`                 | Wildcard references any member or array element. `[*]` selects all elements in an array, while `.*`selects all properties in an object.          |
+| Navigation Operator | Description                                                  |
+| ------------------- | ------------------------------------------------------------ |
+| `$`                 | The input element reference. May be an object, an array, or a scalar value. |
+| `$<name>`           | A named variable reference. May be an object, an array or a scalar value. The name can be any legal JS variable name, except it cannot start with a `$` character. |
+| `.<name>`           | Member reference. Can be quoted for white space and other special characters, like `$."first name"` |
+| `*`                 | Wildcard references any member or array element. `[*]` selects all elements in an array, while `.*`selects all properties in an object. |
 | `[<pos>]`           | Array element reference. Can be a positive number, a member reference, or an arithmetic expression. The value of `pos` must resolve to a number. |
-| `[<pos>, <pos>]`    | Comma-separated list of array element references. A reference list can contain any number of elements.                                           |
-| `[<pos> to <pos>]`  | Array element range reference. Can be used as `<pos>` in list of element references.                                                             |
-| `[last]`            | Variable that refers to the position of the last element in the array. Used as a `<pos>` element reference.                                      |
+| `[<pos>, <pos>]`    | Comma-separated list of array element references. A reference list can contain any number of elements. |
+| `[<pos> to <pos>]`  | Array element range reference. Can be used as `<pos>` in list of element references. |
+| `[last]`            | Variable that refers to the position of the last element in the array. Used as a `<pos>` element reference. |
 
 At the completion of navigation, the values are represented as the `@` character in the filter section. The @ reference may be a singleton value or a sequenceof values, like an array.
 
@@ -170,7 +226,7 @@ Datetime template formatting uses the Luxon library internally. One can use the 
 
 https://moment.github.io/luxon/#/parsing?id=table-of-tokens
 
-#### Predicate functions
+#### Predicate Functions
 
 A value can be tested for existence, and string values can be tested for prefixes and regular expression matches.
 
