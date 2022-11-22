@@ -112,14 +112,20 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
                         right:    CstNode[] | undefined,
                         ctx:      CodegenContext): CodegenContext {
       const {source: origSource} = ctx
-      ctx = this.visit(left, {...ctx, source: ""})
-      if (right) {
-        const {source: leftSource} = ctx
-        const {source: rightSource} = this.visit(right, {...ctx, source: ""})
-        const op = maybeImage(opToken)
+      const leftCtx = this.visit(left, {...ctx, source: ""})
+      if (right && opToken) {
+        const {source: leftSource} = leftCtx
         const leftNum = maybeNum(leftSource)
-        const rightNum = maybeNum(rightSource)
-        ctx = {...ctx, source: `${leftNum}${op}${rightNum}`}
+        const source = right
+          .reduce((acc, r, i) => {
+              const {source: rightSource} = this.visit(r, {...ctx, source: ""})
+              const rightNum = maybeNum(rightSource)
+              const op = opToken[i].image
+              return `${acc}${op}${rightNum}`
+            }, leftNum)
+        ctx = {...ctx, source}
+      } else {
+        ctx = leftCtx
       }
       return {...ctx, source: `${origSource}${ctx.source}`}
     }

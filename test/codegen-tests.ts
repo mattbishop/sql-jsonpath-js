@@ -579,6 +579,14 @@ describe("Codegen tests", () => {
       const actualNumber = fn([20, 0])
       expect(actualNumber).to.deep.equal([5])
     })
+
+    it("chain arithmetic statements again", () => {
+      const ctx = generateFunctionSource('$[0] / 5 * $.size() + 9 - 1')
+      expect(ctx.source).to.equal('return ƒ.num(ƒ.num(ƒ.array($,[0]))/5*ƒ.num(ƒ.size($)))+9-1')
+      const fn = createFunctionForTest(ctx)
+      const actualNumber = fn([20, 3])
+      expect(actualNumber).to.deep.equal([16])
+    })
   })
 
   describe("filter", () => {
