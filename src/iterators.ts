@@ -1,3 +1,11 @@
+export function isAsyncIterable<T extends AsyncIterable<unknown>>(input: T | unknown): input is T {
+  return !!input
+         && typeof input === "object"
+         && !Array.isArray(input)
+         && Symbol.asyncIterator in input
+}
+
+
 /**
  * @internal
  */
