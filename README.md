@@ -74,7 +74,7 @@ A statement will return an empty iterator if no matches are found in the input d
 ```javascript
 const statement = sjp.compile('$ ? (@.startsWith("Z"))')
 const resultIterator = statement.query("A value that does not match", {defaultOnEmpty: "MISSING"})
-console.log(resultIterator.next().value)
+console.log(sjp.one(resultIterator))
 // 'MISSING'
 ```
 
@@ -83,7 +83,7 @@ Similarly, if a statement match throws an error, as can happen in `strict` mode,
 ```javascript
 const statement = sjp.compile('strict $.name ? (@.startsWith("Z"))')
 const resultIterator = statement.values({noName: true}, {defaultOnError: "NO NAME FOUND"})
-console.log(resultIterator.next().value)
+console.log(sjp.one(resultIterator))
 // 'NO NAME FOUND'
 ```
 
@@ -96,17 +96,19 @@ SQL/JSONPath statements can include named variables that are supplied during exe
 ```javascript
 const statement = sjp.compile('strict $.name ? (@ == $inputName)')
 const resultIterator = statement.exists({name: "Jeremy"}, {variables: {inputName: "Jeremy"}})
-console.log(resultIterator.next().value)
+console.log(sjp.one(resultIterator.next().value))
 // true
 
 const anotherResult = statement.exists({name: "Mika"}, {variables: {inputName: "Lau"}})
-console.log(resultIterator.next().value)
+console.log(sjp.one(resultIterator.next().value))
 // false
 ```
 
 ### SqlJsonPathStatement API Reference
 
 The `compile(sjpText)` method parses the SQL/JSONPath text and compiles it into a reusable `SqlJsonPathStatement` object. The `compile` step is fast, but reusing compiled statements is much faster. One can use named Variables to reuse statements across different data sets and use cases.
+
+SJP has a `one(iterator)` convenience method to pull one value from the iterator. Useful for when code only expects a single value, or when the iterator is consumed outside a for..of loop.
 
 #### Method Parameters
 
@@ -119,7 +121,7 @@ All statement methods share the same method parameters.
 
 ##### Config Object
 
-All methods can accept a config object to fulfill the statement or change it’s behaviour. Each field in the config object is optional, except for `variables` when a statement contains references to named variables.
+All methods can accept a config object to fulfill the statement or change its behaviour. Each field in the config object is optional, except for `variables` when a statement contains references to named variables.
 
 | Field            | Details                                                                                                                                                                                                                                                                                                                                                                                                                              |
 |------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -147,7 +149,7 @@ SQL/JSONPath takes much of its design from Stefan Goessner’s [ JSONPath](https
 
 Many databases have implemented this specification in their products. This project implements a javascript-native SQL/JSONPath and brings the same features and expressions from the database in application code. One can use this package to search for matching data in local javascript values, much like one uses the Regexp library to search for matching text in string values.
 
-While many JSONPath libraries perform similar search tasks, they often include variations on the JSONPath expression language that make them incompatible with each other. SQL/JSONPath has a published specification, and multiple implementations in database products. An application can adopt SQL/JSONPath and gain the stability privided by a long-term standard.
+While many JSONPath libraries perform similar search tasks, they often include variations on the JSONPath expression language that make them incompatible with each other. SQL/JSONPath has a published specification, and multiple implementations in database products. An application can adopt SQL/JSONPath and gain the stability provided by a long-term standard.
 
 #### Statements
 
@@ -166,22 +168,22 @@ Here is an example statement:
 Statements can be evaluated in two modes: `strict` and `lax`, the default mode if omitted. The two modes have different behaviors for navigating to data properties.
 
 1. **Missing properties:** Strict mode expects the navigation statement to reference existing properties and will throw an error if they are not present in the data. Lax mode will ignore missing properties and treat the situation as an unmatched path.
-2. **Arrays:** If an operation expects an array, but the data value is not an array, lax mode treats the value as a single-element array. Conversely if the operation does not expect an array, but encounters an array, each array value will be tested. In strict mode, either of these conditions results in an error.
+2. **Arrays:** If an operation expects an array, but the data value is not an array, lax mode treats the value as a single-element array. Conversely, if the operation does not expect an array, but encounters an array, each array value will be tested. In strict mode, either of these conditions results in an error.
 
 #### Expressions
 
 Expressions can utilize dot notation, such as `$.store.book[0]`. They can also use bracket notation, such as `$["store"]["book"][0]`. Bracket notation must use double quotes instead of single quotes.
 
-| Navigation Operator | Description                                                  |
-| ------------------- | ------------------------------------------------------------ |
-| `$`                 | The input element reference. May be an object, an array, or a scalar value. |
+| Navigation Operator | Description                                                                                                                                                        |
+|---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `$`                 | The input element reference. May be an object, an array, or a scalar value.                                                                                        |
 | `$<name>`           | A named variable reference. May be an object, an array or a scalar value. The name can be any legal JS variable name, except it cannot start with a `$` character. |
-| `.<name>`           | Member reference. Can be quoted for white space and other special characters, like `$."first name"` |
-| `*`                 | Wildcard references any member or array element. `[*]` selects all elements in an array, while `.*`selects all properties in an object. |
-| `[<pos>]`           | Array element reference. Can be a positive number, a member reference, or an arithmetic expression. The value of `pos` must resolve to a number. |
-| `[<pos>, <pos>]`    | Comma-separated list of array element references. A reference list can contain any number of elements. |
-| `[<pos> to <pos>]`  | Array element range reference. Can be used as `<pos>` in list of element references. |
-| `[last]`            | Variable that refers to the position of the last element in the array. Used as a `<pos>` element reference. |
+| `.<name>`           | Member reference. Can be quoted for white space and other special characters, like `$."first name"`                                                                |
+| `*`                 | Wildcard references any member or array element. `[*]` selects all elements in an array, while `.*`selects all properties in an object.                            |
+| `[<pos>]`           | Array element reference. Can be a positive number, a member reference, or an arithmetic expression. The value of `pos` must resolve to a number.                   |
+| `[<pos>, <pos>]`    | Comma-separated list of array element references. A reference list can contain any number of elements.                                                             |
+| `[<pos> to <pos>]`  | Array element range reference. Can be used as `<pos>` in list of element references.                                                                               |
+| `[last]`            | Variable that refers to the position of the last element in the array. Used as a `<pos>` element reference.                                                        |
 
 At the completion of navigation, the values are represented as the `@` character in the filter section. The @ reference may be a singleton value or a sequenceof values, like an array.
 
@@ -209,16 +211,16 @@ A predicate can transform the navigation data with arithmetic operators. These d
 
 Value functions offer ways to extract type information and apply mathematical functions before testing the value with predicate operators.
 
-| Function                 | Description                                                  |
-| ------------------------ | ------------------------------------------------------------ |
-| `.type()`                | Returns `null`, `boolean`, `number`, `string`, `array`, `object` or `date` |
-| `.size()`                | If `@` references an array, then it returns the number of elements in the array. Otherwise returns 1. |
-| `.double()`              | Converts a string to a numeric value                         |
-| `.ceiling()`             | Round a numeric value up to the next largest integer         |
-| `.floor()`               | Round a numeric value down to the next smallest integer      |
-| `.abs()`                 | The absolute value of a numeric value                        |
+| Function                 | Description                                                                                                                                                                              |
+|--------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `.type()`                | Returns `null`, `boolean`, `number`, `string`, `array`, `object` or `date`                                                                                                               |
+| `.size()`                | If `@` references an array, then it returns the number of elements in the array. Otherwise returns 1.                                                                                    |
+| `.double()`              | Converts a string to a numeric value                                                                                                                                                     |
+| `.ceiling()`             | Round a numeric value up to the next largest integer                                                                                                                                     |
+| `.floor()`               | Round a numeric value down to the next smallest integer                                                                                                                                  |
+| `.abs()`                 | The absolute value of a numeric value                                                                                                                                                    |
 | `.datetime("template"?)` | Converts a string into a Date object. The optional `template` is a quoted template string. If omitted, the ISO-8601 pattern (built into Javascript) will be used to evaluate the string. |
-| `.keyvalue()`            | Converts an object into an array of name/value objects: `[[name, value], ...]` which allows a predicate to extract the key name and value. |
+| `.keyvalue()`            | Converts an object into an array of name/value objects: `[[name, value], ...]` which allows a predicate to extract the key name and value.                                               |
 
 ##### Datetime Template
 
@@ -230,11 +232,11 @@ https://moment.github.io/luxon/#/parsing?id=table-of-tokens
 
 A value can be tested for existence, and string values can be tested for prefixes and regular expression matches.
 
-| Expression                                      | Description                                                  |
-| ----------------------------------------------- | ------------------------------------------------------------ |
-| `exists ()`                                     | A value exists for the given predicate                       |
-| `() is unknown`                                 | No value exists                                              |
-| `starts with "<text>"`                          | Value starts with specified text                             |
+| Expression                                      | Description                                                                                                                |
+|-------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------|
+| `exists ()`                                     | A value exists for the given predicate                                                                                     |
+| `() is unknown`                                 | No value exists                                                                                                            |
+| `starts with "<text>"`                          | Value starts with specified text                                                                                           |
 | `like_regex "regex-expression" flag? "<flags>"` | Uses Javascript’s [Regular Expressions](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions) |
 
 Regex flags are optional, and change the pattern matching behavior. See the [RegExp docs](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#advanced_searching_with_flags) for more information.
@@ -277,16 +279,16 @@ This example is taken from Stefan Goessner’s original JSONPath documentation.
 }
 ```
 
-| JSONPath Expression                                        | Result                                                       |
-| ---------------------------------------------------------- | ------------------------------------------------------------ |
-| `$.store.book[*].author`                                   | The authors of all books in the store                        |
-| `$.store`                                                  | All the things in the store, which includes books and a bicycle |
-| `$.store.book[2]`                                          | The third book in the store.                                 |
-| `$.store.book[last]`                                       | The last book in the store                                   |
-| `$.store.book[0,1,2]` or `$.store.book[0 to 2]`            | The first three books in the store                           |
-| `$.store.book ? (exists(@.isbn))`                          | All books with an isbn                                       |
-| `$.store.book ? (!exists(@.isbn))`                         | All books without an isbn                                    |
-| `$.store.book.title ? (@ starts with "S")`                 | All books whose title starts with the letter “S”             |
-| `$.store.bicycle ? (@.colour like_regex "^RED$" flag "i")` | All bicycles whose colour is “red”, case insensitive         |
-| `$.store.book.price ? (@ > 10)`                            | All books whose price is > 10                                |
-| `$.* ? (exists(@.book) \|\| exists(@.bicycle)).*[*] ? (@.price > 10)` | All books and bicycles whose price > 10 |
+| JSONPath Expression                                                   | Result                                                          |
+|-----------------------------------------------------------------------|-----------------------------------------------------------------|
+| `$.store.book[*].author`                                              | The authors of all books in the store                           |
+| `$.store`                                                             | All the things in the store, which includes books and a bicycle |
+| `$.store.book[2]`                                                     | The third book in the store.                                    |
+| `$.store.book[last]`                                                  | The last book in the store                                      |
+| `$.store.book[0,1,2]` or `$.store.book[0 to 2]`                       | The first three books in the store                              |
+| `$.store.book ? (exists(@.isbn))`                                     | All books with an isbn                                          |
+| `$.store.book ? (!exists(@.isbn))`                                    | All books without an isbn                                       |
+| `$.store.book.title ? (@ starts with "S")`                            | All books whose title starts with the letter “S”                |
+| `$.store.bicycle ? (@.colour like_regex "^RED$" flag "i")`            | All bicycles whose colour is “red”, case insensitive            |
+| `$.store.book.price ? (@ > 10)`                                       | All books whose price is > 10                                   |
+| `$.* ? (exists(@.book) \|\| exists(@.bicycle)).*[*] ? (@.price > 10)` | All books and bicycles whose price > 10                         |
