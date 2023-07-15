@@ -135,15 +135,15 @@ function defaultsIterator<T>(input: Iterator<T>, config: StatementConfig<T>): It
 }
 
 
-function tap<T>(source: Iterator<T>, callback: (value: T) => void): IteratorWithOperators<T> {
-  return iterate(_tap(source, callback))
+function tap<T>(source: Iterator<T>, tapSink: (value: T) => void): IteratorWithOperators<T> {
+  return iterate(_tap(source, tapSink))
 }
 
-function* _tap<T>(source: Iterator<T>, callback: (value: T) => void): Generator<T> {
+function* _tap<T>(source: Iterator<T>, tapSink: (value: T) => void): Generator<T> {
   let next
   while (!(next = source.next()).done) {
     const {value} = next
-    callback(value);
+    tapSink(value);
     yield value;
   }
 }

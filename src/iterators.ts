@@ -66,3 +66,13 @@ export class DefaultOnErrorIterator<T> implements Iterator<T> {
     }
   }
 }
+
+
+/**
+ * Pulls one element from an iterator. If no elements available, returns undefined.
+ *
+ * @param iter an iterable iterator to consume from.
+ */
+export function one<T>(iter: IterableIterator<T>): T | undefined {
+  return iter.next().value
+}

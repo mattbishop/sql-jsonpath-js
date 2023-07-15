@@ -1,13 +1,14 @@
 import {expect} from "chai"
-import {compile, SqlJsonPathStatement} from "../dist/index"
+// testing from /dist to ensure the exported interface is correct
+import {compile, one, SqlJsonPathStatement} from "../dist/index.js"
 
 
 describe("Statement tests", () => {
   it("exists", () => {
     const stmt: SqlJsonPathStatement = compile('$')
     const actual = stmt.exists("matt")
-    expect(actual.next().value).to.equal(true)
-    expect(actual.next().done).to.equal(true)
+    expect(actual.next().value).to.be.true
+    expect(actual.next().done).to.be.true
   })
 
   it("queries", () => {
@@ -15,7 +16,7 @@ describe("Statement tests", () => {
     const actual = stmt.query([{a: 1}, {b: 2}, {a: 3}])
     expect(actual.next().value).to.deep.equal({a: 1})
     expect(actual.next().value).to.deep.equal({a: 3})
-    expect(actual.next().done).to.equal(true)
+    expect(actual.next().done).to.be.true
   })
 
   it("values", () => {
@@ -23,30 +24,39 @@ describe("Statement tests", () => {
     const actual = stmt.values([{a: 1}, {b: 2}, {a: 3}])
     expect(actual.next().value).to.equal(1)
     expect(actual.next().value).to.equal(3)
-    expect(actual.next().done).to.equal(true)
+    expect(actual.next().done).to.be.true
+  })
+
+  it("one", () => {
+    const stmt = compile('$')
+    const iter = stmt.values([1, 2, 3])
+    expect(one(iter)).to.equal(1)
+    expect(one(iter)).to.equal(2)
+    expect(one(iter)).to.equal(3)
+    expect(one(iter)).to.be.undefined
   })
 
   it("applies function to sequence", () => {
-    const stmt = compile('$.type()')//[*].type()")
+    const stmt = compile('$.type()')
     const actual = stmt.values(["matt", true, 100, ["mary", "abby"], {a: 4}])
     expect(actual.next().value).to.equal("string")
     expect(actual.next().value).to.equal("boolean")
     expect(actual.next().value).to.equal("number")
     expect(actual.next().value).to.equal("array")
     expect(actual.next().value).to.equal("object")
-    expect(actual.next().done).to.equal(true)
+    expect(actual.next().done).to.be.true
   })
 
   it("unwraps sequence", () => {
     const stmt = compile('$[*]')
     const actual = stmt.values(["matt", true, 100, ["mary", "abby"], {a: 4}])
     expect(actual.next().value).to.equal("matt")
-    expect(actual.next().value).to.equal(true)
+    expect(actual.next().value).to.be.true
     expect(actual.next().value).to.equal(100)
     expect(actual.next().value).to.equal("mary")
     expect(actual.next().value).to.equal("abby")
     expect(actual.next().value).to.deep.equal({a: 4})
-    expect(actual.next().done).to.equal(true)
+    expect(actual.next().done).to.be.true
   })
 
   it("unwraps sequence and applies type()", () => {
@@ -58,7 +68,7 @@ describe("Statement tests", () => {
     expect(actual.next().value).to.equal("string")
     expect(actual.next().value).to.equal("boolean")
     expect(actual.next().value).to.deep.equal("object")
-    expect(actual.next().done).to.equal(true)
+    expect(actual.next().done).to.be.true
   })
 
   it("extracts values from an array", () => {
@@ -67,7 +77,7 @@ describe("Statement tests", () => {
     expect(actual.next().value).to.equal("matt")
     expect(actual.next().value).to.equal("mark")
     expect(actual.next().value).to.equal("mary")
-    expect(actual.next().done).to.equal(true)
+    expect(actual.next().done).to.be.true
   })
 
   it("can do arithmetic", () => {
@@ -78,35 +88,35 @@ describe("Statement tests", () => {
 
   it("understands dates", () => {
     const stmt = compile('$.datetime().type()')
-    const actual = stmt.values("2020-02-01")
-    expect(actual.next().value).to.equal("date")
+    const actual = one(stmt.values("2020-02-01"))
+    expect(actual).to.equal("date")
   })
 
   it("compares dates", () => {
     const stmt = compile('$ ? (@.datetime() == $a)')
-    const actual = stmt.exists("2020-02-01", {variables: {a: new Date("2020-02-01")}})
-    expect(actual.next().value).to.equal(true)
+    const actual = one(stmt.exists("2020-02-01", {variables: {a: new Date("2020-02-01")}}))
+    expect(actual).to.be.true
   })
 
   describe("default values", () => {
     it("uses default value on error", () => {
       const stmt = compile('strict $.thing')
-      let actual = stmt.values({zz: "top"}, {defaultOnError: "Rock band"})
-      expect (actual.next().value).to.equal("Rock band")
-      actual = stmt.exists({zz: "top"}, {defaultOnError: true})
-      expect (actual.next().value).to.equal(true)
-      actual = stmt.query({zz: "top"}, {defaultOnError: {y: "azoo"}})
-      expect (actual.next().value).to.deep.equal({y: "azoo"})
+      let actual = one(stmt.values({zz: "top"}, {defaultOnError: "Rock band"}))
+      expect (actual).to.equal("Rock band")
+      actual = one(stmt.exists({zz: "top"}, {defaultOnError: true}))
+      expect (actual).to.be.true
+      actual = one(stmt.query({zz: "top"}, {defaultOnError: {y: "azoo"}}))
+      expect (actual).to.deep.equal({y: "azoo"})
     })
 
     it("uses default value on empty", () => {
       const stmt = compile('$.thing')
-      let actual = stmt.values({zz: "top"}, {defaultOnEmpty: "Rock band"})
-      expect (actual.next().value).to.equal("Rock band")
-      actual = stmt.exists({zz: "top"}, {defaultOnEmpty: false})
-      expect (actual.next().value).to.be.false
-      actual = stmt.query({zz: "top"}, {defaultOnEmpty: {y: "azoo"}})
-      expect (actual.next().value).to.deep.equal({y: "azoo"})
+      let actual = one(stmt.values({zz: "top"}, {defaultOnEmpty: "Rock band"}))
+      expect (actual).to.equal("Rock band")
+      actual = one(stmt.exists({zz: "top"}, {defaultOnEmpty: false}))
+      expect (actual).to.be.false
+      actual = one(stmt.query({zz: "top"}, {defaultOnEmpty: {y: "azoo"}}))
+      expect (actual).to.deep.equal({y: "azoo"})
     })
   })
 
@@ -338,7 +348,7 @@ describe("Statement tests", () => {
       stmt = compile('$.store.book.price ? (@ > 10)')
       actual = stmt.query(data)
       expect (actual.next().value).to.deep.equal(data)
-      expect (actual.next().done).to.equal(true)
+      expect (actual.next().done).to.be.true
 
       stmt = compile('$.store.book.title ? (@ starts with "S")')
       actual = stmt.values(data)
