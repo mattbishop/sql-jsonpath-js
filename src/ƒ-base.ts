@@ -29,7 +29,7 @@ type StrictConfig = {
  */
 export class ƒBase {
 
-  static EMPTY = iterate(Object.freeze([]))
+  static EMPTY = iterate([])
 
   constructor(private readonly lax: boolean) { }
 
