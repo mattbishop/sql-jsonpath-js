@@ -39,44 +39,44 @@ describe("Statement tests", () => {
   it("applies function to sequence", () => {
     const stmt = compile('$.type()')
     const actual = stmt.values(["matt", true, 100, ["mary", "abby"], {a: 4}])
-    expect(actual.next().value).to.equal("string")
-    expect(actual.next().value).to.equal("boolean")
-    expect(actual.next().value).to.equal("number")
-    expect(actual.next().value).to.equal("array")
-    expect(actual.next().value).to.equal("object")
+    expect(one(actual)).to.equal("string")
+    expect(one(actual)).to.equal("boolean")
+    expect(one(actual)).to.equal("number")
+    expect(one(actual)).to.equal("array")
+    expect(one(actual)).to.equal("object")
     expect(actual.next().done).to.be.true
   })
 
   it("unwraps sequence", () => {
     const stmt = compile('$[*]')
     const actual = stmt.values(["matt", true, 100, ["mary", "abby"], {a: 4}])
-    expect(actual.next().value).to.equal("matt")
-    expect(actual.next().value).to.be.true
-    expect(actual.next().value).to.equal(100)
-    expect(actual.next().value).to.equal("mary")
-    expect(actual.next().value).to.equal("abby")
-    expect(actual.next().value).to.deep.equal({a: 4})
+    expect(one(actual)).to.equal("matt")
+    expect(one(actual)).to.be.true
+    expect(one(actual)).to.equal(100)
+    expect(one(actual)).to.equal("mary")
+    expect(one(actual)).to.equal("abby")
+    expect(one(actual)).to.deep.equal({a: 4})
     expect(actual.next().done).to.be.true
   })
 
   it("unwraps sequence and applies type()", () => {
     const stmt = compile('$[*].type()')
     const actual = stmt.values(["matt", true, 100, ["mary", false], {a: 4}])
-    expect(actual.next().value).to.equal("string")
-    expect(actual.next().value).to.equal("boolean")
-    expect(actual.next().value).to.equal("number")
-    expect(actual.next().value).to.equal("string")
-    expect(actual.next().value).to.equal("boolean")
-    expect(actual.next().value).to.deep.equal("object")
+    expect(one(actual)).to.equal("string")
+    expect(one(actual)).to.equal("boolean")
+    expect(one(actual)).to.equal("number")
+    expect(one(actual)).to.equal("string")
+    expect(one(actual)).to.equal("boolean")
+    expect(one(actual)).to.deep.equal("object")
     expect(actual.next().done).to.be.true
   })
 
   it("extracts values from an array", () => {
     const stmt = compile('$ ? (@ starts with "m")')
     const actual = stmt.values(["matt", "angie", "mark", "mary", "abby"])
-    expect(actual.next().value).to.equal("matt")
-    expect(actual.next().value).to.equal("mark")
-    expect(actual.next().value).to.equal("mary")
+    expect(one(actual)).to.equal("matt")
+    expect(one(actual)).to.equal("mark")
+    expect(one(actual)).to.equal("mary")
     expect(actual.next().done).to.be.true
   })
 
@@ -216,48 +216,48 @@ describe("Statement tests", () => {
       it("sees if folks exist by name", () => {
         let actual = stmt.exists(data, {variables: {aName: "Fred"}})
         // first
-        expect(actual.next().value).to.be.true
-        expect(actual.next().value).to.be.false
-        expect(actual.next().value).to.be.false
-        expect(actual.next().value).to.be.false
-        expect(actual.next().value).to.be.false
+        expect(one(actual)).to.be.true
+        expect(one(actual)).to.be.false
+        expect(one(actual)).to.be.false
+        expect(one(actual)).to.be.false
+        expect(one(actual)).to.be.false
         expect(actual.next().done).to.be.true
         // third
         actual = stmt.exists(data, {variables: {aName: "Afu"}})
-        expect(actual.next().value).to.be.false
-        expect(actual.next().value).to.be.false
-        expect(actual.next().value).to.be.true
-        expect(actual.next().value).to.be.false
-        expect(actual.next().value).to.be.false
+        expect(one(actual)).to.be.false
+        expect(one(actual)).to.be.false
+        expect(one(actual)).to.be.true
+        expect(one(actual)).to.be.false
+        expect(one(actual)).to.be.false
         expect(actual.next().done).to.be.true
         // fourth
         actual = stmt.exists(data, {variables: {aName: "Justin"}})
-        expect(actual.next().value).to.be.false
-        expect(actual.next().value).to.be.false
-        expect(actual.next().value).to.be.false
-        expect(actual.next().value).to.be.true
-        expect(actual.next().value).to.be.false
+        expect(one(actual)).to.be.false
+        expect(one(actual)).to.be.false
+        expect(one(actual)).to.be.false
+        expect(one(actual)).to.be.true
+        expect(one(actual)).to.be.false
         expect(actual.next().done).to.be.true
       })
 
       it("queries folks by name", () => {
         let actual = stmt.query(data, {variables: {aName: "Fred"}})
-        expect(actual.next().value).to.deep.equal(data[0])
+        expect(one(actual)).to.deep.equal(data[0])
         actual = stmt.query(data, {variables: {aName: "Afu"}})
-        expect(actual.next().value).to.deep.equal(data[2])
+        expect(one(actual)).to.deep.equal(data[2])
         actual = stmt.query(data, {variables: {aName: "U La La"}})
-        expect(actual.next().value).to.deep.equal(data[4])
+        expect(one(actual)).to.deep.equal(data[4])
         actual = stmt.query(data, {variables: {aName: "Snape"}})
         expect(actual.next().done).to.be.true
       })
 
       it("finds folk's value by name", () => {
         let actual = stmt.values(data, {variables: {aName: "Fred"}})
-        expect(actual.next().value).to.deep.equal(data[0])
+        expect(one(actual)).to.deep.equal(data[0])
         actual = stmt.values(data, {variables: {aName: "Afu"}})
-        expect(actual.next().value).to.deep.equal(data[2])
+        expect(one(actual)).to.deep.equal(data[2])
         actual = stmt.values(data, {variables: {aName: "U La La"}})
-        expect(actual.next().value).to.deep.equal(data[4])
+        expect(one(actual)).to.deep.equal(data[4])
       })
     })
 
@@ -347,7 +347,7 @@ describe("Statement tests", () => {
 
       stmt = compile('$.store.book.price ? (@ > 10)')
       actual = stmt.query(data)
-      expect (actual.next().value).to.deep.equal(data)
+      expect (one(actual)).to.deep.equal(data)
       expect (actual.next().done).to.be.true
 
       stmt = compile('$.store.book.title ? (@ starts with "S")')
@@ -391,7 +391,7 @@ describe("Statement tests", () => {
 
       let stmt = compile('$.track.segments')
       let actual = stmt.values(data)
-      expect(actual.next().value).to.deep.equal(data.track.segments)
+      expect(one(actual)).to.deep.equal(data.track.segments)
 
       stmt = compile('$.track.segments[*].location')
       actual = stmt.values(data)
@@ -399,11 +399,11 @@ describe("Statement tests", () => {
 
       stmt = compile('$.track.segments[0].location')
       actual = stmt.values(data)
-      expect(actual.next().value).to.deep.equal(data.track.segments[0].location)
+      expect(one(actual)).to.deep.equal(data.track.segments[0].location)
 
       stmt = compile('$.track.segments.size()')
       actual = stmt.values(data)
-      expect(actual.next().value).to.deep.equal(2)
+      expect(one(actual)).to.deep.equal(2)
 
       stmt = compile('$.track.segments[*].HR ? (@ > 130)')
       actual = stmt.values(data)
