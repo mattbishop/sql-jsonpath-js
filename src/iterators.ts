@@ -1,3 +1,5 @@
+import {iterate} from "iterare"
+
 export function isAsyncIterable<T extends AsyncIterable<unknown>>(input: T | unknown): input is T {
   return !!input
          && typeof input === "object"
@@ -5,13 +7,15 @@ export function isAsyncIterable<T extends AsyncIterable<unknown>>(input: T | unk
          && Symbol.asyncIterator in input
 }
 
+export const EMPTY_ITERATOR = iterate([])
+
 
 /**
  * @internal
  */
 export class SingletonIterator<T> implements Iterator<T> {
 
-  private done: boolean = false
+  private done = false
 
   constructor(private readonly singleton: T) { }
 
@@ -30,7 +34,7 @@ export class SingletonIterator<T> implements Iterator<T> {
  */
 export class DefaultOnEmptyIterator<T> implements Iterator<T> {
 
-  private started: boolean = false
+  private started = false
 
   constructor(private readonly  value:    T,
               private           iterator: Iterator<T>) { }
@@ -40,8 +44,10 @@ export class DefaultOnEmptyIterator<T> implements Iterator<T> {
       this.started = true
       const first = this.iterator.next()
       if (first.done) {
+        // iterator is empty, vend the default value
         this.iterator = new SingletonIterator(this.value)
       } else {
+        // iterator has at least one value, so vend it back.
         return first
       }
     }

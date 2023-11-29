@@ -358,8 +358,16 @@ describe("Codegen tests", () => {
         expect(() => fn({t: "shirt"})).to.throw
       })
 
-      it("[*] iterator values", () => {
+      it("lax [*][*] iterator values", () => {
         const ctx = generateFunctionSource('$[*][*]')
+        expect (ctx.source).to.equal('return ƒ.boxStar(ƒ.boxStar($))')
+        const fn = createFunctionForTest(ctx)
+        const arrayDates = fn([[77, 88], [14, 16], [true, false], [["a", "b"]]])
+        expect(arrayDates).to.deep.equal([77, 88, 14, 16, true, false, ["a", "b"]])
+      })
+
+      it("strict [*][*] iterator values", () => {
+        const ctx = generateFunctionSource('strict $[*][*]')
         expect (ctx.source).to.equal('return ƒ.boxStar(ƒ.boxStar($))')
         const fn = createFunctionForTest(ctx)
         const arrayDates = fn([[77, 88], [14, 16], [true, false], [["a", "b"]]])
@@ -590,7 +598,7 @@ describe("Codegen tests", () => {
   })
 
   describe("filter", () => {
-    describe("compare", () => {
+    describe("lax compare", () => {
       it("can filter comparison predicates", () => {
         const ctx = generateFunctionSource('$ ? (@ == 1)')
         expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare("==",v,1))')
@@ -614,19 +622,37 @@ describe("Codegen tests", () => {
         const actual = fn([[1], [21, 7], [5, 1]])
         expect(actual).to.deep.equal([[1], [5, 1]])
       })
+
+      it("can filter value accessor predicates", () => {
+        const ctx = generateFunctionSource('$ ? (@.sleepy == true)')
+        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare("==",ƒ.member(v,"sleepy"),true))')
+        const fn = createFunctionForTest(ctx)
+        const actual = fn([{sleepy: true}, {sleepy: false}, {sleepy: "yes"}, {not: 1}])
+        expect(actual).to.deep.equal([{sleepy: true}])
+      })
     })
 
-    it("can filter value accessor predicates", () => {
-      const ctx = generateFunctionSource('strict $ ? (@.sleepy == true)')
-      expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare("==",ƒ.member(v,"sleepy"),true))')
-      const fn = createFunctionForTest(ctx)
-      const actual = fn([{sleepy: true}, {sleepy: false}, {sleepy: "yes"}, {not: 1}])
-      expect(actual).to.deep.equal([{sleepy: true}])
+    describe("strict filter", () => {
+      it("filter does not unwrap arrays in strict mode, and does not throw errors", () => {
+        const ctx = generateFunctionSource('strict $ ? (@.sleepy == true)')
+        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare("==",ƒ.member(v,"sleepy"),true))')
+        const fn = createFunctionForTest(ctx)
+        const actual = fn([{sleepy: true}, {sleepy: false}, {sleepy: "yes"}, {not: 1}])
+        expect(actual).to.deep.equal([])
+      })
+
+      it("can filter predicate", () => {
+        const ctx = generateFunctionSource('strict $ ? (@ == 1)')
+        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare("==",v,1))')
+        const fn = createFunctionForTest(ctx)
+        const actual = fn(1)
+        expect(actual).to.deep.equal([1])
+      })
     })
 
     describe("exists", () => {
       it("can filter predicates on members", () => {
-        const ctx = generateFunctionSource('strict $ ? (exists(@.z))')
+        const ctx = generateFunctionSource('$ ? (exists(@.z))')
         expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.exists(()=>(ƒ.member(v,"z"))))')
         const fn = createFunctionForTest(ctx)
         const actual = fn([{z: true}, {y: false}, {a: "yes"}])
@@ -642,7 +668,7 @@ describe("Codegen tests", () => {
       })
 
       it("can filter predicates and extract members", () => {
-        const ctx = generateFunctionSource('strict $ ? (exists(@.z)).z')
+        const ctx = generateFunctionSource('$ ? (exists(@.z)).z')
         expect(ctx.source).to.equal('return ƒ.member(ƒ.filter($,v=>ƒ.exists(()=>(ƒ.member(v,"z")))),"z")')
         const fn = createFunctionForTest(ctx)
         const actual = fn([{z: 121.2}, {y: -99.828}, {a: "yes"}])

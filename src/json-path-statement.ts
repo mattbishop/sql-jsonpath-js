@@ -4,7 +4,7 @@ import {IteratorWithOperators} from "iterare/lib/iterate.js"
 import {isIterable} from "iterare/lib/utils.js"
 import {CodegenContext, newCodegenVisitor} from "./codegen-visitor.js"
 import {ƒBase} from "./ƒ-base.js"
-import {DefaultOnEmptyIterator, DefaultOnErrorIterator, SingletonIterator} from "./iterators.js"
+import {DefaultOnEmptyIterator, DefaultOnErrorIterator, EMPTY_ITERATOR, SingletonIterator} from "./iterators.js"
 import {Input, NamedVariables, SqlJsonPathStatement, StatementConfig} from "./json-path.js"
 import {JsonPathParser} from "./parser.js"
 import {allTokens} from "./tokens.js"
@@ -47,7 +47,7 @@ export type SJPFn = ($: unknown, $named?: NamedVariables) => IteratorWithOperato
  * @internal
  */
 export function createFunction({source, lax}: CodegenContext): SJPFn {
-  const fn = Function("ƒ", "$", "$$", source)
+  const fn = new Function("ƒ", "$", "$$", source)
   const ƒ = new ƒBase(lax)
 
   return ($, $named = {}) => {
@@ -55,6 +55,7 @@ export function createFunction({source, lax}: CodegenContext): SJPFn {
       if ($named.hasOwnProperty(name)) {
         return $named[name]
       }
+      // thrown for both LAX and STRICT modes
       throw new Error(`no variable named '$${name}'`)
     }
     const result = fn(ƒ, $, $$)
@@ -101,7 +102,7 @@ export function createStatement(text: string): SqlJsonPathStatement {
     values<T>(input: Input<T>, config: StatementConfig = {}): IterableIterator<unknown> {
       const {variables} = config
       const iterator = find(wrapInput(input), variables)
-        .filter((v) => v !== ƒBase.EMPTY)
+        .filter((v) => v !== EMPTY_ITERATOR)
       return defaultsIterator(iterator, config)
     }
   }

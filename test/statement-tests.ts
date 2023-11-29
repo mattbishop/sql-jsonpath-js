@@ -80,6 +80,80 @@ describe("Statement tests", () => {
     expect(actual.next().done).to.be.true
   })
 
+  it("unwraps sequence of arrays", () => {
+    const stmt = compile('$.things[*][*]')
+    const actual = stmt.values({things:[["matt", true], 100, ["mary", "abby"], [{a: 4}]]})
+    expect(one(actual)).to.equal("matt")
+    expect(one(actual)).to.be.true
+    expect(one(actual)).to.equal(100)
+    expect(one(actual)).to.equal("mary")
+    expect(one(actual)).to.equal("abby")
+    expect(one(actual)).to.deep.equal({a: 4})
+    expect(actual.next().done).to.be.true
+  })
+
+  it("strictly unwraps sequence of arrays", () => {
+    const stmt = compile('strict $.things[*][*]')
+    const actual = stmt.values({things:[["matt", true], [1, 2], [{a: 4}]]})
+    expect(one(actual)).to.equal("matt")
+    expect(one(actual)).to.be.true
+    expect(one(actual)).to.equal(1)
+    expect(one(actual)).to.equal(2)
+    expect(one(actual)).to.deep.equal({a: 4})
+    expect(actual.next().done).to.be.true
+  })
+
+  it("searches array with an named array value on right side of comparison", () => {
+    const stmt = compile('$.players ? (@ == $names[*])')
+    const variables = {names:["mary", "angie"]}
+    const actual = stmt.values({players:["matt", "angie", "mark", "mary", "abby"]}, {variables})
+    expect(one(actual)).to.equal("angie")
+    expect(one(actual)).to.equal("mary")
+    expect(actual.next().done).to.be.true
+  })
+
+  it("strict searches array with an named array value on right side of comparison", () => {
+    const stmt = compile('strict $ ? (@[*] == "mary")')
+    const actual = stmt.values([["mary", "angie"]])
+    const first = one(actual)
+    expect(first).to.deep.equal(["mary", "angie"])
+    expect(actual.next().done).to.be.true
+  })
+
+  it("searches array with an named array value on right side of comparison", () => {
+    const stmt = compile('$.players ? (@ == $names)')
+    const variables = {names:["mary", "angie"]}
+    const actual = stmt.values({players:["matt", "angie", "mark", "mary", "abby"]}, {variables})
+    expect(one(actual)).to.equal("angie")
+    expect(one(actual)).to.equal("mary")
+    expect(actual.next().done).to.be.true
+  })
+
+  it("strict does not unwrap named array, but also does not throw an error.", () => {
+    const stmt = compile('strict $.players ? ($names == @)')
+    const variables = {names:["mary", "angie"]}
+    const actual = stmt.values({players:["matt", "angie", "mark", "mary", "abby"]}, {variables})
+    expect(actual.next().done).to.be.true
+  })
+
+  it("searches array with an unwrapped named array value on left side of comparison", () => {
+    const stmt = compile('$.players ? ($names == @)')
+    const variables = {names:["mary", "angie"]}
+    const actual = stmt.values({players:["matt", "angie", "mark", "mary", "abby"]}, {variables})
+    expect(one(actual)).to.equal("angie")
+    expect(one(actual)).to.equal("mary")
+    expect(actual.next().done).to.be.true
+  })
+
+  it("searches array with a specific element in a named array value", () => {
+    const stmt = compile('$.players ? ($names.first[1] == @)')
+    // return ƒ.filter(ƒ.member($,"players"),v=>ƒ.compare("==",v,ƒ.array(ƒ.member($$("names"),"first"),[1])))
+    const variables = {names:{first:["mary", "angie"]}}
+    const actual = stmt.values({players:["matt", "angie", "mark", "mary", "abby"]}, {variables})
+    expect(one(actual)).to.equal("angie")
+    expect(actual.next().done).to.be.true
+  })
+
   it("can do arithmetic", () => {
     const stmt = compile('$ ? (@ % 2 == 0)')
     const actual = stmt.values([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])

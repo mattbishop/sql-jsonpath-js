@@ -1,8 +1,10 @@
+import {CachedIterable} from "indexed-iterable"
 import {iterate} from "iterare"
 import {IteratorWithOperators} from "iterare/lib/iterate.js"
+import {isIterable} from "iterare/lib/utils.js"
 import {DateTime, FixedOffsetZone} from "luxon"
 import {KeyValue} from "./json-path"
-import {SingletonIterator} from "./iterators.js"
+import {EMPTY_ITERATOR, SingletonIterator} from "./iterators.js"
 
 
 enum Pred {
@@ -28,8 +30,6 @@ type StrictConfig = {
  * @internal
  */
 export class ƒBase {
-
-  static EMPTY = iterate([])
 
   constructor(private readonly lax: boolean) { }
 
@@ -65,11 +65,43 @@ export class ƒBase {
     return ƒBase._type(input) === "object"
   }
 
+  /**
+   * Turn any input into a Seq. Does not consider lax or strict mode.
+   * @param input the input to Seq.
+   */
+  private static _toSeq(input: unknown): Seq<unknown> {
+    return ƒBase._isSeq(input)
+      ? input.flatten()
+      : iterate(Array.isArray(input)
+        ? input
+        : new SingletonIterator(input))
+  }
 
-  private _wrap(input: unknown, strict?: StrictConfig): Array<unknown> {
-    if (!this.lax && strict && !strict.test(input)) {
+
+  /**
+   * Examine input with strict test, if any. Throws error if in strict mode and
+   * the strictness test does not pass.
+   * @param input the input to test.
+   * @param strict the strictness config.
+   * @private
+   */
+  private _checkStrict(input: unknown, strict?: StrictConfig) {
+    if (this.lax || ƒBase._isSeq(input)) {
+      return
+    }
+    if (strict && !strict.test(input)) {
       throw new Error(`In 'strict' mode! ${strict.error} Found: ${JSON.stringify(input)}`)
     }
+  }
+
+  /**
+   * Turn any input, like an iterator, into an array. Only used in lax mode.
+   * @param input The input to wrap.
+   * @param strict strict config, if any.
+   * @private
+   */
+  private _wrap(input: unknown, strict?: StrictConfig): Array<unknown> {
+    this._checkStrict(input, strict)
     if (ƒBase._isSeq(input)) {
       return input.map((v) => Array.isArray(v) ? v : [v])
         .toArray()
@@ -80,21 +112,21 @@ export class ƒBase {
   }
 
   /**
-   * Turn an array into an iterator. Only used in lax mode.
+   * Turn any input, like an array, into an iterator. Only used in lax mode.
    * @param input The input to unwrap.
    * @param strict strict config, if any.
    * @private
    */
   private _unwrap(input: unknown, strict?: StrictConfig): Seq<unknown> {
-    if (!this.lax && strict && !strict.test(input)) {
-      throw new Error(`In 'strict' mode! ${strict.error} Found: ${JSON.stringify(input)}`)
+    if (this.lax) {
+      return ƒBase._toSeq(input)
     }
-    if (ƒBase._isSeq(input)) {
-      return input.flatten()
-    }
-    return iterate(Array.isArray(input)
+
+    this._checkStrict(input, strict)
+
+    return ƒBase._isSeq(input)
       ? input
-      : new SingletonIterator(input))
+      : iterate(new SingletonIterator(input))
   }
 
   private static _autoFlatMap<I extends Seq<unknown>>(input: unknown, mapƒ: Mapƒ<I>): I {
@@ -119,7 +151,7 @@ export class ƒBase {
   private static _objectValues(input: unknown): Seq<unknown> {
     return ƒBase._isObject(input)
       ? iterate(Object.values(input))
-      : ƒBase.EMPTY
+      : EMPTY_ITERATOR
   }
 
   private static _mustBeNumber(input: SingleOrIterator<unknown>, method: string): number {
@@ -238,7 +270,9 @@ export class ƒBase {
 
 
   private _boxStar(input: unknown): Seq<unknown> {
-    return this._unwrap(input, { test: Array.isArray, error: "[*] can only be applied to an array in strict mode." })
+    // [*] is not the same as unwrap. it always turns the array into a seq
+    this._checkStrict(input, { test: Array.isArray, error: "[*] can only be applied to an array in strict mode." })
+    return ƒBase._toSeq(input)
   }
 
   boxStar(input: unknown): Seq<unknown> {
@@ -251,7 +285,7 @@ export class ƒBase {
       return obj[member]
     }
     if (this.lax) {
-      return ƒBase.EMPTY
+      return EMPTY_ITERATOR
     }
     throw new Error(`Object does not contain key ${member}, in strict mode.`)
   }
@@ -259,7 +293,7 @@ export class ƒBase {
   private _member(input: unknown, member: string): Seq<unknown> {
     return this._unwrap(input, { test: ƒBase._isObject, error: ".member can only be applied to an object." })
       .map((i) => this._getMember(i, member))
-      .filter((i) => i !== ƒBase.EMPTY)
+      .filter((i) => i !== EMPTY_ITERATOR)
   }
 
   member(input: unknown, member: string): Seq<unknown> {
@@ -275,7 +309,7 @@ export class ƒBase {
         : value
     }
     if (this.lax) {
-      return ƒBase.EMPTY
+      return EMPTY_ITERATOR
     }
     throw new Error (`In 'strict' mode. Array subscript [${pos}] is out of bounds.`)
   }
@@ -369,9 +403,38 @@ export class ƒBase {
   }
 
   compare(compOp: string, left: unknown, right: any): SingleOrIterator<Pred> {
-    return ƒBase._autoMap(left, (l) => ƒBase._compare(compOp, l, right))
-  }
+    if (!this.lax) {
+      if (Array.isArray(left)) {
+        throw new Error("In 'strict' mode! left side of comparison cannot be an array.")
+      }
+      if (Array.isArray(right)) {
+        throw new Error("In 'strict' mode! right side of comparison cannot be an array.")
+      }
+    }
 
+    let rightCompare
+    if (isIterable(right)) {
+      const resettableRight = new CachedIterable(right)
+      rightCompare = (l: any) => {
+        let retVal = Pred.FALSE
+        for (const r of resettableRight) {
+          retVal = ƒBase._compare(compOp, l, r)
+          if (retVal == Pred.TRUE) {
+            break
+          }
+        }
+        return retVal
+      }
+    } else {
+      rightCompare = (l: any) => ƒBase._compare(compOp, l, right)
+    }
+
+    left = Array.isArray(left)
+      ? iterate(left)
+      : left
+
+    return ƒBase._autoMap(left, rightCompare)
+  }
 
   not(input: any): Pred {
     return input === Pred.TRUE
@@ -408,12 +471,12 @@ export class ƒBase {
       if (ƒBase._isSeq(result)) {
         const next = result.next()
         value = next.done
-          ? ƒBase.EMPTY
+          ? EMPTY_ITERATOR
           : next.value
       } else {
         value = result
       }
-      return ƒBase._toPred(value !== ƒBase.EMPTY)
+      return ƒBase._toPred(value !== EMPTY_ITERATOR)
     } catch (e) {
       return Pred.UNKNOWN
     }
