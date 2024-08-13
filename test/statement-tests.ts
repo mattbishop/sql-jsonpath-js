@@ -1,6 +1,8 @@
 import {expect} from "chai"
 // testing from /dist to ensure the exported interface is correct
 import {compile, one, SqlJsonPathStatement} from "../dist/index.js"
+import {CachedIterable} from "indexed-iterable";
+import {iterate} from "iterare";
 
 
 describe("Statement tests", () => {
@@ -13,7 +15,7 @@ describe("Statement tests", () => {
 
   it("queries", () => {
     const stmt = compile('$.a')
-    const actual = stmt.query([{a: 1}, {b: 2}, {a: 3}])
+    const actual = stmt.query(iterate([{a: 1}, {b: 2}, {a: 3}]))
     expect(actual.next().value).to.deep.equal({a: 1})
     expect(actual.next().value).to.deep.equal({a: 3})
     expect(actual.next().done).to.be.true
@@ -29,7 +31,7 @@ describe("Statement tests", () => {
 
   it("one", () => {
     const stmt = compile('$')
-    const iter = stmt.values([1, 2, 3])
+    const iter = stmt.values(iterate([1, 2, 3]))
     expect(one(iter)).to.equal(1)
     expect(one(iter)).to.equal(2)
     expect(one(iter)).to.equal(3)
@@ -38,7 +40,7 @@ describe("Statement tests", () => {
 
   it("applies function to sequence", () => {
     const stmt = compile('$.type()')
-    const actual = stmt.values(["matt", true, 100, ["mary", "abby"], {a: 4}])
+    const actual = stmt.values(iterate(["matt", true, 100, ["mary", "abby"], {a: 4}]))
     expect(one(actual)).to.equal("string")
     expect(one(actual)).to.equal("boolean")
     expect(one(actual)).to.equal("number")
@@ -49,7 +51,7 @@ describe("Statement tests", () => {
 
   it("unwraps sequence", () => {
     const stmt = compile('$[*]')
-    const actual = stmt.values(["matt", true, 100, ["mary", "abby"], {a: 4}])
+    const actual = stmt.values(iterate(["matt", true, 100, ["mary", "abby"], {a: 4}]))
     expect(one(actual)).to.equal("matt")
     expect(one(actual)).to.be.true
     expect(one(actual)).to.equal(100)
@@ -61,7 +63,7 @@ describe("Statement tests", () => {
 
   it("unwraps sequence and applies type()", () => {
     const stmt = compile('$[*].type()')
-    const actual = stmt.values(["matt", true, 100, ["mary", false], {a: 4}])
+    const actual = stmt.values(iterate(["matt", true, 100, ["mary", false], {a: 4}]))
     expect(one(actual)).to.equal("string")
     expect(one(actual)).to.equal("boolean")
     expect(one(actual)).to.equal("number")
@@ -73,7 +75,7 @@ describe("Statement tests", () => {
 
   it("extracts values from an array", () => {
     const stmt = compile('$ ? (@ starts with "m")')
-    const actual = stmt.values(["matt", "angie", "mark", "mary", "abby"])
+    const actual = stmt.values(iterate(["matt", "angie", "mark", "mary", "abby"]))
     expect(one(actual)).to.equal("matt")
     expect(one(actual)).to.equal("mark")
     expect(one(actual)).to.equal("mary")
@@ -114,7 +116,7 @@ describe("Statement tests", () => {
 
   it("strict searches array with an named array value on right side of comparison", () => {
     const stmt = compile('strict $ ? (@[*] == "mary")')
-    const actual = stmt.values([["mary", "angie"]])
+    const actual = stmt.values(["mary", "angie"])
     const first = one(actual)
     expect(first).to.deep.equal(["mary", "angie"])
     expect(actual.next().done).to.be.true
@@ -156,7 +158,7 @@ describe("Statement tests", () => {
 
   it("can do arithmetic", () => {
     const stmt = compile('$ ? (@ % 2 == 0)')
-    const actual = stmt.values([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+    const actual = stmt.values(iterate([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]))
     expect(Array.from(actual)).to.deep.equal([0, 2, 4, 6, 8])
   })
 
@@ -170,6 +172,39 @@ describe("Statement tests", () => {
     const stmt = compile('$ ? (@.datetime() == $a)')
     const actual = one(stmt.exists("2020-02-01", {variables: {a: new Date("2020-02-01")}}))
     expect(actual).to.be.true
+  })
+
+  describe("compares arrays", () => {
+    const vars = {variables: {a:[1, 2]}}
+    it("lax comparison", () => {
+      const stmt = compile('$ ? (@ == $a)')
+      let actual = one(stmt.exists([1, 2], vars))
+      expect(actual, "1, 2").to.be.true
+      actual = one(stmt.exists([2], vars))
+      expect(actual, "2").to.be.true
+      actual = one(stmt.exists([1, 4, 2], vars))
+      expect(actual, "1, 4, 2").to.be.true
+      actual = one(stmt.exists([4, 2], vars))
+      expect(actual, "4, 2").to.be.true
+    })
+
+    it("strict comparison, no unwrapping", () => {
+      const stmt = compile('strict $ ? (@ == $a)')
+      let actual = one(stmt.exists([1, 2], vars))
+      expect(actual).to.be.false
+    })
+
+    it("strict comparison, with unwrapping", () => {
+      const stmt = compile('strict $ ? (@[*] == $a[*])')
+      let actual = one(stmt.exists([1, 2], vars))
+      expect(actual, "1, 2").to.be.true
+      actual = one(stmt.exists([2, 1], vars))
+      expect(actual, "2, 1").to.be.true
+      actual = one(stmt.exists([1, 4, 2], vars))
+      expect(actual, "1, 4, 2").to.be.true
+      actual = one(stmt.exists([4, 2], vars))
+      expect(actual, "4, 2").to.be.true
+    })
   })
 
   describe("default values", () => {
@@ -264,9 +299,11 @@ describe("Statement tests", () => {
       phones: []
     }]
 
+    const dataIterator = new CachedIterable(data)
+
     it("coalesce phones arrays", () => {
       const stmt = compile('$.phones."phone#"')
-      const actual = stmt.values(data)
+      const actual = stmt.values(dataIterator)
       expect(Array.from(actual)).to.deep.equal([
         "650-506-7000",
         "650-555-5555",
@@ -276,7 +313,7 @@ describe("Statement tests", () => {
 
     it("finds the folks who have a phone#", () => {
       const stmt = compile('$ ? (exists(@.phones."phone#") || exists(@."phone#")).name')
-      const actual = stmt.values(data)
+      const actual = stmt.values(dataIterator)
       expect(Array.from(actual)).to.deep.equal([
         "Fred",
         "Molly",
@@ -288,7 +325,7 @@ describe("Statement tests", () => {
       const stmt = compile('$ ? (@.name == $aName)')
 
       it("sees if folks exist by name", () => {
-        let actual = stmt.exists(data, {variables: {aName: "Fred"}})
+        let actual = stmt.exists(dataIterator, {variables: {aName: "Fred"}})
         // first
         expect(one(actual)).to.be.true
         expect(one(actual)).to.be.false
@@ -297,7 +334,7 @@ describe("Statement tests", () => {
         expect(one(actual)).to.be.false
         expect(actual.next().done).to.be.true
         // third
-        actual = stmt.exists(data, {variables: {aName: "Afu"}})
+        actual = stmt.exists(dataIterator, {variables: {aName: "Afu"}})
         expect(one(actual)).to.be.false
         expect(one(actual)).to.be.false
         expect(one(actual)).to.be.true
@@ -305,7 +342,7 @@ describe("Statement tests", () => {
         expect(one(actual)).to.be.false
         expect(actual.next().done).to.be.true
         // fourth
-        actual = stmt.exists(data, {variables: {aName: "Justin"}})
+        actual = stmt.exists(dataIterator, {variables: {aName: "Justin"}})
         expect(one(actual)).to.be.false
         expect(one(actual)).to.be.false
         expect(one(actual)).to.be.false
@@ -315,22 +352,22 @@ describe("Statement tests", () => {
       })
 
       it("queries folks by name", () => {
-        let actual = stmt.query(data, {variables: {aName: "Fred"}})
+        let actual = stmt.query(dataIterator, {variables: {aName: "Fred"}})
         expect(one(actual)).to.deep.equal(data[0])
-        actual = stmt.query(data, {variables: {aName: "Afu"}})
+        actual = stmt.query(dataIterator, {variables: {aName: "Afu"}})
         expect(one(actual)).to.deep.equal(data[2])
-        actual = stmt.query(data, {variables: {aName: "U La La"}})
+        actual = stmt.query(dataIterator, {variables: {aName: "U La La"}})
         expect(one(actual)).to.deep.equal(data[4])
-        actual = stmt.query(data, {variables: {aName: "Snape"}})
+        actual = stmt.query(dataIterator, {variables: {aName: "Snape"}})
         expect(actual.next().done).to.be.true
       })
 
       it("finds folk's value by name", () => {
-        let actual = stmt.values(data, {variables: {aName: "Fred"}})
+        let actual = stmt.values(dataIterator, {variables: {aName: "Fred"}})
         expect(one(actual)).to.deep.equal(data[0])
-        actual = stmt.values(data, {variables: {aName: "Afu"}})
+        actual = stmt.values(dataIterator, {variables: {aName: "Afu"}})
         expect(one(actual)).to.deep.equal(data[2])
-        actual = stmt.values(data, {variables: {aName: "U La La"}})
+        actual = stmt.values(dataIterator, {variables: {aName: "U La La"}})
         expect(one(actual)).to.deep.equal(data[4])
       })
     })
@@ -345,14 +382,14 @@ describe("Statement tests", () => {
           { name: "readme" },
           { noName: true }
         ]
-
-        const existsIterator = statement.exists(data)
+        const dataIterator = new CachedIterable(data)
+        const existsIterator = statement.exists(dataIterator)
         expect(Array.from(existsIterator)).to.deep.equal([true, true, false])
 
-        const queryIterator = statement.query(data)
+        const queryIterator = statement.query(dataIterator)
         expect(Array.from(queryIterator)).to.deep.equal([{name: "scripty"}, {name: "readme"}])
 
-        const valuesIterator = statement.values(data)
+        const valuesIterator = statement.values(dataIterator)
         expect(Array.from(valuesIterator)).to.deep.equal(["scripty", "readme"])
       })
     })
