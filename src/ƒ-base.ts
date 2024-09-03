@@ -4,7 +4,7 @@ import {IteratorWithOperators} from "iterare/lib/iterate.js"
 import {isIterable} from "iterare/lib/utils.js"
 import {DateTime, FixedOffsetZone} from "luxon"
 import {KeyValue} from "./json-path"
-import {EMPTY_ITERATOR, SingletonIterator} from "./iterators.js"
+import {EMPTY_ITERATOR} from "./iterators.js"
 
 
 enum Pred {
@@ -74,7 +74,7 @@ export class ƒBase {
       ? input.flatten()
       : iterate(Array.isArray(input)
         ? input
-        : new SingletonIterator(input))
+        : [input])
   }
 
 
@@ -126,7 +126,7 @@ export class ƒBase {
 
     return ƒBase._isSeq(input)
       ? input
-      : iterate(new SingletonIterator(input))
+      : iterate([input])
   }
 
   private static _autoFlatMap<I extends Seq<unknown>>(input: unknown, mapƒ: Mapƒ<I>): I {

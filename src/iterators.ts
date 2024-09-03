@@ -1,26 +1,8 @@
 import {iterate} from "iterare"
 
 
+// Needs to be an IteratorWithOperators for equality testing.
 export const EMPTY_ITERATOR = iterate([])
-
-
-/**
- * @internal
- */
-export class SingletonIterator<T> implements Iterator<T> {
-
-  private done = false
-
-  constructor(private readonly singleton: T) { }
-
-  next(): IteratorResult<T> {
-    const result = { value: this.singleton, done: this.done }
-    if (!this.done) {
-      this.done = true
-    }
-    return result
-  }
-}
 
 
 /**
@@ -39,7 +21,7 @@ export class DefaultOnEmptyIterator<T> implements Iterator<T> {
       const first = this.iterator.next()
       if (first.done) {
         // iterator is empty, vend the default value
-        this.iterator = new SingletonIterator(this.value)
+        this.iterator = [this.value][Symbol.iterator]()
       } else {
         // iterator has at least one value, so vend it back.
         return first

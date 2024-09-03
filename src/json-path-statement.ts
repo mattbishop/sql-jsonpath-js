@@ -4,7 +4,7 @@ import {IteratorWithOperators} from "iterare/lib/iterate.js"
 import {isIterable} from "iterare/lib/utils.js"
 import {CodegenContext, newCodegenVisitor} from "./codegen-visitor.js"
 import {ƒBase} from "./ƒ-base.js"
-import {DefaultOnEmptyIterator, DefaultOnErrorIterator, EMPTY_ITERATOR, one, SingletonIterator} from "./iterators.js"
+import {DefaultOnEmptyIterator, DefaultOnErrorIterator, EMPTY_ITERATOR, one} from "./iterators.js"
 import {Input, NamedVariables, SqlJsonPathStatement, StatementConfig} from "./json-path.js"
 import {JsonPathParser} from "./parser.js"
 import {allTokens} from "./tokens.js"
@@ -61,7 +61,7 @@ export function createFunction({source, lax}: CodegenContext): SJPFn {
     const result = fn(ƒ, $, $$)
     return result instanceof IteratorWithOperators
       ? result
-      : iterate(new SingletonIterator(result))
+      : iterate([result])
   }
 }
 
@@ -104,7 +104,7 @@ export function createStatement(text: string): SqlJsonPathStatement {
 function wrapInput<T>(input: any): IteratorWithOperators<T> {
   // arrays are iterable, but treat them as singleton inputs
   let iterator = typeof input === "string" || Array.isArray(input) || !isIterable(input)
-      ? new SingletonIterator(input)
+      ? [input]
       : input
   return iterate(iterator)
 }
