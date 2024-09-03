@@ -12,7 +12,13 @@ This library includes TypeScript definitions so TS developers do not need to ins
 
 #### Usage
 
-The UX is similar to Javascript’s RegExp class where one first compiles a SQL/JSONPath string into a `SqlJsonPathStatement` and then use that statement to examine data objects.
+The UX is similar to Javascript’s RegExp class where one first compiles a SQL/JSONPath string into a `SqlJsonPathStatement` and then use that statement to examine data objects. The statement can be reused.
+
+A SQL/JSONPath for JS (SJP) statement has two operations to work with JS values. One can use `statement.exists(value)` to test if the statement matches a value, while data can be extracted from a larger value using the `statement.values(value)` method.
+
+#### The `exists()` Method
+
+The method input is a single value, like an object, or an array. The statement will test the value and return true if the statement matches the value.
 
 ```javascript
 import * as sjp from "sql-jsonpath-js"
@@ -20,27 +26,37 @@ import * as sjp from "sql-jsonpath-js"
 // compile a statement
 const statement = sjp.compile('$.name')
 
-// data is an iterable of object values.
-const data = [
-  { name: "scripty" },
-  { name: "readme" },
-  { noName: true }
-]
+const hasName = { name: "scripty" },
+      noName = { noName: true }
 
 // exists() looks for matches and returns true or false for each data element.
-const existsIterator = statement.exists(data)
-console.log(Array.from(existsIterator))
-// [ true, true, false ]
+console.info(statement.exists(hasName))
+// true
 
-//query() looks for matches and returns the whole data element
-const queryIterator = statement.query(data)
-console.log(Array.from(queryIterator))
-// [ { name: 'scripty' }, { name: 'readme' } ]
+console.info(statement.exists(noName))
+// false
+```
 
+#### The `values()` Method
+
+Inputs can be either iterators of data or single data elements, as the example below shows, but the result is an iterator. A utility function `one()` provides a simple way to extract a single result from this iterator.
+
+```javascript
+/// ... continuing with the statement and values declared in the exists() example
 // values()
-const valuesIterator = statement.values(data)
-console.log(Array.from(valuesIterator))
-// [ 'scripty', 'readme' ]
+let valuesIterator = statement.values(hasName)
+console.info(sjp.one(valuesIterator))
+// 'scripty'
+
+valuesIterator = statement.values(noName)
+console.info(sjp.one(valuesIterator))
+// null
+
+// Can pass in an array of values too:
+
+valuesIterator = statement.values([hasName, noName])
+console.info(Array.from(valuesIterator))
+// ['scripty']
 ```
 
 #### Iterators
@@ -49,22 +65,22 @@ SqlJsonPathStatement methods consume single values, arrays, generators or other 
 
 This laziness means the statement can handle large, even limitless, amounts of data. The statement holds no accumulating state other than it’s position in the data. This design suits streaming data use cases and matches SQL’s result set and cursor concepts.
 
-Array input values are treated as an iterable rather than as a single object to be examined. If one wants an array value to be treated as a single value, wrap the data in an array:
+Array input values are treated a single object to be examined. If one wants an array value to be treated as an iterable input, call it’s iterator symbol `[Symbol.iterator]()` to produce an iterator over the array:
 
 ```javascript
 const statement = sjp.compile('$ ? (@.size() > 3)')
 
 const data = [5, 65, 322, 78]
 
-const iteratedResult = statement.exists(data)
-console.log(Array.from(iteratedResult))
-// data is an interable, so statement iterates through the elements and applies the statement
-// [false, false, false, false]
-
-const singleResult = statement.exists([data])
+const singleResult = statement.exists(data)
 console.log(Array.from(singleResult))
 // input is a single value array, so statement examines 'data' as a single element
 // [true]
+
+const iteratedResult = statement.exists(data[Symbol.iterator]())
+console.log(Array.from(iteratedResult))
+// data is an interable, so statement iterates through the elements and applies the statement
+// [false, false, false, false]
 ```
 
 #### Default Values
@@ -73,7 +89,7 @@ A statement will return an empty iterator if no matches are found in the input d
 
 ```javascript
 const statement = sjp.compile('$ ? (@.startsWith("Z"))')
-const resultIterator = statement.query("A value that does not match", {defaultOnEmpty: "MISSING"})
+const resultIterator = statement.values("A value that does not match", {defaultOnEmpty: "MISSING"})
 console.log(sjp.one(resultIterator))
 // 'MISSING'
 ```
@@ -96,11 +112,11 @@ SQL/JSONPath statements can include named variables that are supplied during exe
 ```javascript
 const statement = sjp.compile('strict $.name ? (@ == $inputName)')
 const resultIterator = statement.exists({name: "Jeremy"}, {variables: {inputName: "Jeremy"}})
-console.log(sjp.one(resultIterator.next().value))
+console.log(sjp.one(resultIterator)
 // true
 
 const anotherResult = statement.exists({name: "Mika"}, {variables: {inputName: "Lau"}})
-console.log(sjp.one(resultIterator.next().value))
+console.log(sjp.one(resultIterator))
 // false
 ```
 
@@ -131,13 +147,9 @@ All methods can accept a config object to fulfill the statement or change its be
 
 #### Statement Methods
 
-##### `exists(input, config?) => IterableIterator<boolean>` 
+##### `exists(input, config?) => boolean` 
 
-Tests the statement against the input elements and emits `true` if the statement finds a match and `false` otherwise. Every element in the input will produce a matching boolean output in the iterator result.
-
-##### `query(input, config?) => IterableIterator` 
-
-Tests the statement against the input elements and emits the input element if the statement finds a match. Elements that do not match the statement do not emit from the result iterator. This method is similar to interable filter methods.
+Tests the statement against the input and emits `true` if the statement finds a match and `false` otherwise.
 
 ##### `values(input, config?) => IterableIterator` 
 

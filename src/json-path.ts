@@ -55,26 +55,17 @@ export interface SqlJsonPathStatement {
   /**
    * Determines if JSON input matches the SQL JSONPath statement.
    *
-   * @param input A single value, an iterable of values or a value iterator.
+   * @param input A single value. Arrays are treated as a single value.
    * @param config Contains default values for misses and errors as well as named variables to use in the
    * SQL JSONPath evaluation.
    */
-  exists<T>(input: Input<T>, config?: StatementConfig<boolean>): IterableIterator<boolean>
-
-  /**
-   * Filters the JSON input by matching the SQL JSONPath statement. Returns inputs that match.
-   *
-   * @param input A single value, an iterable of values or a value iterator.
-   * @param config Contains default values for misses and errors as well as named variables to use in the
-   * SQL JSONPath evaluation.
-   */
-  query<T>(input: Input<T>, config?: StatementConfig<T>): IterableIterator<T>
+  exists(input: any, config?: StatementConfig<boolean>): boolean
 
   /**
    * Searches the JSON input for values that match the SQL JSONPath statement, returning the extracted values
    * when found.
    *
-   * @param input A single value, an iterable of values or a value iterator.
+   * @param input A single value or an iterator of values. Arrays are treated as a single value.
    * @param config Contains default values for misses and errors as well as named variables to use in the
    * SQL JSONPath evaluation.
    */

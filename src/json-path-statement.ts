@@ -4,7 +4,7 @@ import {IteratorWithOperators} from "iterare/lib/iterate.js"
 import {isIterable} from "iterare/lib/utils.js"
 import {CodegenContext, newCodegenVisitor} from "./codegen-visitor.js"
 import {ƒBase} from "./ƒ-base.js"
-import {DefaultOnEmptyIterator, DefaultOnErrorIterator, EMPTY_ITERATOR, SingletonIterator} from "./iterators.js"
+import {DefaultOnEmptyIterator, DefaultOnErrorIterator, EMPTY_ITERATOR, one, SingletonIterator} from "./iterators.js"
 import {Input, NamedVariables, SqlJsonPathStatement, StatementConfig} from "./json-path.js"
 import {JsonPathParser} from "./parser.js"
 import {allTokens} from "./tokens.js"
@@ -72,31 +72,23 @@ export function createFunction({source, lax}: CodegenContext): SJPFn {
 export function createStatement(text: string): SqlJsonPathStatement {
   const ctx = generateFunctionSource(text)
   const find = createFunction(ctx)
+
+  function existsƒ(variables?: NamedVariables) {
+    return (i: unknown) => !find(i, variables).next().done;
+  }
+
   return {
     mode:     ctx.lax ? "lax" : "strict",
     source:   text,
     fnSource: ctx.source,
 
-    exists(input: any, config: StatementConfig<boolean> = {}): IterableIterator<boolean> {
+    exists(input: any, config: StatementConfig<boolean> = {}): boolean {
       const {variables} = config
       // iterate through the inputs one at a time and test them against find()
       // because ƒ.filter() will omit the exists == false elements
       const iterator = wrapInput(input)
-        .map((i) => !find(i, variables).next().done)
-      return defaultsIterator<boolean>(iterator, config)
-    },
-
-    query<T>(input: Input<T>, config: StatementConfig<T> = {}): IterableIterator<T> {
-      const {defaultOnEmpty, defaultOnError, variables} = config
-      // iterate through the input elements because find() flattens inputs.
-      // No way to differentiate between input-level and internal-input matches.
-      let current: T
-      const iterator = tap(wrapInput<T>(input), (v) => current = v)
-        // Just need one match
-        .map((i) => find(i, variables).take(1))
-        .filter((i) => !i.next().done)
-        .map((v) => (v === defaultOnEmpty || v === defaultOnError) ? v as T : current)
-      return defaultsIterator<T>(iterator, config)
+        .map(existsƒ(variables))
+      return one(defaultsIterator<boolean>(iterator, config)) || false
     },
 
     values<T>(input: Input<T>, config: StatementConfig = {}): IterableIterator<unknown> {
@@ -131,18 +123,4 @@ function defaultsIterator<T>(input: Iterator<T>, config: StatementConfig<T>): It
   return iterator instanceof IteratorWithOperators
     ? iterator
     : iterate(iterator)
-}
-
-
-function tap<T>(source: Iterator<T>, tapSink: (value: T) => void): IteratorWithOperators<T> {
-  return iterate(_tap(source, tapSink))
-}
-
-function* _tap<T>(source: Iterator<T>, tapSink: (value: T) => void): Generator<T> {
-  let next
-  while (!(next = source.next()).done) {
-    const {value} = next
-    tapSink(value);
-    yield value;
-  }
 }
