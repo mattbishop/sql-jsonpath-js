@@ -287,11 +287,7 @@ describe("Statement tests", () => {
 
       const singleResult = statement.exists(data)
       expect(singleResult).to.be.false
-// input is a single value array, but arrays are unwrapped in lax mode so statement examines 'data'
-// as an iterator of elements
 // false
-
-      // todo show strict mode for this one.
     })
   })
 

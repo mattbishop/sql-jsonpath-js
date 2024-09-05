@@ -1,4 +1,10 @@
 import {iterate} from "iterare"
+import {isIterable} from "iterare/lib/utils";
+
+
+export function isIterableInput(input: any): boolean {
+  return typeof input !== "string" && !Array.isArray(input) && isIterable(input)
+}
 
 
 // Needs to be an IteratorWithOperators for equality testing.

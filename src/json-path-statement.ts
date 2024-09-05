@@ -1,10 +1,9 @@
 import {Lexer} from "chevrotain"
 import {iterate} from "iterare"
 import {IteratorWithOperators} from "iterare/lib/iterate.js"
-import {isIterable} from "iterare/lib/utils.js"
 import {CodegenContext, newCodegenVisitor} from "./codegen-visitor.js"
 import {ƒBase} from "./ƒ-base.js"
-import {DefaultOnEmptyIterator, DefaultOnErrorIterator, EMPTY_ITERATOR, one} from "./iterators.js"
+import {DefaultOnEmptyIterator, DefaultOnErrorIterator, EMPTY_ITERATOR, isIterableInput, one} from "./iterators.js"
 import {Input, NamedVariables, SqlJsonPathStatement, StatementConfig} from "./json-path.js"
 import {JsonPathParser} from "./parser.js"
 import {allTokens} from "./tokens.js"
@@ -73,22 +72,23 @@ export function createStatement(text: string): SqlJsonPathStatement {
   const ctx = generateFunctionSource(text)
   const find = createFunction(ctx)
 
-  function existsƒ(variables?: NamedVariables) {
-    return (i: unknown) => !find(i, variables).next().done;
-  }
-
   return {
     mode:     ctx.lax ? "lax" : "strict",
     source:   text,
     fnSource: ctx.source,
 
-    exists(input: any, config: StatementConfig<boolean> = {}): boolean {
+    exists<T>(input: Input<T>, config: StatementConfig<boolean> = {}): boolean | IterableIterator<boolean> {
       const {variables} = config
       // iterate through the inputs one at a time and test them against find()
       // because ƒ.filter() will omit the exists == false elements
-      const iterator = wrapInput(input)
-        .map(existsƒ(variables))
-      return one(defaultsIterator<boolean>(iterator, config)) || false
+      const existsƒ = (i: unknown) => !find(i, variables).next().done
+      const iterator = defaultsIterator(
+          wrapInput(input).map(existsƒ),
+          config)
+
+      return isIterableInput(input)
+        ? iterator
+        : one(iterator) ?? false
     },
 
     values<T>(input: Input<T>, config: StatementConfig = {}): IterableIterator<unknown> {
@@ -103,9 +103,9 @@ export function createStatement(text: string): SqlJsonPathStatement {
 
 function wrapInput<T>(input: any): IteratorWithOperators<T> {
   // arrays are iterable, but treat them as singleton inputs
-  let iterator = typeof input === "string" || Array.isArray(input) || !isIterable(input)
-      ? [input]
-      : input
+  let iterator = isIterableInput(input)
+      ? input
+      : [input]
   return iterate(iterator)
 }
 

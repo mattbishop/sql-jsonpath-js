@@ -18,7 +18,7 @@ A SQL/JSONPath for JS (SJP) statement has two operations to work with JS values.
 
 #### The `exists()` Method
 
-The method input is a single value, like an object, or an array. The statement will test the value and return true if the statement matches the value.
+The method input is a single value, like a string, an object, or an array. The statement will test the value and return true if the statement matches the value. The input can also be an iterable or iterator. In that case the statement will emit an iterable that tests each element in the iterator and emits the result of the test.
 
 ```javascript
 import * as sjp from "sql-jsonpath-js"
@@ -35,6 +35,11 @@ console.info(statement.exists(hasName))
 
 console.info(statement.exists(noName))
 // false
+
+// It can also consume iterators of values and return an iterator with the result of each exists test.
+const existsIterator = [hasName, noName][Symbol.iterator]()
+console.info(Array.from(statement.exists(existsIterator)))
+// [true, false]
 ```
 
 #### The `values()` Method
@@ -61,7 +66,7 @@ console.info(Array.from(valuesIterator))
 
 #### Iterators
 
-SqlJsonPathStatement methods consume single values, arrays, generators or other iterable input. However, the statement’s methods all return an `Iterator` (in TypeScript, it's an `IterableIterator`). These iterators are lazy, meaning they only advance through the data when `iterator.next()` is called.
+SqlJsonPathStatement methods can consume iterables, generators or other iterable input. The statement will return an iterator of results for iterable inputs. These returned iterators are lazy, meaning they only advance through the data when `iterator.next()` is called.
 
 This laziness means the statement can handle large, even limitless, amounts of data. The statement holds no accumulating state other than it’s position in the data. This design suits streaming data use cases and matches SQL’s result set and cursor concepts.
 
@@ -73,12 +78,12 @@ const statement = sjp.compile('$ ? (@.size() > 3)')
 const data = [5, 65, 322, 78]
 
 const singleResult = statement.exists(data)
-console.log(Array.from(singleResult))
+console.info(Array.from(singleResult))
 // input is a single value array, so statement examines 'data' as a single element
 // [true]
 
 const iteratedResult = statement.exists(data[Symbol.iterator]())
-console.log(Array.from(iteratedResult))
+console.info(Array.from(iteratedResult))
 // data is an interable, so statement iterates through the elements and applies the statement
 // [false, false, false, false]
 ```
@@ -90,7 +95,7 @@ A statement will return an empty iterator if no matches are found in the input d
 ```javascript
 const statement = sjp.compile('$ ? (@.startsWith("Z"))')
 const resultIterator = statement.values("A value that does not match", {defaultOnEmpty: "MISSING"})
-console.log(sjp.one(resultIterator))
+console.info(sjp.one(resultIterator))
 // 'MISSING'
 ```
 
@@ -99,7 +104,7 @@ Similarly, if a statement match throws an error, as can happen in `strict` mode,
 ```javascript
 const statement = sjp.compile('strict $.name ? (@.startsWith("Z"))')
 const resultIterator = statement.values({noName: true}, {defaultOnError: "NO NAME FOUND"})
-console.log(sjp.one(resultIterator))
+console.info(sjp.one(resultIterator))
 // 'NO NAME FOUND'
 ```
 
@@ -111,12 +116,12 @@ SQL/JSONPath statements can include named variables that are supplied during exe
 
 ```javascript
 const statement = sjp.compile('strict $.name ? (@ == $inputName)')
-const resultIterator = statement.exists({name: "Jeremy"}, {variables: {inputName: "Jeremy"}})
-console.log(sjp.one(resultIterator)
+const result = statement.exists({name: "Jeremy"}, {variables: {inputName: "Jeremy"}})
+console.info(result)
 // true
 
 const anotherResult = statement.exists({name: "Mika"}, {variables: {inputName: "Lau"}})
-console.log(sjp.one(resultIterator))
+console.info(anotherResult)
 // false
 ```
 
@@ -147,7 +152,7 @@ All methods can accept a config object to fulfill the statement or change its be
 
 #### Statement Methods
 
-##### `exists(input, config?) => boolean` 
+##### `exists(input, config?) => boolean | IterableIterator<boolean>` 
 
 Tests the statement against the input and emits `true` if the statement finds a match and `false` otherwise.
 
