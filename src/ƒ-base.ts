@@ -51,7 +51,7 @@ export class ƒBase {
     return typeof input === "string"
   }
 
-  private static _next<T>(input: unknown): T {
+  private static _next<T>(input: SingleOrIterator<T>): T {
     return ƒBase._isSeq(input)
       ? input.next().value
       : input

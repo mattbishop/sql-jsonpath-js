@@ -34,13 +34,13 @@
     "luxon": "^3.3.0"
   },
   "devDependencies": {
-    "@types/chai": "4.3.19",
+    "@types/chai": "5.2.0",
     "@types/luxon": "3.4.2",
-    "@types/mocha": "10.0.7",
-    "@types/node": "22.5.4",
-    "chai": "5.1.1",
-    "mocha": "10.7.3",
-    "ts-node": "10.9.2",
-    "typescript": "5.5.4"
+    "@types/mocha": "10.0.10",
+    "@types/node": "22.13.10",
+    "chai": "5.2.0",
+    "mocha": "11.1.0",
+    "tsx": "4.19.3",
+    "typescript": "5.8.2"
   }
 }
