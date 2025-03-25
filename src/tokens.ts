@@ -7,7 +7,7 @@ export const Mode                   = createToken({name: "Mode", pattern: /lax|s
 export const ContextVariable        = createToken({name: "ContextVariable", pattern: "$"})
 // Named Variables match SQL standard for alias names.
 /** @internal */
-export const NamedVariable          = createToken({name: "NamedVariable", pattern: /\$(?:[a-zA-Z][\w#@$]{0,255})+/})
+export const NamedVariable          = createToken({name: "NamedVariable", pattern: /\$(?:[a-zA-Z][\w#@$]{0,126})/})
 /** @internal */
 export const WildcardMember         = createToken({name: "WildcardMember", pattern: /\.\s*\*/})
 
@@ -34,7 +34,7 @@ export const ItemMethod = createRegexToken({
 export const Member = createRegexToken({
   name:             "Member",
   // quoted string pattern identical to StringLiteral
-  pattern:          /\.\s*(?:(\p{ID_Start}\p{ID_Continue}*)|"((?:[^"\\\p{Cc}]+|(?:\\(?:["\\/bfnrt]|u[a-fA-F\d]{4})))*)")/uy,
+  pattern:          /\.\s*(?:(\p{ID_Start}\p{ID_Continue}{0,126})|"((?:[^"\\\p{Cc}]+|(?:\\(?:["\\/bfnrt]|u[a-fA-F\d]{4}))){1,127})")/uy,
   start_chars_hint: ["."]
 })
 
