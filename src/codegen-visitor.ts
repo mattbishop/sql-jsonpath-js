@@ -23,7 +23,7 @@ import {
   SubscriptCstChildren,
   UnaryCstChildren,
   WffCstChildren
-} from "./sql_jsonpath_cst"
+} from "./sql_jsonpath_cst.ts"
 
 
 /**

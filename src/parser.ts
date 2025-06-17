@@ -1,4 +1,5 @@
-import {CstParser} from "chevrotain"
+import { CstParser } from "chevrotain"
+
 import {
   allTokens,
   AndOperator,
@@ -33,7 +34,7 @@ import {
   UnaryOperator,
   WildcardArray,
   WildcardMember
-} from "./tokens.js"
+} from "./tokens.ts"
 
 
 /**

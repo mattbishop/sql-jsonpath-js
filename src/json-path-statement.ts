@@ -1,12 +1,13 @@
-import {Lexer} from "chevrotain"
-import {iterate} from "iterare"
-import {IteratorWithOperators} from "iterare/lib/iterate.js"
-import {CodegenContext, newCodegenVisitor} from "./codegen-visitor.js"
-import {ƒBase} from "./ƒ-base.js"
-import {DefaultOnEmptyIterator, DefaultOnErrorIterator, EMPTY_ITERATOR, isIterableInput, one} from "./iterators.js"
-import {Input, NamedVariables, SqlJsonPathStatement, StatementConfig} from "./json-path.js"
-import {JsonPathParser} from "./parser.js"
-import {allTokens} from "./tokens.js"
+import { Lexer} from "chevrotain"
+import { iterate} from "iterare"
+import { IteratorWithOperators} from "iterare/lib/iterate.js"
+
+import { CodegenContext, newCodegenVisitor } from "./codegen-visitor.ts"
+import { ƒBase } from "./ƒ-base.ts"
+import { DefaultOnEmptyIterator, DefaultOnErrorIterator, EMPTY_ITERATOR, isIterableInput, one } from "./iterators.ts"
+import { Input, NamedVariables, SqlJsonPathStatement, StatementConfig } from "./json-path.ts"
+import { JsonPathParser } from "./parser.js"
+import { allTokens } from "./tokens.js"
 
 
 const jsonPathLexer = new Lexer(allTokens)

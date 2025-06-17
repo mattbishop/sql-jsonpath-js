@@ -1,6 +1,6 @@
-import {SqlJsonPathStatement} from "./json-path"
-import {createStatement} from "./json-path-statement.js"
-import {one} from "./iterators.js"
+import { SqlJsonPathStatement } from "./json-path.ts"
+import { createStatement } from "./json-path-statement.ts"
+import { one } from "./iterators.ts"
 
 
 export {SqlJsonPathStatement, one}

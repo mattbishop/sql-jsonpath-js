@@ -1,5 +1,5 @@
-import {iterate} from "iterare"
-import {isIterable} from "iterare/lib/utils";
+import { iterate } from "iterare"
+import { isIterable } from "iterare/lib/utils.js"
 
 
 export function isIterableInput(input: any): boolean {

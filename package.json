@@ -1,6 +1,6 @@
 {
   "name": "sql-jsonpath-js",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "JavaScript implementation of the SQL/JSONPath API from SQL2016.",
   "type": "module",
   "types": "./dist/index.d.ts",
@@ -34,13 +34,13 @@
     "luxon": "^3.3.0"
   },
   "devDependencies": {
-    "@types/chai": "5.2.0",
-    "@types/luxon": "3.4.2",
+    "@types/chai": "5.2.2",
+    "@types/luxon": "3.6.2",
     "@types/mocha": "10.0.10",
-    "@types/node": "22.13.10",
+    "@types/node": "24.0.3",
     "chai": "5.2.0",
-    "mocha": "11.1.0",
-    "tsx": "4.19.3",
-    "typescript": "5.8.2"
+    "mocha": "11.6.0",
+    "tsx": "4.20.3",
+    "typescript": "5.8.3"
   }
 }

@@ -1,5 +1,5 @@
-import {CustomPatternMatcherReturn, ITokenConfig} from "@chevrotain/types"
-import {createToken, Lexer, TokenType} from "chevrotain"
+import { CustomPatternMatcherReturn, ITokenConfig } from "@chevrotain/types"
+import { createToken, Lexer, TokenType } from "chevrotain"
 
 /** @internal */
 export const Mode                   = createToken({name: "Mode", pattern: /lax|strict/})

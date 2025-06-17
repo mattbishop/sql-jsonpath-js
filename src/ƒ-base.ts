@@ -1,10 +1,11 @@
-import {CachedIterable} from "indexed-iterable"
-import {iterate} from "iterare"
-import {IteratorWithOperators} from "iterare/lib/iterate.js"
-import {isIterable} from "iterare/lib/utils.js"
-import {DateTime, FixedOffsetZone} from "luxon"
-import {KeyValue} from "./json-path"
-import {EMPTY_ITERATOR} from "./iterators.js"
+import { CachedIterable } from "indexed-iterable"
+import { iterate } from "iterare"
+import { IteratorWithOperators } from "iterare/lib/iterate.js"
+import { isIterable } from "iterare/lib/utils.js"
+import { DateTime, FixedOffsetZone } from "luxon"
+
+import { KeyValue } from "./json-path.ts"
+import { EMPTY_ITERATOR } from "./iterators.ts"
 
 
 enum Pred {
