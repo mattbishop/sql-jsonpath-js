@@ -764,6 +764,10 @@ describe("Codegen tests", () => {
       it("with wrong flags", () => {
         expect(() => generateFunctionSource('$ ? (@ like_regex "court" flag "not")')).to.throw
       })
+
+      it("throws Error with unsafe regex", () => {
+        expect(() => generateFunctionSource('$ ? (@ like_regex "(x+x+)+y")')).to.throw
+      })
     })
 
     it("chains filters", () => {

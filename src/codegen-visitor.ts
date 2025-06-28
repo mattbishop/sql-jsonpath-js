@@ -1,5 +1,6 @@
 import {CstNode, ICstVisitor} from "@chevrotain/types"
 import {IToken} from "chevrotain"
+import safeRegex from "safe-regex2"
 import {
   AccessExpCstChildren,
   AccessorCstChildren,
@@ -350,6 +351,9 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       const regex = Pattern[0].image
         .slice(1, -1)
         .replace("\\\\", "\\")
+      if (!safeRegex(regex)) {
+        throw new Error(`Unsafe regex: ${regex}`)
+      }
       let fnSource = `${ctx.source},/${regex}/`
       if (FlagValue) {
         /*
