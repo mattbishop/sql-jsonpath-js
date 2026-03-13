@@ -28,20 +28,20 @@
     "url": "https://github.com/mattbishop/sql-jsonpath-js"
   },
   "dependencies": {
-    "chevrotain": "^11.0.3",
+    "chevrotain": "^12.0.0",
     "indexed-iterable": "^1.0.2",
     "iterare": "^1.2.1",
-    "luxon": "^3.3.0",
-    "safe-regex2": "^5.0.0"
+    "luxon": "^3.7.2",
+    "safe-regex2": "^5.1.0"
   },
   "devDependencies": {
-    "@types/chai": "5.2.2",
-    "@types/luxon": "3.6.2",
+    "@types/chai": "5.2.3",
+    "@types/luxon": "3.7.1",
     "@types/mocha": "10.0.10",
-    "@types/node": "24.0.3",
-    "chai": "5.2.0",
-    "mocha": "11.6.0",
-    "tsx": "4.20.3",
-    "typescript": "5.8.3"
+    "@types/node": "24.12.0",
+    "chai": "6.2.2",
+    "mocha": "11.7.5",
+    "tsx": "4.21.0",
+    "typescript": "5.9.3"
   }
 }
