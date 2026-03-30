@@ -1,8 +1,10 @@
 import {expect} from "chai"
+import {CachedIterable} from "indexed-iterable"
+import {Temporal} from "temporal-polyfill"
+
 // testing from /dist to ensure the exported interface is correct
 import {compile, one, SqlJsonPathStatement} from "../dist/index.js"
-import {CachedIterable} from "indexed-iterable";
-import {iterate} from "iterare";
+import {iterate} from "iterare"
 
 
 describe("Statement tests", () => {
@@ -526,7 +528,7 @@ describe("Statement tests", () => {
 
       stmt = compile('$.track.segments[*] ? (@.HR > 130)."start time".datetime()')
       actual = stmt.values(data)
-      expect(Array.from(actual)).to.deep.equal([new Date("2018-10-14 10:39:21")])
+      expect(Array.from(actual)).to.deep.equal(["2018-10-14T10:39:21"])
 
       stmt = compile('$.track.segments[*] ? (@.location[1] < 13.4).HR ? (@ > 130)')
       actual = stmt.values(data)

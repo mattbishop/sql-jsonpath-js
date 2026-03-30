@@ -246,7 +246,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
         source = `ƒ.boxStar${attrs}`
       } else if (Member) {
         const payloads = Member[0].payload
-        const member = payloads[0] || payloads[1]
+        const member = payloads[0] ?? payloads[1]
         source = `ƒ.member(${primary},"${member}")`
       }
       if (source) {

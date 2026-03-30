@@ -2,7 +2,7 @@ import { CachedIterable } from "indexed-iterable"
 import { iterate } from "iterare"
 import { IteratorWithOperators } from "iterare/lib/iterate.js"
 import { isIterable } from "iterare/lib/utils.js"
-import { DateTime, FixedOffsetZone } from "luxon"
+import { Temporal } from "temporal-polyfill"
 
 import { KeyValue } from "./json-path.ts"
 import { EMPTY_ITERATOR } from "./iterators.ts"
@@ -261,9 +261,6 @@ export class ƒBase {
 
   private static _date(input: unknown): Temporal.PlainDate {
     if (ƒBase._isString(input)) {
-      return template
-        ? DateTime.fromFormat(input, template, {zone: FixedOffsetZone.utcInstance}).toJSDate()
-        : new Date(input)
       // ISO 8601 calendar
       return Temporal.PlainDate.from(input)
     }
@@ -277,7 +274,6 @@ export class ƒBase {
 
   private static _time(input: unknown): Temporal.PlainTime {
     if (ƒBase._isString(input)) {
-      // ISO 8601 calendar
       return Temporal.PlainTime.from(input)
     }
     throw new Error(`time() param must be a string, found ${JSON.stringify(input)}.`)
@@ -286,6 +282,35 @@ export class ƒBase {
   time(input: unknown): SingleOrIterator<Temporal.PlainTime> {
     return ƒBase._autoMap(input, (v: unknown) => ƒBase._time(v))
   }
+
+
+  /*
+    The result type of the datetime() and datetime(template) methods can be date, time_tz, time, timestamp_tz, or timestamp.
+    Both methods determine their result type dynamically.
+
+    The datetime() method sequentially tries to match its input string to the ISO formats for date, time_tz, time,
+    timestamp_tz, and timestamp. It stops on the first matching format and emits the corresponding data type.
+
+    The datetime(template) method determines the result type according to the fields used in the provided template string.
+
+    The datetime() and datetime(template) methods use the same parsing rules as the to_timestamp SQL function does (see
+    Section 9.8), with three exceptions:
+
+    1. These methods don't allow unmatched template patterns.
+    2. Only the following separators are allowed in the template string: minus sign, period, solidus (slash), comma, apostrophe,
+       semicolon, colon and space.
+    3. Separators in the template string must exactly match the input string.
+
+    If different date/time types need to be compared, an implicit cast is applied. A date value can be cast to timestamp
+    or timestamp_tz, timestamp can be cast to timestamp_tz, and time to time_tz. However, all but the first of these
+    conversions depend on the current TimeZone setting, and thus can only be performed within timezone-aware jsonpath
+    functions. Similarly, other date/time-related methods that convert strings to date/time types also do this casting,
+    which may involve the current TimeZone setting. Therefore, these conversions can also only be performed within
+    timezone-aware jsonpath functions.
+   */
+  private static _datetime(input: unknown, parser: TemporalParser): TemporalType {
+    if (ƒBase._isString(input)) {
+      return parser(input)
     }
     throw new Error(`datetime() param must be a string, found ${JSON.stringify(input)}.`)
   }
@@ -435,8 +460,8 @@ export class ƒBase {
     const typeRight = ƒBase._type(right)
     if (typeLeft === typeRight) {
       if (typeLeft === "date") {
-        left = left.getTime()
-        right = right.getTime()
+        left = left.toString()
+        right = right.toString()
       }
       switch (compOp) {
         case "==" :

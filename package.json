@@ -1,6 +1,6 @@
 {
   "name": "sql-jsonpath-js",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "JavaScript implementation of the SQL/JSONPath API from SQL2016.",
   "type": "module",
   "types": "./dist/index.d.ts",
@@ -15,7 +15,7 @@
     "src"
   ],
   "scripts": {
-    "test": "mocha",
+    "test": "yarn build && mocha",
     "clean": "rm -rf ./dist",
     "build": "yarn clean && tsc",
     "diagram": "yarn build && node utils/generate-diagrams.js",
@@ -31,12 +31,11 @@
     "chevrotain": "^12.0.0",
     "indexed-iterable": "^1.0.2",
     "iterare": "^1.2.1",
-    "luxon": "^3.7.2",
-    "safe-regex2": "^5.1.0"
+    "safe-regex2": "^5.1.0",
+    "temporal-polyfill": "^0.3.2"
   },
   "devDependencies": {
     "@types/chai": "5.2.3",
-    "@types/luxon": "3.7.1",
     "@types/mocha": "10.0.10",
     "@types/node": "24.12.0",
     "chai": "6.2.2",
