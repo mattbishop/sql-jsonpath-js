@@ -104,7 +104,7 @@ export function createStatement(text: string): SqlJsonPathStatement {
 
 function wrapInput<T>(input: any): IteratorWithOperators<T> {
   // arrays are iterable, but treat them as singleton inputs
-  let iterator = isIterableInput(input)
+  const iterator = isIterableInput(input)
       ? input
       : [input]
   return iterate(iterator)

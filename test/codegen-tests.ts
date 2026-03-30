@@ -236,6 +236,56 @@ describe("Codegen tests", () => {
       })
     })
 
+    describe("date()", () => {
+      it("single values", () => {
+        const ctx = generateFunctionSource('$ .date (  )')
+        expect(ctx.source).to.equal('return ƒ.date($)')
+        const fn = createFunctionForTest(ctx)
+        let dateActual = fn("2024-12-31")
+        expect(dateActual[0]).to.equal("2024-12-31")
+        dateActual = fn("2020-07-25T15:32:21+22") // todo is this legitimate? Should it throw an error?
+        expect(dateActual[0]).to.equal("2020-07-25")
+        expect(() => fn(null)).to.throw
+        expect(() => fn("1977")).to.throw
+        expect(() => fn(true)).to.throw
+        expect(() => fn({})).to.throw
+        expect(() => fn([])).to.throw
+      })
+
+      it("iterator of values", () => {
+        const ctx = generateFunctionSource('$[*].date()')
+        expect (ctx.source).to.equal('return ƒ.date(ƒ.boxStar($))')
+        const fn = createFunctionForTest(ctx)
+        const arrayTypes = fn(["2021-01-01", "1900-11-01", "2047-05-15"])
+        expect(arrayTypes).to.deep.equal(["2021-01-01", "1900-11-01", "2047-05-15"])
+      })
+    })
+
+    describe("time()", () => {
+      it("single values", () => {
+        const ctx = generateFunctionSource('$ .time (  )')
+        expect(ctx.source).to.equal('return ƒ.time($)')
+        const fn = createFunctionForTest(ctx)
+        let dateActual = fn("01:01:01")
+        expect(dateActual[0]).to.equal("01:01:01")
+        dateActual = fn("15:32:21")
+        expect(dateActual[0]).to.equal("15:32:21")
+        expect(() => fn(null)).to.throw
+        expect(() => fn("1977")).to.throw
+        expect(() => fn(true)).to.throw
+        expect(() => fn({})).to.throw
+        expect(() => fn([])).to.throw
+      })
+
+      it("iterator of values", () => {
+        const ctx = generateFunctionSource('$[*].date()')
+        expect (ctx.source).to.equal('return ƒ.date(ƒ.boxStar($))')
+        const fn = createFunctionForTest(ctx)
+        const arrayTypes = fn(["2021-01-01", "1900-11-01", "2047-05-15"])
+        expect(arrayTypes).to.deep.equal(["2021-01-01", "1900-11-01", "2047-05-15"])
+      })
+    })
+
     describe("datetime()", () => {
       it("ISO string date", () => {
         const ctx = generateFunctionSource('$ .datetime(  )')

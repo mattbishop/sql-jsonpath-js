@@ -287,7 +287,6 @@ describe("Statement tests", () => {
 
       const singleResult = statement.exists(data)
       expect(singleResult).to.be.false
-// false
     })
   })
 

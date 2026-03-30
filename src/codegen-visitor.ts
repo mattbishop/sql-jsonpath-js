@@ -1,6 +1,7 @@
 import {CstNode, ICstVisitor} from "@chevrotain/types"
 import {IToken} from "chevrotain"
 import safeRegex from "safe-regex2"
+
 import {
   AccessExpCstChildren,
   AccessorCstChildren,
@@ -222,6 +223,8 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
           case "floor" :
           case "abs" :
           case "keyvalue" :
+          case "date" :
+          case "time" :
             const attrs = maybeParen(primary)
             methodImpl = `ƒ.${methodName}${attrs}`
             break

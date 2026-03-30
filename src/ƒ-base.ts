@@ -34,7 +34,22 @@ export class ƒBase {
 
   constructor(private readonly lax: boolean) { }
 
+  /*
+    From spec. Ij is a value to be typed.
+      If Ij is an SQL/JSON null, then the Unicode character string “null”.
+      If Ij is numeric, then the Unicode character string “number”.
+      If Ij is a character string, then the Unicode character string “string”.
+      If Ij is a Boolean, then the Unicode character string “boolean”.
 
+      If Ij is a date, then the Unicode character string “date”.
+      If Ij is a time without time zone, then the Unicode character string “time without time zone”.
+      If Ij is a time with time zone, then the Unicode character string “time with time zone”.
+      If Ij is a timestamp without time zone, then the Unicode character string “timestamp without time zone”.
+      If Ij is a timestamp with time zone, then the Unicode character string “timestamp with time zone”.
+
+      If Ij is array, then the Unicode character string “array”.
+      If Ij is object, then the Unicode character string “object”.
+   */
   private static _type(input: unknown): string {
     if (Array.isArray(input)) {
       return "array"
@@ -42,7 +57,24 @@ export class ƒBase {
     if (input === null) {
       return "null"
     }
-    if (input instanceof Date) {
+
+    // input instanceof Date would fit here, if we used it
+    if (   input instanceof Temporal.Instant  // todo is this used?
+        || input instanceof Temporal.PlainDateTime) {
+      // Instant is a timestamp without time zone
+      // Temporal.Instant.fromEpochMilliseconds(input.getTime())
+      return "timestamp without time zone"
+    }
+
+    if (input instanceof Temporal.PlainTime) {
+      return "time without time zone"
+    }
+
+    if (input instanceof Temporal.ZonedDateTime) {
+      return "timestamp with time zone"
+    }
+
+    if (input instanceof Temporal.PlainDate) {
       return "date"
     }
     return typeof input
@@ -227,11 +259,33 @@ export class ƒBase {
   }
 
 
-  private static _datetime(input: unknown, template?: string): Date {
+  private static _date(input: unknown): Temporal.PlainDate {
     if (ƒBase._isString(input)) {
       return template
         ? DateTime.fromFormat(input, template, {zone: FixedOffsetZone.utcInstance}).toJSDate()
         : new Date(input)
+      // ISO 8601 calendar
+      return Temporal.PlainDate.from(input)
+    }
+    throw new Error(`date() param must be a string, found ${JSON.stringify(input)}.`)
+  }
+
+  date(input: unknown): SingleOrIterator<Temporal.PlainDate> {
+    return ƒBase._autoMap(input, (v: unknown) => ƒBase._date(v))
+  }
+
+
+  private static _time(input: unknown): Temporal.PlainTime {
+    if (ƒBase._isString(input)) {
+      // ISO 8601 calendar
+      return Temporal.PlainTime.from(input)
+    }
+    throw new Error(`time() param must be a string, found ${JSON.stringify(input)}.`)
+  }
+
+  time(input: unknown): SingleOrIterator<Temporal.PlainTime> {
+    return ƒBase._autoMap(input, (v: unknown) => ƒBase._time(v))
+  }
     }
     throw new Error(`datetime() param must be a string, found ${JSON.stringify(input)}.`)
   }

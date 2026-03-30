@@ -21,7 +21,7 @@ export const DatetimeMethod = createRegexToken({
 /** @internal */
 export const ItemMethod = createRegexToken({
   name:             "ItemMethod",
-  pattern:          /\.\s*(type|size|double|ceiling|floor|abs|keyvalue)\s*\(\s*\)/y,
+  pattern:          /\.\s*(type|size|double|ceiling|floor|abs|keyvalue|date|time)\s*\(\s*\)/y,
   start_chars_hint: ["."]
 })
 
