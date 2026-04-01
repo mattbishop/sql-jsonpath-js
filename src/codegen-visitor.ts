@@ -26,6 +26,7 @@ import {
   UnaryCstChildren,
   WffCstChildren
 } from "./sql_jsonpath_cst.ts"
+import {buildTemporalParser} from "./date-utils.ts";
 
 
 /**
@@ -34,6 +35,7 @@ import {
 export type CodegenContext = {
   lax:    boolean
   source: string
+  scope:  Map<string, unknown>
 }
 
 
@@ -101,7 +103,8 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       const mode = maybeImage(Mode, "lax")
       let ctx: CodegenContext = {
         lax:    mode === "lax",
-        source: ""
+        source: "",
+        scope:  new Map()
       }
 
       ctx = this.visit(wff, ctx)
@@ -233,11 +236,10 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
         }
         source = methodImpl
       } else if (DatetimeMethod) {
-        let template = DatetimeMethod[0].payload[0] || ""
-        if (template) {
-          template = `,${template}`
-        }
-        source = `ƒ.datetime(${primary}${template})`
+        const template = DatetimeMethod[0].payload[1] ?? "CLDR"
+        const parser = buildTemporalParser(template)
+        ctx.scope.set(template, parser)
+        source = `ƒ.datetime(${primary},"${template}")`
       } else if (WildcardMember) {
         const attrs = maybeParen(primary)
         source = `ƒ.dotStar${attrs}`

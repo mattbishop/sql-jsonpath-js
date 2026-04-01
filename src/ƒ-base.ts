@@ -4,8 +4,8 @@ import { IteratorWithOperators } from "iterare/lib/iterate.js"
 import { isIterable } from "iterare/lib/utils.js"
 import { Temporal } from "temporal-polyfill"
 
-import { KeyValue } from "./json-path.ts"
-import { EMPTY_ITERATOR } from "./iterators.ts"
+import { KeyValue } from "./json-path"
+import { EMPTY_ITERATOR } from "./iterators.js"
 
 
 enum Pred {
@@ -27,12 +27,23 @@ type StrictConfig = {
   error:  string
 }
 
+export type TemporalType =
+  Temporal.PlainDateTime
+  | Temporal.ZonedDateTime
+  | Temporal.PlainDate
+  | Temporal.PlainTime
+
+export type TemporalParser = (input: string) => TemporalType
+
+
+
 /**
  * @internal
  */
 export class ƒBase {
 
-  constructor(private readonly lax: boolean) { }
+  constructor(private readonly lax:   boolean,
+              private readonly scope: Map<string, unknown>) { }
 
   /*
     From spec. Ij is a value to be typed.
@@ -315,8 +326,9 @@ export class ƒBase {
     throw new Error(`datetime() param must be a string, found ${JSON.stringify(input)}.`)
   }
 
-  datetime(input: unknown, template?: string): SingleOrIterator<Date> {
-    return ƒBase._autoMap(input, (v: unknown) => ƒBase._datetime(v, template))
+  datetime(input: unknown, template: string): SingleOrIterator<TemporalType> {
+    const parser = this.scope.get(template)
+    return ƒBase._autoMap(input, (v: unknown) => ƒBase._datetime(v, parser as TemporalParser))
   }
 
 

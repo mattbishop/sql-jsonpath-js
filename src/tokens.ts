@@ -14,7 +14,13 @@ export const WildcardMember         = createToken({name: "WildcardMember", patte
 /** @internal */
 export const DatetimeMethod = createRegexToken({
   name:             "DatetimeMethod",
-  pattern:          /\.\s*datetime\s*\(\s*("[^"]+")?\s*\)/y,
+  pattern:          /\.\s*datetime\s*\(\s*("([-.\/,';: \da-zA-Z]*)")?\s*\)/y,
+  start_chars_hint: ["."]
+})
+
+export const DateTimeTzMethod = createRegexToken({
+  name:             "DateTimeTzMethod",
+  pattern:          /\.\s*((?:date)?time)_tz\s*\(\s*(\d+)?\s*\)/y,
   start_chars_hint: ["."]
 })
 
@@ -136,6 +142,7 @@ export const allTokens = [
   BinaryOperator,
   ItemMethod,
   DatetimeMethod,
+  DateTimeTzMethod,
   WildcardMember,
   Member,
   WildcardArray,

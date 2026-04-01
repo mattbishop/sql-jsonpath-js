@@ -163,7 +163,7 @@ describe("Statement tests", () => {
 
   it("compares dates", () => {
     const stmt = compile('$ ? (@.datetime() == $a)')
-    const actual = stmt.exists("2020-02-01", {variables: {a: new Date("2020-02-01")}})
+    const actual = stmt.exists("2020-02-01", {variables: {a: Temporal.PlainDate.from("2020-02-01")}})
     expect(actual).to.be.true
   })
 
@@ -254,6 +254,31 @@ describe("Statement tests", () => {
         {id: 3, key: "d", value: 3},
         {id: 4, key: "e", value: 4}
       ])
+    })
+  })
+
+  describe("date and time functions", () => {
+
+    describe("datetime()", () => {
+      const statement = compile('$.datetime()')
+      it("ISO timestamp", () => {
+        const actualDate = statement.values("2020-01-01T09:11:18.0214-02[UTC]")
+        expect(one(actualDate)).to.deep.equal(Temporal.ZonedDateTime.from("2020-01-01T09:11:18.0214+02[UTC]"))
+      })
+
+      it("just date", () => {
+        const actualDate = statement.values("2020-01-01")
+        expect(one(actualDate)).to.deep.equal(Temporal.PlainDate.from("2020-01-01"))
+      })
+
+    })
+
+    describe("datetime(template)", () => {
+      it("template string datetime with timezone", () => {
+        const statement = compile('$.datetime("MM-DD/YYYY;HH.MI:SSTZH")')
+        const actualDate = statement.values("02-21/1900;03.35:19+06")
+        expect(one(actualDate)).to.deep.equal(Temporal.ZonedDateTime.from("02/21/1900 03:35:19+06"))
+      })
     })
   })
 
@@ -528,7 +553,7 @@ describe("Statement tests", () => {
 
       stmt = compile('$.track.segments[*] ? (@.HR > 130)."start time".datetime()')
       actual = stmt.values(data)
-      expect(Array.from(actual)).to.deep.equal(["2018-10-14T10:39:21"])
+      expect(Array.from(actual)).to.deep.equal([Temporal.PlainDateTime.from("2018-10-14 10:39:21")])
 
       stmt = compile('$.track.segments[*] ? (@.location[1] < 13.4).HR ? (@ > 130)')
       actual = stmt.values(data)
