@@ -181,11 +181,30 @@ function parseTemporalString(input: string): TemporalType {
 type TemporalKind = "date" | "time" | "datetime" | "datetime_tz"
 
 function inferTemporalKind(input: string): TemporalKind | undefined {
-  const hasTime = input.includes(":")
-  const hasDate = input.includes("-")
-  const hasZone = /[Z+-]/i.test(input)
+  let colonCount = 0,
+    dashCount = 0,
+    hasZone = false
 
-  if (hasTime && hasDate) {//bug hasZone looks for '-' but date also has that. Need something more sophisticated
+  for (const char of input) {
+    switch (char) {
+      case ":":
+        colonCount++
+        break
+      case "-":
+        dashCount++
+        break
+      case "+":
+      case "Z":
+      case "z":
+        hasZone = true
+    }
+  }
+
+  const hasTime = colonCount > 1
+  const hasDate = dashCount > 1
+  hasZone = hasZone || dashCount > 2
+
+  if (hasTime && hasDate) {
     return hasZone
       ? "datetime_tz"
       : "datetime"
