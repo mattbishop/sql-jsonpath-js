@@ -1,9 +1,10 @@
 import {expect} from "chai"
+import {describe, it} from "node:test"
+import {Temporal} from "temporal-polyfill"
 
-import {CodegenContext} from "../src/codegen-visitor"
-import {NamedVariables} from "../src/json-path"
-import {createFunction, generateFunctionSource} from "../src/json-path-statement"
-import { Temporal } from "temporal-polyfill"
+import {CodegenContext} from "../src/codegen-visitor.ts"
+import {NamedVariables} from "../src/json-path.ts"
+import {createFunction, generateFunctionSource} from "../src/json-path-statement.ts"
 
 
 // TODO move all usages of this into statement tests. This test is just supposed to be about codegen.
@@ -319,7 +320,7 @@ describe("Codegen tests", () => {
         const fn = createFunctionForTest(ctx)
         const arrayDates = fn(["2022-06-15", "2020-01-01 02:27:12+08"])
         expect(arrayDates).to.deep.equal([Temporal.PlainDate.from("2022-06-15"),
-          Temporal.PlainDateTime.from("2020-01-01 02:27:12+08")])
+          Temporal.Instant.from("2020-01-01 02:27:12+08")])
       })
     })
   })

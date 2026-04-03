@@ -1,10 +1,11 @@
 import {expect} from "chai"
 import {CachedIterable} from "indexed-iterable"
+import {iterate} from "iterare"
+import {describe, it} from "node:test"
 import {Temporal} from "temporal-polyfill"
 
 // testing from /dist to ensure the exported interface is correct
-import {compile, one, SqlJsonPathStatement} from "../dist/index.js"
-import {iterate} from "iterare"
+import {compile, one, SqlJsonPathStatement} from "../dist"
 
 
 describe("Statement tests", () => {
@@ -262,8 +263,8 @@ describe("Statement tests", () => {
     describe("datetime()", () => {
       const statement = compile('$.datetime()')
       it("ISO timestamp", () => {
-        const actualDate = statement.values("2020-01-01T09:11:18.0214-02[UTC]")
-        expect(one(actualDate)).to.deep.equal(Temporal.ZonedDateTime.from("2020-01-01T09:11:18.0214+02[UTC]"))
+        const actualDate = statement.values("2020-01-01T09:11:18.0214-02:30")
+        expect(one(actualDate)).to.deep.equal(Temporal.Instant.from("2020-01-01T09:11:18.0214-02:30"))
       })
 
       it("just date", () => {
@@ -277,7 +278,7 @@ describe("Statement tests", () => {
       it("template string datetime with timezone", () => {
         const statement = compile('$.datetime("MM-DD/YYYY;HH.MI:SSTZH")')
         const actualDate = statement.values("02-21/1900;03.35:19+06")
-        expect(one(actualDate)).to.deep.equal(Temporal.ZonedDateTime.from("02/21/1900 03:35:19+06"))
+        expect(one(actualDate)).to.deep.equal(Temporal.Instant.from("1900-02-21 03:35:19+06"))
       })
     })
   })

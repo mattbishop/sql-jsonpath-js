@@ -15,7 +15,7 @@
     "src"
   ],
   "scripts": {
-    "test": "yarn build && mocha",
+    "test": "yarn build && node --test --import tsx test/*-tests.ts",
     "clean": "rm -rf ./dist",
     "build": "yarn clean && tsc",
     "diagram": "yarn build && node utils/generate-diagrams.js",
@@ -36,10 +36,8 @@
   },
   "devDependencies": {
     "@types/chai": "5.2.3",
-    "@types/mocha": "10.0.10",
     "@types/node": "24.12.0",
     "chai": "6.2.2",
-    "mocha": "11.7.5",
     "tsx": "4.21.0",
     "typescript": "5.9.3",
     "typescript-fsm": "1.6.0"

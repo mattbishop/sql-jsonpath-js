@@ -1,7 +1,9 @@
 import { expect } from "chai"
 import {Lexer} from "chevrotain"
-import {JsonPathParser} from "../src/parser"
-import {allTokens} from "../src/tokens"
+import {describe, it} from "node:test"
+
+import {JsonPathParser} from "../src/parser.ts"
+import {allTokens} from "../src/tokens.ts"
 
 
 const JsonPathLexer = new Lexer(allTokens, { ensureOptimizations: true })

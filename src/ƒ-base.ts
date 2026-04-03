@@ -28,8 +28,9 @@ type StrictConfig = {
 }
 
 export type TemporalType =
-  Temporal.PlainDateTime
-  | Temporal.ZonedDateTime
+    Temporal.PlainDateTime
+  | Temporal.Instant            // DateTime with an offset value
+  // | Temporal.ZonedDateTime   // These have named time zones like "[Pacific/Vancouver]"
   | Temporal.PlainDate
   | Temporal.PlainTime
 
@@ -70,19 +71,16 @@ export class ƒBase {
     }
 
     // input instanceof Date would fit here, if we used it
-    if (   input instanceof Temporal.Instant  // todo is this used?
-        || input instanceof Temporal.PlainDateTime) {
-      // Instant is a timestamp without time zone
-      // Temporal.Instant.fromEpochMilliseconds(input.getTime())
+    if (input instanceof Temporal.Instant) {
+      return "timestamp with time zone"
+    }
+
+    if (input instanceof Temporal.PlainDateTime) {
       return "timestamp without time zone"
     }
 
     if (input instanceof Temporal.PlainTime) {
       return "time without time zone"
-    }
-
-    if (input instanceof Temporal.ZonedDateTime) {
-      return "timestamp with time zone"
     }
 
     if (input instanceof Temporal.PlainDate) {

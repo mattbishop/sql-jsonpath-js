@@ -43,7 +43,6 @@ const FIELD_TO_REGEX: Record<string, string> = {
 }
 
 function createFormattedParser(template: string): TemporalParser {
-console.log(`parsing template: ${template}`)
   const fields = new Set<string>()
   let regexPattern = ""
   let lastWasDelim = false
@@ -53,7 +52,6 @@ console.log(`parsing template: ${template}`)
 
   for (const match of template.matchAll(tokenizer)) {
     const [_, field, delim] = match
-console.log(`match: ${match}  _: ${_}  length: ${match.length}  field: ${field}  delim: ${delim}`)
 
     if (field) {
       if (fields.has(field)) {
@@ -74,7 +72,6 @@ console.log(`match: ${match}  _: ${_}  length: ${match.length}  field: ${field} 
 
   const is12hr = fields.has("HH") || fields.has("HH12")
   const parserRegex = new RegExp(`^${regexPattern}$`)
-  console.info(`pattern: ${parserRegex.source}`)
 
   return (value: string) => {
     const match = value.match(parserRegex)
@@ -114,11 +111,6 @@ console.log(`match: ${match}  _: ${_}  length: ${match.length}  field: ${field} 
 
     const dateArgs = { year, month, day, hour, minute, second, nanosecond }
 
-    if (fields.has("TZH")) {
-      const offset = `${g.tzh}:${g.tzm || "00"}`
-      return Temporal.ZonedDateTime.from({ ...dateArgs, timeZone: offset })
-    }
-
     const hasYear = ["YYYY", "YYY", "YY", "Y", "RRRR", "RR"].some((f) => { return fields.has(f) })
     const hasMonthDay = ["MM", "DD", "DDD"].some((f) => { return fields.has(f) })
     const hasDate = hasYear || hasMonthDay
@@ -128,7 +120,18 @@ console.log(`match: ${match}  _: ${_}  length: ${match.length}  field: ${field} 
       ["FF1", "FF2", "FF3", "FF4", "FF5", "FF6", "FF7", "FF8", "FF9"].some((f) => { return fields.has(f) })
 
     if (hasDate && hasTime) {
-      return Temporal.PlainDateTime.from(dateArgs)
+      if (fields.has("TZH")) {
+        const offset = `${g.tzh}:${g.tzm || "00"}`
+        return Temporal.ZonedDateTime.from({
+            ...dateArgs,
+            timeZone: "Etc/UTC",  // timeZone is required, but will probably not match the offset
+            offset
+          }, {offset: "use"}      // in the case of conflict between offset and timeZone, use the offset value
+        ).toInstant()
+      }
+       else {
+         return Temporal.PlainDateTime.from(dateArgs)
+      }
     }
     if (hasDate) {
       return Temporal.PlainDate.from({ year, month, day })
@@ -164,7 +167,7 @@ function parseTemporalString(input: string): TemporalType {
     case "datetime":
       return Temporal.PlainDateTime.from(input)
     case "datetime_tz":
-      return Temporal.ZonedDateTime.from(input)
+      return Temporal.Instant.from(input)
     default:
       throw new Error(`Not a valid date or time string: "${input}"`)
   }
@@ -178,7 +181,7 @@ function inferTemporalKind(input: string): TemporalKind | undefined {
   const hasDate = input.includes("-")
   const hasZone = /[Z+-]/i.test(input)
 
-  if (hasTime && hasDate) {
+  if (hasTime && hasDate) {//bug hasZone looks for '-' but date also has that. Need something more sophisticated
     return hasZone
       ? "datetime_tz"
       : "datetime"
