@@ -1,11 +1,11 @@
-import { CachedIterable } from "indexed-iterable"
-import { iterate } from "iterare"
-import { IteratorWithOperators } from "iterare/lib/iterate.js"
-import { isIterable } from "iterare/lib/utils.js"
-import { Temporal } from "temporal-polyfill"
+import {CachedIterable} from "indexed-iterable"
+import {iterate} from "iterare"
+import {IteratorWithOperators} from "iterare/lib/iterate.js"
+import {isIterable} from "iterare/lib/utils.js"
+import {Temporal} from "temporal-polyfill"
 
-import { KeyValue } from "./json-path"
-import { EMPTY_ITERATOR } from "./iterators.js"
+import type {KeyValue} from "./json-path.ts"
+import {EMPTY_ITERATOR} from "./iterators.ts"
 
 
 enum Pred {
@@ -27,6 +27,8 @@ type StrictConfig = {
   error:  string
 }
 
+
+/** @internal */
 export type TemporalType =
     Temporal.PlainDateTime
   | Temporal.Instant            // DateTime with an offset value
@@ -34,13 +36,12 @@ export type TemporalType =
   | Temporal.PlainDate
   | Temporal.PlainTime
 
+/** @internal */
 export type TemporalParser = (input: string) => TemporalType
 
 
 
-/**
- * @internal
- */
+/** @internal */
 export class ƒBase {
 
   constructor(private readonly lax:   boolean,

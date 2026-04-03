@@ -1,5 +1,6 @@
-import { CustomPatternMatcherReturn, ITokenConfig } from "@chevrotain/types"
-import { createToken, Lexer, TokenType } from "chevrotain"
+import type {CustomPatternMatcherReturn, ITokenConfig} from "@chevrotain/types"
+import {createToken, Lexer, type TokenType} from "chevrotain"
+
 
 /** @internal */
 export const Mode                   = createToken({name: "Mode", pattern: /lax|strict/})
@@ -18,6 +19,7 @@ export const DatetimeMethod = createRegexToken({
   start_chars_hint: ["."]
 })
 
+/** @internal */
 export const DateTimeTzMethod = createRegexToken({
   name:             "DateTimeTzMethod",
   pattern:          /\.\s*((?:date)?time)_tz\s*\(\s*(\d+)?\s*\)/y,

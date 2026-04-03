@@ -1,8 +1,8 @@
-import {CstNode, ICstVisitor} from "@chevrotain/types"
-import {IToken} from "chevrotain"
+import type {CstNode, ICstVisitor} from "@chevrotain/types"
+import type {IToken} from "chevrotain"
 import safeRegex from "safe-regex2"
 
-import {
+import type {
   AccessExpCstChildren,
   AccessorCstChildren,
   ArrayCstChildren,
@@ -26,12 +26,10 @@ import {
   UnaryCstChildren,
   WffCstChildren
 } from "./sql_jsonpath_cst.ts"
-import {buildTemporalParser} from "./date-utils.ts";
+import {buildTemporalParser} from "./date-utils.ts"
 
 
-/**
- * @internal
- */
+/** @internal */
 export type CodegenContext = {
   lax:    boolean
   source: string

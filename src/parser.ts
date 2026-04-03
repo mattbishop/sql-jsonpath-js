@@ -1,4 +1,4 @@
-import { CstParser } from "chevrotain"
+import {CstParser} from "chevrotain"
 
 import {
   allTokens,
@@ -38,9 +38,7 @@ import {
 } from "./tokens.ts"
 
 
-/**
- * @internal
- */
+/** @internal */
 export class JsonPathParser extends CstParser {
   constructor() {
     super(allTokens)

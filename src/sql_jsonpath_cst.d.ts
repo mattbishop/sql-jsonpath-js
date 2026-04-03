@@ -1,4 +1,5 @@
-import type { CstNode, ICstVisitor, IToken } from "chevrotain";
+import type {CstNode, ICstVisitor, IToken} from "chevrotain";
+
 
 export interface StmtCstNode extends CstNode {
   name: "stmt";

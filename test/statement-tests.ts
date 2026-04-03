@@ -5,7 +5,8 @@ import {describe, it} from "node:test"
 import {Temporal} from "temporal-polyfill"
 
 // testing from /dist to ensure the exported interface is correct
-import {compile, one, SqlJsonPathStatement} from "../dist"
+import {compile, one} from "../dist/index.js"
+import type {SqlJsonPathStatement} from "../dist/index.d.ts"
 
 
 describe("Statement tests", () => {

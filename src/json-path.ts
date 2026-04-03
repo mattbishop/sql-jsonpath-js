@@ -31,6 +31,10 @@ export type KeyValue = {
   value:  unknown
 }
 
+
+/**
+ * Instance of a compiled Sql/JsonPath statement. Can be reused to interpret JSON data.
+ */
 export interface SqlJsonPathStatement {
 
   /**

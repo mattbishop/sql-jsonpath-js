@@ -1,13 +1,13 @@
-import { Lexer } from "chevrotain"
-import { iterate } from "iterare"
-import { IteratorWithOperators } from "iterare/lib/iterate.js"
+import {Lexer} from "chevrotain"
+import {iterate} from "iterare"
+import {IteratorWithOperators} from "iterare/lib/iterate.js"
 
-import { CodegenContext, newCodegenVisitor } from "./codegen-visitor.js"
-import { ƒBase } from "./ƒ-base.js"
-import { DefaultOnEmptyIterator, DefaultOnErrorIterator, EMPTY_ITERATOR, isIterableInput, one } from "./iterators.js"
-import { Input, NamedVariables, SqlJsonPathStatement, StatementConfig } from "./json-path.js"
-import { JsonPathParser } from "./parser.js"
-import { allTokens } from "./tokens.js"
+import {type CodegenContext, newCodegenVisitor} from "./codegen-visitor.ts"
+import {ƒBase} from "./ƒ-base.ts"
+import {DefaultOnEmptyIterator, DefaultOnErrorIterator, EMPTY_ITERATOR, isIterableInput, one} from "./iterators.ts"
+import type {Input, NamedVariables, SqlJsonPathStatement, StatementConfig} from "./json-path.ts"
+import {JsonPathParser} from "./parser.ts"
+import {allTokens} from "./tokens.ts"
 
 
 const jsonPathLexer = new Lexer(allTokens)
@@ -15,9 +15,7 @@ const parser = new JsonPathParser()
 const codegenVisitor = newCodegenVisitor(parser.getBaseCstVisitorConstructor())
 
 
-/**
- * @internal
- */
+/** @internal */
 export function generateFunctionSource(text: string): CodegenContext {
   const {tokens, errors} = jsonPathLexer.tokenize(text)
 
@@ -37,15 +35,11 @@ export function generateFunctionSource(text: string): CodegenContext {
 }
 
 
-/**
- * @internal
- */
+/** @internal */
 export type SJPFn = ($: unknown, $named?: NamedVariables) => IteratorWithOperators<unknown>
 
 
-/**
- * @internal
- */
+/** @internal */
 export function createFunction({source, lax, scope}: CodegenContext): SJPFn {
   const fn = new Function("ƒ", "$", "$$", source)
   const ƒ = new ƒBase(lax, scope)

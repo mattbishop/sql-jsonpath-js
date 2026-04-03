@@ -1,19 +1,21 @@
-import { iterate } from "iterare"
-import { isIterable } from "iterare/lib/utils.js"
+import {iterate} from "iterare"
+import {isIterable} from "iterare/lib/utils.js"
 
 
+/** @internal */
 export function isIterableInput(input: any): boolean {
   return typeof input !== "string" && !Array.isArray(input) && isIterable(input)
 }
 
 
-// Needs to be an IteratorWithOperators for equality testing.
+/**
+ * Needs to be an IteratorWithOperators for equality testing.
+ * @internal
+ */
 export const EMPTY_ITERATOR = iterate([])
 
 
-/**
- * @internal
- */
+/** @internal */
 export class DefaultOnEmptyIterator<T> implements Iterator<T> {
 
   private started = false
@@ -57,7 +59,7 @@ export class DefaultOnErrorIterator<T> implements Iterator<T> {
 
 
 /**
- * Pulls one element from an iterator. If no elements available, returns undefined.
+ * Pulls one element from an iterator. If no elements are available, returns undefined.
  *
  * @param iter an iterable iterator to consume from.
  */

@@ -1,4 +1,4 @@
-import { expect } from "chai"
+import {expect} from "chai"
 import {Lexer} from "chevrotain"
 import {describe, it} from "node:test"
 

@@ -2,8 +2,8 @@ import {expect} from "chai"
 import {describe, it} from "node:test"
 import {Temporal} from "temporal-polyfill"
 
-import {CodegenContext} from "../src/codegen-visitor.ts"
-import {NamedVariables} from "../src/json-path.ts"
+import type {CodegenContext} from "../src/codegen-visitor.ts"
+import type {NamedVariables} from "../src/json-path.ts"
 import {createFunction, generateFunctionSource} from "../src/json-path-statement.ts"
 
 

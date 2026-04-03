@@ -1,12 +1,11 @@
-/*
- * SQL:2023 Standard Patterns (ISO/IEC 9075-2 2023 Sections 9.50 - 9.52)
- * NOTE: the standard is strict and does not allow quoted strings
- */
-import {Temporal} from "temporal-polyfill";
+import {Temporal} from "temporal-polyfill"
 
-import {TemporalParser, TemporalType} from "./ƒ-base.ts";
+import type {TemporalParser, TemporalType} from "./ƒ-base.ts"
 
 /**
+ * SQL:2023 Standard Patterns (ISO/IEC 9075-2 2023 Sections 9.50 - 9.52)
+ * NOTE: the standard is strict and does not allow quoted strings
+ *
  * Explicit field mapping for Regex construction.
  * FF1-FF9 capture exact digit counts to maintain nanosecond integrity.
  */
@@ -42,6 +41,10 @@ const FIELD_TO_REGEX: Record<string, string> = {
   "FF9":    "(?<ff>\\d{9})"
 }
 
+/**
+ * @internal
+ * @param template The template string to create a temporal parser for.
+ */
 function createFormattedParser(template: string): TemporalParser {
   const fields = new Set<string>()
   let regexPattern = ""
@@ -145,6 +148,7 @@ function createFormattedParser(template: string): TemporalParser {
  * Creates a function that parses an input string into a Temporal type. The input strings
  * can either follow the Unicode CLDR spec, or a template passed into this function.
  *
+ * @internal
  * @param template a SQL:2023 template string for parsing input into Temporal values.
  */
 export function buildTemporalParser(template: string): TemporalParser {
