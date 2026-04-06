@@ -7,7 +7,10 @@ import type {NamedVariables} from "../src/json-path.ts"
 import {createFunction, generateFunctionSource} from "../src/json-path-statement.ts"
 
 
-// TODO move all usages of this into statement tests. This test is just supposed to be about codegen.
+/**
+ TODO move all usages of this into statement tests. This test is just supposed to be about codegen.
+ @deprecated
+ */
 function createFunctionForTest(ctx: CodegenContext): ($: any, $named?: NamedVariables) => any[] {
   const fn = createFunction(ctx)
   return ($: any, $named?: NamedVariables) => fn($, $named).toArray()
@@ -38,9 +41,6 @@ describe("Codegen tests", () => {
     it("standalone context", () => {
       const ctx = generateFunctionSource('$')
       expect(ctx.source).to.equal('return $')
-      const fn = createFunctionForTest(ctx)
-      const value = fn("matt")
-      expect(value).to.deep.equal(["matt"])
     })
   })
 
@@ -48,10 +48,6 @@ describe("Codegen tests", () => {
     it("standalone named variable", () => {
       const ctx = generateFunctionSource('$n')
       expect(ctx.source).to.equal('return $$("n")')
-      const fn = createFunctionForTest(ctx)
-      const value = fn("", {n: "frosty"})
-      expect(value).to.deep.equal(["frosty"])
-      expect(() => fn(null, {wrong: true})).to.throw
     })
   })
 
@@ -60,29 +56,11 @@ describe("Codegen tests", () => {
       it("single value", () => {
         const ctx = generateFunctionSource('$.type()')
         expect(ctx.source).to.equal('return ƒ.type($)')
-        const fn = createFunctionForTest(ctx)
-        const nullType = fn(null)
-        expect(nullType).to.deep.equal(["null"])
-        const stringType = fn("matt")
-        expect(stringType).to.deep.equal(["string"])
-        const numberType = fn(77.6)
-        expect(numberType).to.deep.equal(["number"])
-        const booleanType = fn(true)
-        expect(booleanType).to.deep.equal(["boolean"])
-        const objectType = fn({})
-        expect(objectType).to.deep.equal(["object"])
-        const arrayType = fn([])
-        expect(arrayType).to.deep.equal(["array"])
-        const undefinedType = fn(undefined)
-        expect (undefinedType).to.deep.equal(["undefined"])
       })
 
       it("iterator of values", () => {
         const ctx = generateFunctionSource('$[*].type()')
         expect (ctx.source).to.equal('return ƒ.type(ƒ.boxStar($))')
-        const fn = createFunctionForTest(ctx)
-        const arrayTypes = fn([true, 1, "hi"])
-        expect(arrayTypes).to.deep.equal(["boolean", "number", "string"])
       })
     })
 
@@ -90,27 +68,11 @@ describe("Codegen tests", () => {
       it("single values", () => {
         const ctx = generateFunctionSource('$.size()')
         expect(ctx.source).to.equal('return ƒ.size($)')
-        const fn = createFunctionForTest(ctx)
-        const nullSize = fn(null)
-        expect(nullSize).to.deep.equal([1])
-        const stringSize = fn("matt")
-        expect(stringSize).to.deep.equal([1])
-        const numberSize = fn(77.6)
-        expect(numberSize).to.deep.equal([1])
-        const booleanSize = fn(true)
-        expect(booleanSize).to.deep.equal([1])
-        const objectSize = fn({})
-        expect(objectSize).to.deep.equal([1])
-        const arraySize = fn([1, 2, 3])
-        expect(arraySize).to.deep.equal([3])
       })
 
       it("iterator of values", () => {
         const ctx = generateFunctionSource('$[*].size()')
         expect (ctx.source).to.equal('return ƒ.size(ƒ.boxStar($))')
-        const fn = createFunctionForTest(ctx)
-        const arrayTypes = fn([[1, 2, 3], [], ["a", "b"], true])
-        expect(arrayTypes).to.deep.equal([3, 0, 2, 1])
       })
     })
 

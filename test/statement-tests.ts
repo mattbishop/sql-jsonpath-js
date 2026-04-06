@@ -24,6 +24,13 @@ describe("Statement tests", () => {
     expect(actual.next().done).to.be.true
   })
 
+  it("named variables", () => {
+    const statement = compile('$n')
+    const value = one(statement.values("", {variables: {n: "frosty"}}))
+    expect(value).to.equal("frosty")
+    expect(() => statement.exists(null, {variables: {wrong: true}})).to.throw
+  })
+
   it("one", () => {
     const stmt = compile('$')
     const iter = stmt.values(iterate([1, 2, 3]))
@@ -58,13 +65,14 @@ describe("Statement tests", () => {
 
   it("unwraps sequence and applies type()", () => {
     const stmt = compile('$[*].type()')
-    const actual = stmt.values(iterate(["matt", true, 100, ["mary", false], {a: 4}]))
+    const actual = stmt.values(iterate(["matt", true, 100, ["mary", false], {a: 4}, undefined]))
     expect(one(actual)).to.equal("string")
     expect(one(actual)).to.equal("boolean")
     expect(one(actual)).to.equal("number")
     expect(one(actual)).to.equal("string")
     expect(one(actual)).to.equal("boolean")
     expect(one(actual)).to.deep.equal("object")
+    expect(one(actual)).to.deep.equal("undefined")
     expect(actual.next().done).to.be.true
   })
 
@@ -259,7 +267,45 @@ describe("Statement tests", () => {
     })
   })
 
+  describe("size()", () => {
+    it ("single values", () => {
+      const statement = compile('$.size()')
+      const nullSize = one(statement.values(null))
+      expect(nullSize).to.equal(1)
+      const stringSize = one(statement.values("matt"))
+      expect(stringSize).to.equal(1)
+      const numberSize = one(statement.values(77.6))
+      expect(numberSize).to.equal(1)
+      const booleanSize = one(statement.values(true))
+      expect(booleanSize).to.equal(1)
+      const objectSize = one(statement.values({}))
+      expect(objectSize).to.equal(1)
+      const arraySize = one(statement.values([1, 2, 3]))
+      expect(arraySize).to.equal(3)
+    })
+
+    it("iterator of values", () => {
+      const statement = compile('$[*].size()')
+      const arrayTypes = statement.values([[1, 2, 3], [], ["a", "b"], true])
+      expect(Array.from(arrayTypes)).to.deep.equal([3, 0, 2, 1])
+    })
+  })
+
   describe("date and time functions", () => {
+
+    describe("type()", () => {
+      const statement = compile('$.type()')
+      it("date types", () => {
+        const dateType = one(statement.values(Temporal.PlainDate.from("2020-01-01")))
+        expect(dateType).to.equal("date")
+        const timeType = one(statement.values(Temporal.PlainTime.from("10:11:12")))
+        expect(timeType).to.equal("time without time zone")
+        const plainDateTimeType = one(statement.values(Temporal.PlainDateTime.from("2020-01-01T10:11:12")))
+        expect(plainDateTimeType).to.equal("timestamp without time zone")
+        const instantType = one(statement.values(Temporal.Instant.from("2020-01-01T10:11:12Z")))
+        expect(instantType).to.equal("timestamp with time zone")
+      })
+    })
 
     describe("datetime()", () => {
       const statement = compile('$.datetime()')
@@ -272,7 +318,6 @@ describe("Statement tests", () => {
         const actualDate = statement.values("2020-01-01")
         expect(one(actualDate)).to.deep.equal(Temporal.PlainDate.from("2020-01-01"))
       })
-
     })
 
     describe("datetime(template)", () => {
