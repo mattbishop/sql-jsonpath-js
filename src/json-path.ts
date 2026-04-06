@@ -1,3 +1,6 @@
+/**
+ * Declared variable values for SQL JSONPath evaluation.
+ */
 export type NamedVariables = Record<string, any>
 
 /**

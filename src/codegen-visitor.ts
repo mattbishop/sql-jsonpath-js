@@ -1,5 +1,4 @@
-import type {CstNode, ICstVisitor} from "@chevrotain/types"
-import type {IToken} from "chevrotain"
+import type {CstNode, ICstVisitor, IToken} from "chevrotain"
 import safeRegex from "safe-regex2"
 
 import type {

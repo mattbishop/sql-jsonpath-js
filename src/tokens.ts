@@ -1,5 +1,4 @@
-import type {CustomPatternMatcherReturn, ITokenConfig} from "@chevrotain/types"
-import {createToken, Lexer, type TokenType} from "chevrotain"
+import {createToken, type CustomPatternMatcherReturn, type ITokenConfig, Lexer, type TokenType} from "chevrotain"
 
 
 /** @internal */

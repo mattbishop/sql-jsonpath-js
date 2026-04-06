@@ -2,7 +2,10 @@ import {iterate} from "iterare"
 import {isIterable} from "iterare/lib/utils.js"
 
 
-/** @internal */
+/**
+ * Arrays are iterable, but for SQL JSONPath they are considered individual elements, unless unwrapped later by
+ * a function.
+ * @internal */
 export function isIterableInput(input: any): boolean {
   return typeof input !== "string" && !Array.isArray(input) && isIterable(input)
 }
