@@ -415,6 +415,56 @@ describe("Statement tests", () => {
       })
     })
 
+    describe("date()", () => {
+      it("single values", () => {
+        const statement = compile('$.date()')
+        let dateActual = one(statement.values("2024-12-31"))
+        expect(dateActual).to.deep.equal(Temporal.PlainDate.from("2024-12-31"))
+        dateActual = one(statement.values("2020-07-25T15:32:21+22"))
+        expect(dateActual).to.deep.equal(Temporal.PlainDate.from("2020-07-25"))
+        expect(() => one(statement.values(null))).to.throw
+        expect(() => one(statement.values("1977"))).to.throw
+        expect(() => one(statement.values(true))).to.throw
+        expect(() => one(statement.values({}))).to.throw
+        expect(() => one(statement.values([]))).to.throw
+      })
+
+      it("iterator of values", () => {
+        const statement = compile('$[*].date()')
+        const arrayTypes = statement.values(["2021-01-01", "1900-11-01", "2047-05-15"])
+        expect(Array.from(arrayTypes)).to.deep.equal([
+          Temporal.PlainDate.from("2021-01-01"),
+          Temporal.PlainDate.from("1900-11-01"),
+          Temporal.PlainDate.from("2047-05-15")
+        ])
+      })
+    })
+
+    describe("time()", () => {
+      it("single values", () => {
+        const statement = compile('$.time()')
+        let timeActual = one(statement.values("01:01:01"))
+        expect(timeActual).to.deep.equal(Temporal.PlainTime.from("01:01:01"))
+        timeActual = one(statement.values("15:32:21"))
+        expect(timeActual).to.deep.equal(Temporal.PlainTime.from("15:32:21"))
+        expect(() => one(statement.values(null))).to.throw
+        expect(() => one(statement.values("1977"))).to.throw
+        expect(() => one(statement.values(true))).to.throw
+        expect(() => one(statement.values({}))).to.throw
+        expect(() => one(statement.values([]))).to.throw
+      })
+
+      it("iterator of values", () => {
+        const statement = compile('$[*].time()')
+        const arrayTypes = statement.values(["01:01:01", "15:32:21", "23:59:59"])
+        expect(Array.from(arrayTypes)).to.deep.equal([
+          Temporal.PlainTime.from("01:01:01"),
+          Temporal.PlainTime.from("15:32:21"),
+          Temporal.PlainTime.from("23:59:59")
+        ])
+      })
+    })
+
     describe("datetime()", () => {
       const statement = compile('$.datetime()')
       it("ISO timestamp", () => {
@@ -426,13 +476,45 @@ describe("Statement tests", () => {
         const actualDate = statement.values("2020-01-01")
         expect(one(actualDate)).to.deep.equal(Temporal.PlainDate.from("2020-01-01"))
       })
+
+      it("just time", () => {
+        const actualTime = statement.values("10:09:55")
+        expect(one(actualTime)).to.deep.equal(Temporal.PlainTime.from("10:09:55"))
+      })
+
+      it("iterator of values", () => {
+        const boxStatement = compile('$[*].datetime()')
+        const actualDate = boxStatement.values(["2020-01-01", "2020-01-01T09:11:18.0214-02:30"])
+        expect(one(actualDate)).to.deep.equal(Temporal.PlainDate.from("2020-01-01"))
+        expect(one(actualDate)).to.deep.equal(Temporal.Instant.from("2020-01-01T09:11:18.0214-02:30"))
+        expect(actualDate.next().done).to.be.true
+      })
+
     })
 
     describe("datetime(template)", () => {
-      it("template string datetime with timezone", () => {
+      it("datetime with timezone", () => {
         const statement = compile('$.datetime("MM-DD/YYYY;HH.MI:SSTZH")')
         const actualDate = statement.values("02-21/1900;03.35:19+06")
         expect(one(actualDate)).to.deep.equal(Temporal.Instant.from("1900-02-21 03:35:19+06"))
+      })
+
+      it("datetime", () => {
+        const statement = compile('$.datetime("MM-DD/YYYY;HH.MI:SS")')
+        const actualDate = statement.values("02-21/1900;03.35:19")
+        expect(one(actualDate)).to.deep.equal(Temporal.PlainDateTime.from("1900-02-21 03:35:19"))
+      })
+
+      it("date only", () => {
+        const statement = compile('$.datetime("MM DD.YYYY")')
+        const actualDate = statement.values("02 21.1900")
+        expect(one(actualDate)).to.deep.equal(Temporal.PlainDate.from("1900-02-21"))
+      })
+
+      it("time only", () => {
+        const statement = compile('$.datetime("HH;MI:SS")')
+        const actualDate = statement.values("02;41:12")
+        expect(one(actualDate)).to.deep.equal(Temporal.PlainTime.from("02:41:12"))
       })
     })
   })

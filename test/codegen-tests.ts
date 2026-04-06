@@ -133,25 +133,11 @@ describe("Codegen tests", () => {
       it("single values", () => {
         const ctx = generateFunctionSource('$ .date (  )')
         expect(ctx.source).to.equal('return ƒ.date($)')
-        const fn = createFunctionForTest(ctx)
-        let dateActual = fn("2024-12-31")
-        expect(dateActual[0]).to.deep.equal(Temporal.PlainDate.from("2024-12-31"))
-        dateActual = fn("2020-07-25T15:32:21+22") // todo is this legitimate? Should it throw an error?
-        expect(dateActual[0]).to.deep.equal(Temporal.PlainDate.from("2020-07-25"))
-        expect(() => fn(null)).to.throw
-        expect(() => fn("1977")).to.throw
-        expect(() => fn(true)).to.throw
-        expect(() => fn({})).to.throw
-        expect(() => fn([])).to.throw
       })
 
       it("iterator of values", () => {
         const ctx = generateFunctionSource('$[*].date()')
         expect (ctx.source).to.equal('return ƒ.date(ƒ.boxStar($))')
-        const fn = createFunctionForTest(ctx)
-        const arrayTypes = fn(["2021-01-01", "1900-11-01", "2047-05-15"])
-        expect(arrayTypes).to.deep.equal(["2021-01-01", "1900-11-01", "2047-05-15"]
-          .map(v => Temporal.PlainDate.from(v)))
       })
     })
 
@@ -159,25 +145,11 @@ describe("Codegen tests", () => {
       it("single values", () => {
         const ctx = generateFunctionSource('$ .time (  )')
         expect(ctx.source).to.equal('return ƒ.time($)')
-        const fn = createFunctionForTest(ctx)
-        let dateActual = fn("01:01:01")
-        expect(dateActual[0]).to.deep.equal(Temporal.PlainTime.from("01:01:01"))
-        dateActual = fn("15:32:21")
-        expect(dateActual[0]).to.deep.equal(Temporal.PlainTime.from("15:32:21"))
-        expect(() => fn(null)).to.throw
-        expect(() => fn("1977")).to.throw
-        expect(() => fn(true)).to.throw
-        expect(() => fn({})).to.throw
-        expect(() => fn([])).to.throw
       })
 
       it("iterator of values", () => {
         const ctx = generateFunctionSource('$[*].date()')
         expect (ctx.source).to.equal('return ƒ.date(ƒ.boxStar($))')
-        const fn = createFunctionForTest(ctx)
-        const arrayTypes = fn(["2021-01-01", "1900-11-01", "2047-05-15"])
-        expect(arrayTypes).to.deep.equal(["2021-01-01", "1900-11-01", "2047-05-15"]
-          .map(v => Temporal.PlainDate.from(v)))
       })
     })
 
@@ -185,17 +157,11 @@ describe("Codegen tests", () => {
       it("ISO string date", () => {
         const ctx = generateFunctionSource('$ .datetime(  )')
         expect(ctx.source).to.equal('return ƒ.datetime($,"CLDR")')
-        const fn = createFunctionForTest(ctx)
-        const actualDate = fn("2020-01-01")
-        expect(actualDate[0]).to.deep.equal(Temporal.PlainDate.from("2020-01-01"))
       })
 
       it("template string date", () => {
         const ctx = generateFunctionSource('$ .datetime("MM/DD/YYYY")')
         expect(ctx.source).to.equal('return ƒ.datetime($,"MM/DD/YYYY")')
-        const fn = createFunctionForTest(ctx)
-        const actualDate = fn("02/21/1900")
-        expect(actualDate[0]).to.deep.equal(Temporal.PlainDate.from("1900-02-21"))
       })
 
       it("template string datetime with timezone", () => {
@@ -206,10 +172,6 @@ describe("Codegen tests", () => {
       it("handles datetime iterators", () => {
         const ctx = generateFunctionSource('$[*].datetime()')
         expect (ctx.source).to.equal('return ƒ.datetime(ƒ.boxStar($),"CLDR")')
-        const fn = createFunctionForTest(ctx)
-        const arrayDates = fn(["2022-06-15", "2020-01-01 02:27:12+08"])
-        expect(arrayDates).to.deep.equal([Temporal.PlainDate.from("2022-06-15"),
-          Temporal.Instant.from("2020-01-01 02:27:12+08")])
       })
     })
   })
