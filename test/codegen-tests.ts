@@ -80,26 +80,11 @@ describe("Codegen tests", () => {
       it ("single values", () => {
         const ctx = generateFunctionSource('$.double()')
         expect(ctx.source).to.equal('return ƒ.double($)')
-        const fn = createFunctionForTest(ctx)
-        let stringDouble = fn("45")
-        expect(stringDouble).to.deep.equal([45])
-        stringDouble = fn("9.1e7")
-        expect(stringDouble).to.deep.equal([91000000])
-        const numberDouble = fn(77.6)
-        expect(numberDouble).to.deep.equal([77.6])
-        expect(() => fn(null)).to.throw
-        expect(() => fn("bond")).to.throw
-        expect(() => fn(true)).to.throw
-        expect(() => fn({})).to.throw
-        expect(() => fn([])).to.throw
       })
 
       it("iterator of values", () => {
         const ctx = generateFunctionSource('$[*].double()')
         expect (ctx.source).to.equal('return ƒ.double(ƒ.boxStar($))')
-        const fn = createFunctionForTest(ctx)
-        const arrayTypes = fn(["100", 289967, "-1.7e-4"])
-        expect(arrayTypes).to.deep.equal([100, 289967, -0.00017])
       })
     })
 
@@ -107,22 +92,11 @@ describe("Codegen tests", () => {
       it("single values", () => {
         const ctx = generateFunctionSource('$. ceiling ()')
         expect(ctx.source).to.equal('return ƒ.ceiling($)')
-        const fn = createFunctionForTest(ctx)
-        const numberActual = fn(77.6)
-        expect(numberActual).to.deep.equal([78])
-        expect(() => fn(null)).to.throw
-        expect(() => fn("77.4")).to.throw
-        expect(() => fn(true)).to.throw
-        expect(() => fn({})).to.throw
-        expect(() => fn([])).to.throw
       })
 
       it("iterator of values", () => {
         const ctx = generateFunctionSource('$[*].ceiling()')
         expect (ctx.source).to.equal('return ƒ.ceiling(ƒ.boxStar($))')
-        const fn = createFunctionForTest(ctx)
-        const arrayTypes = fn([1.1, 9.9, -1.7e-4])
-        expect(arrayTypes).to.deep.equal([2, 10, -0])
       })
     })
 

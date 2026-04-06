@@ -284,10 +284,53 @@ describe("Statement tests", () => {
       expect(arraySize).to.equal(3)
     })
 
+
     it("iterator of values", () => {
       const statement = compile('$[*].size()')
       const arrayTypes = statement.values([[1, 2, 3], [], ["a", "b"], true])
       expect(Array.from(arrayTypes)).to.deep.equal([3, 0, 2, 1])
+    })
+  })
+
+  describe("double()", () => {
+    it ("single values", () => {
+      const statement = compile('$.double()')
+      let stringDouble = one(statement.values("45"))
+      expect(stringDouble).to.equal(45)
+      stringDouble = one(statement.values("9.1e7"))
+      expect(stringDouble).to.equal(91000000)
+      const numberDouble = one(statement.values(77.6))
+      expect(numberDouble).to.equal(77.6)
+      expect(() => one(statement.values(null))).to.throw
+      expect(() => one(statement.values("bond"))).to.throw
+      expect(() => one(statement.values(true))).to.throw
+      expect(() => one(statement.values({}))).to.throw
+      expect(() => one(statement.values([]))).to.throw
+    })
+
+    it("iterator of values", () => {
+      const statement = compile('$[*].double()')
+      const arrayTypes = statement.values(["100", 289967, "-1.7e-4"])
+      expect(Array.from(arrayTypes)).to.deep.equal([100, 289967, -0.00017])
+    })
+  })
+
+  describe("ceiling()", () => {
+    it ("single values", () => {
+      const statement = compile('$.ceiling()')
+      const numberActual = one(statement.values(77.6))
+      expect(numberActual).to.equal(78)
+      expect(() => one(statement.values(null))).to.throw
+      expect(() => one(statement.values("77.4"))).to.throw
+      expect(() => one(statement.values(true))).to.throw
+      expect(() => one(statement.values({}))).to.throw
+      expect(() => one(statement.values([]))).to.throw
+    })
+
+    it("iterator of values", () => {
+      const statement = compile('$[*].ceiling()')
+      const arrayTypes = statement.values([1.1, 9.9, -1.7e-4])
+      expect(Array.from(arrayTypes)).to.deep.equal([2, 10, -0])
     })
   })
 
