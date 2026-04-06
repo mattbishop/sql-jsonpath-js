@@ -334,6 +334,71 @@ describe("Statement tests", () => {
     })
   })
 
+  describe("abs()", () => {
+    it ("single values", () => {
+      const statement = compile('$.abs()')
+      const numberActual = one(statement.values(-440.33))
+      expect(numberActual).to.equal(440.33)
+      expect(() => one(statement.values(null))).to.throw
+      expect(() => one(statement.values("1977"))).to.throw
+      expect(() => one(statement.values(true))).to.throw
+      expect(() => one(statement.values({}))).to.throw
+      expect(() => one(statement.values([]))).to.throw
+    })
+
+    it("iterator of values", () => {
+      const statement = compile('$[*].abs()')
+      const arrayTypes = statement.values([33, -11, 9.1, -1.7e-4])
+      expect(Array.from(arrayTypes)).to.deep.equal([33, 11, 9.1, 0.00017])
+    })
+  })
+
+  describe("keyvalue generators", () => {
+    it("lax keyvalue", () => {
+      const statement = compile('$.keyvalue()')
+      const actual = Array.from(statement.values([{a: 1, b: true, c: "see", d: {z: -9}}, {"m b": 1}]))
+      expect(actual).to.deep.equal([
+        {id: 0, key: "a", value: 1},
+        {id: 0, key: "b", value: true},
+        {id: 0, key: "c", value: "see"},
+        {id: 0, key: "d", value: {z: -9}},
+        {id: 1, key: "m b", value: 1}
+      ])
+      expect(() => one(statement.values(null))).to.throw
+      expect(() => one(statement.values("frogs"))).to.throw
+      expect(() => one(statement.values([{q: 6}, "frogs"]))).to.throw
+      expect(() => one(statement.values(true))).to.throw
+      expect(() => one(statement.values(100))).to.throw
+    })
+
+    it("strict keyvalue", () => {
+      const statement = compile('strict $.keyvalue()')
+      const actual = Array.from(statement.values({a: 1, b: true, c: "see", d: {z: -9}}))
+      expect(actual).to.deep.equal([
+        {id: 0, key: "a", value: 1},
+        {id: 0, key: "b", value: true},
+        {id: 0, key: "c", value: "see"},
+        {id: 0, key: "d", value: {z: -9}}
+      ])
+      expect(() => one(statement.values(null))).to.throw
+      expect(() => one(statement.values("star"))).to.throw
+      expect(() => one(statement.values([{q: 6}, "frogs"]))).to.throw
+      expect(() => one(statement.values(true))).to.throw
+      expect(() => one(statement.values(100))).to.throw
+      expect(() => one(statement.values([]))).to.throw
+    })
+
+    it("iterator of keyvalue", () => {
+      const statement = compile('$[*].keyvalue()')
+      const actual = statement.values([{a: 1}, {b: 2}, {c: 3}])
+      expect(Array.from(actual)).to.deep.equal([
+        {id: 0, key: "a", value: 1},
+        {id: 1, key: "b", value: 2},
+        {id: 2, key: "c", value: 3}
+      ])
+    })
+  })
+
   describe("date and time functions", () => {
 
     describe("type()", () => {

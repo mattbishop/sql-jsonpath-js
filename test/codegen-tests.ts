@@ -104,22 +104,11 @@ describe("Codegen tests", () => {
       it("single values", () => {
         const ctx = generateFunctionSource('$ .abs (  )')
         expect(ctx.source).to.equal('return ƒ.abs($)')
-        const fn = createFunctionForTest(ctx)
-        const numberActual = fn(-440.33)
-        expect(numberActual).to.deep.equal([440.33])
-        expect(() => fn(null)).to.throw
-        expect(() => fn("1977")).to.throw
-        expect(() => fn(true)).to.throw
-        expect(() => fn({})).to.throw
-        expect(() => fn([])).to.throw
       })
 
       it("iterator of values", () => {
         const ctx = generateFunctionSource('$[*].abs()')
         expect (ctx.source).to.equal('return ƒ.abs(ƒ.boxStar($))')
-        const fn = createFunctionForTest(ctx)
-        const arrayTypes = fn([33, -11, 9.1, -1.7e-4])
-        expect(arrayTypes).to.deep.equal([33, 11, 9.1, 0.00017])
       })
     })
 
@@ -127,52 +116,16 @@ describe("Codegen tests", () => {
       it("lax keyvalue", () => {
         const ctx = generateFunctionSource('$ .keyvalue (  )')
         expect(ctx.source).to.equal('return ƒ.keyvalue($)')
-        const fn = createFunctionForTest(ctx)
-        const kvActual = fn([{a: 1, b: true, c: "see", d: {z: -9}}, {"m b": 1}])
-        expect(kvActual).to.deep.equal([
-          {id: 0, key: "a", value: 1},
-          {id: 0, key: "b", value: true},
-          {id: 0, key: "c", value: "see"},
-          {id: 0, key: "d", value: {z: -9}},
-          {id: 1, key: "m b", value: 1}
-        ])
-        expect(() => fn(null)).to.throw
-        expect(() => fn("frogs")).to.throw
-        expect(() => fn([{q: 6}, "frogs"])).to.throw
-        expect(() => fn(true)).to.throw
-        expect(() => fn(100)).to.throw
       })
 
       it("strict keyvalue", () => {
         const ctx = generateFunctionSource('strict $ .keyvalue (  )')
         expect(ctx.source).to.equal('return ƒ.keyvalue($)')
-        const fn = createFunctionForTest(ctx)
-        const id = 0
-        const kvActual = fn({a: 1, b: true, c: "see", d: {z: -9}})
-        expect(kvActual).to.deep.equal([
-          {id, key: "a", value: 1},
-          {id, key: "b", value: true},
-          {id, key: "c", value: "see"},
-          {id, key: "d", value: {z: -9}}
-        ])
-        expect(() => fn(null)).to.throw
-        expect(() => fn("star")).to.throw
-        expect(() => fn([{q: 6}, "frogs"])).to.throw
-        expect(() => fn(true)).to.throw
-        expect(() => fn(100)).to.throw
-        expect(() => fn([])).to.throw
       })
 
       it("iterator of keyvalue", () => {
         const ctx = generateFunctionSource('$[*].keyvalue()')
         expect (ctx.source).to.equal('return ƒ.keyvalue(ƒ.boxStar($))')
-        const fn = createFunctionForTest(ctx)
-        const arrayTypes = fn([{a: 1}, {b: 2}, {c: 3}])
-        expect(arrayTypes).to.deep.equal([
-          {id: 0, key: "a", value: 1},
-          {id: 1, key: "b", value: 2},
-          {id: 2, key: "c", value: 3}
-        ])
       })
     })
 
