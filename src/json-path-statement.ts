@@ -53,7 +53,6 @@ export function createFunction({source, lax, scope}: CodegenContext): SJPFn {
       throw new Error(`no variable named '$${name}'`)
     }
     const result = fn(ƒ, $, $$)
-    // todo this is where you should convert dates to strings
     return result instanceof IteratorWithOperators
       ? result
       : iterate([result])
