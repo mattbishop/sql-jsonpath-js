@@ -1,6 +1,5 @@
 import {expect} from "chai"
 import {describe, it} from "node:test"
-import {Temporal} from "temporal-polyfill"
 
 import type {CodegenContext} from "../src/codegen-visitor.ts"
 import type {NamedVariables} from "../src/json-path.ts"
@@ -13,6 +12,7 @@ import {createFunction, generateFunctionSource} from "../src/json-path-statement
  */
 function createFunctionForTest(ctx: CodegenContext): ($: any, $named?: NamedVariables) => any[] {
   const fn = createFunction(ctx)
+  // this is different from createStatement. This does not wrap the input in an iterator.
   return ($: any, $named?: NamedVariables) => fn($, $named).toArray()
 }
 
@@ -181,42 +181,16 @@ describe("Codegen tests", () => {
       it("lax .*", () => {
         const ctx = generateFunctionSource('$.*')
         expect(ctx.source).to.equal('return ƒ.dotStar($)')
-        const fn = createFunctionForTest(ctx)
-        const objectValue = fn({"a": 1, "b": {c: "2"}})
-        expect(objectValue).to.deep.equal([1, {c: "2"}])
-        const arrayValue = fn([{"a": 1, e: [], q: null, g: undefined}, 77, {"b": {c: "2"}}, true, [], "cats"])
-        expect(arrayValue).to.deep.equal([1, [], null, undefined, {c: "2"}])
-        expect(fn(undefined)).to.be.empty
-        expect(fn(null)).to.be.empty
-        expect(fn({})).to.be.empty
-        expect(fn([])).to.be.empty
-        expect(fn("dogs")).to.be.empty
-        expect(fn(707)).to.be.empty
-        expect(fn(false)).to.be.empty
       })
 
       it("strict .*", () => {
         const ctx = generateFunctionSource('strict $.*')
         expect(ctx.source).to.equal('return ƒ.dotStar($)')
-        const fn = createFunctionForTest(ctx)
-        const iteratorValue = fn({"a": 1, "b": {c: "2"}, u: undefined})
-        expect(iteratorValue).to.deep.equal([1, {c: "2"}, undefined])
-        expect(() => fn([{"a": 1}, 77, {"b": {c: "2"}}, true, "cats"])).to.throw
-        expect(() => fn(undefined)).to.throw
-        expect(() => fn(null)).to.throw
-        expect(() => fn({})).to.throw
-        expect(() => fn([])).to.throw
-        expect(() => fn("mice")).to.throw
-        expect(() => fn(707)).to.throw
-        expect(() => fn(false)).to.throw
       })
 
       it(".* iterator values", () => {
         const ctx = generateFunctionSource('$[*].*')
         expect (ctx.source).to.equal('return ƒ.dotStar(ƒ.boxStar($))')
-        const fn = createFunctionForTest(ctx)
-        const arrayDates = fn([{"a": 1, "b": 2}, {"c": {d: "2"}}])
-        expect(arrayDates).to.deep.equal([1, 2, {d: "2"}])
       })
     })
 
@@ -224,59 +198,21 @@ describe("Codegen tests", () => {
       it("lax [*]", () => {
         const ctx = generateFunctionSource('$[*]')
         expect(ctx.source).to.equal('return ƒ.boxStar($)')
-        const fn = createFunctionForTest(ctx)
-        const undefinedValue = fn(undefined)
-        expect(undefinedValue).to.deep.equal([undefined])
-        const nullValue = fn(null)
-        expect(nullValue).to.deep.equal([null])
-        const stringValue = fn("galaxies")
-        expect(stringValue).to.deep.equal(["galaxies"])
-        const numberValue = fn(9944.839)
-        expect(numberValue).to.deep.equal([9944.839])
-        const booleanValue = fn(true)
-        expect(booleanValue).to.deep.equal([true])
-        const objectValue = fn({t: "shirt"})
-        expect(objectValue).to.deep.equal([{t: "shirt"}])
-        let arrayValue = fn([])
-        expect(arrayValue).to.be.empty
-        arrayValue = fn([true, false])
-        expect(arrayValue).to.deep.equal([true, false])
-        arrayValue = fn([[]])
-        expect(arrayValue).to.deep.equal([[]])
-        arrayValue = fn([undefined])
-        expect(arrayValue).to.deep.equal([undefined])
-        arrayValue = fn([7, 9, 55])
-        expect(arrayValue).to.deep.equal([7, 9, 55])
       })
 
       it("strict [*]", () => {
         const ctx = generateFunctionSource('strict $[*]')
         expect(ctx.source).to.equal('return ƒ.boxStar($)')
-        const fn = createFunctionForTest(ctx)
-        const arrayValue = fn([7, 9, 55])
-        expect(arrayValue).to.deep.equal([7, 9, 55])
-        expect(() => fn(undefined)).to.throw
-        expect(() => fn(null)).to.throw
-        expect(() => fn("galaxies")).to.throw
-        expect(() => fn(9944.839)).to.throw
-        expect(() => fn(true)).to.throw
-        expect(() => fn({t: "shirt"})).to.throw
       })
 
       it("lax [*][*] iterator values", () => {
         const ctx = generateFunctionSource('$[*][*]')
         expect (ctx.source).to.equal('return ƒ.boxStar(ƒ.boxStar($))')
-        const fn = createFunctionForTest(ctx)
-        const arrayDates = fn([[77, 88], [14, 16], [true, false], [["a", "b"]]])
-        expect(arrayDates).to.deep.equal([77, 88, 14, 16, true, false, ["a", "b"]])
       })
 
       it("strict [*][*] iterator values", () => {
         const ctx = generateFunctionSource('strict $[*][*]')
         expect (ctx.source).to.equal('return ƒ.boxStar(ƒ.boxStar($))')
-        const fn = createFunctionForTest(ctx)
-        const arrayDates = fn([[77, 88], [14, 16], [true, false], [["a", "b"]]])
-        expect(arrayDates).to.deep.equal([77, 88, 14, 16, true, false, ["a", "b"]])
       })
     })
   })
@@ -285,69 +221,26 @@ describe("Codegen tests", () => {
     it(".member", () => {
       const ctx = generateFunctionSource('$.thing')
       expect(ctx.source).to.equal('return ƒ.member($,"thing")')
-      const fn = createFunctionForTest(ctx)
-      let objectActual = fn({thing: "bird"})
-      expect(objectActual).to.deep.equal(["bird"])
-      objectActual = fn({thing: []})
-      expect(objectActual).to.deep.equal([[]])
-      objectActual = fn({thing: [9, 8, 7]})
-      expect(objectActual).to.deep.equal([[9, 8, 7]])
-      objectActual = fn({thing: undefined})
-      expect(objectActual).to.deep.equal([undefined])
-      expect(fn({not: "thing"})).to.be.empty
-      expect(fn(undefined)).to.be.empty
-      expect(fn(null)).to.be.empty
-      expect(fn([])).to.be.empty
-      expect(fn("dogs")).to.be.empty
-      expect(fn(707)).to.be.empty
-      expect(fn(true)).to.be.empty
     })
 
     it(".\"member\"", () => {
       const ctx = generateFunctionSource('$."thing\\tbrick"')
       expect(ctx.source).to.equal('return ƒ.member($,"thing\\tbrick")')
-      const fn = createFunctionForTest(ctx)
-      const objectActual = fn({"thing\tbrick": 14})
-      expect(objectActual).to.deep.equal([14])
-      expect(fn(undefined)).to.be.empty
-      expect(fn(null)).to.be.empty
-      expect(fn([])).to.be.empty
-      expect(fn("dogs")).to.be.empty
-      expect(fn(707)).to.be.empty
-      expect(fn(true)).to.be.empty
     })
 
     it("nested member", () => {
       const ctx = generateFunctionSource('$.thing.name')
       expect(ctx.source).to.equal('return ƒ.member(ƒ.member($,"thing"),"name")')
-      const fn = createFunctionForTest(ctx)
-      const objectActual = fn({thing:{name: "Constance"}})
-      expect(objectActual).to.deep.equal(["Constance"])
     })
 
     it("strict .member", () => {
       const ctx = generateFunctionSource('strict $.thing')
       expect(ctx.source).to.equal('return ƒ.member($,"thing")')
-      const fn = createFunctionForTest(ctx)
-      let objectActual = fn({thing: []})
-      expect(objectActual).to.deep.equal([[]])
-      objectActual = fn({thing: "bird"})
-      expect(objectActual).to.deep.equal(["bird"])
-      expect(() => fn({not: "thing"})).to.throw
-      expect(() => fn(undefined)).to.throw
-      expect(() => fn(null)).to.throw
-      expect(() => fn([])).to.throw
-      expect(() => fn("dogs")).to.throw
-      expect(() => fn(707)).to.throw
-      expect(() => fn(true)).to.throw
     })
 
     it("supports iterator values", () => {
       const ctx = generateFunctionSource('$[*].a')
       expect (ctx.source).to.equal('return ƒ.member(ƒ.boxStar($),"a")')
-      const fn = createFunctionForTest(ctx)
-      const arrayDates = fn([{a: 1}, {a: 2}, {a: {a: 5}}])
-      expect(arrayDates).to.deep.equal([1, 2, {a: 5}])
     })
   })
 

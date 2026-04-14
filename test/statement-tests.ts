@@ -4,6 +4,9 @@ import {iterate} from "iterare"
 import {describe, it} from "node:test"
 import {Temporal} from "temporal-polyfill"
 
+// better for debugging issues
+//import {compile, one, type SqlJsonPathStatement} from "../src/index.ts";
+
 // testing from /dist to ensure the exported interface is correct
 import {compile, one} from "../dist/index.js"
 import type {SqlJsonPathStatement} from "../dist/index.d.ts"
@@ -18,7 +21,8 @@ describe("Statement tests", () => {
 
   it("values", () => {
     const stmt = compile('$.a')
-    const actual = stmt.values([{a: 1}, {b: 2}, {a: 3}])
+    // .values() returns the iterator
+    const actual = stmt.values([{a: 1}, {b: 2}, {a: 3}].values())
     expect(actual.next().value).to.equal(1)
     expect(actual.next().value).to.equal(3)
     expect(actual.next().done).to.be.true
@@ -37,7 +41,7 @@ describe("Statement tests", () => {
     expect(one(iter)).to.equal(1)
     expect(one(iter)).to.equal(2)
     expect(one(iter)).to.equal(3)
-    expect(one(iter)).to.be.undefined
+    expect(iter.next().done).to.be.true
   })
 
   it("applies function to sequence", () => {
@@ -152,7 +156,6 @@ describe("Statement tests", () => {
 
   it("searches array with a specific element in a named array value", () => {
     const stmt = compile('$.players ? ($names.first[1] == @)')
-    // return ƒ.filter(ƒ.member($,"players"),v=>ƒ.compare("==",v,ƒ.array(ƒ.member($$("names"),"first"),[1])))
     const variables = {names:{first:["mary", "angie"]}}
     const actual = stmt.values({players:["matt", "angie", "mark", "mary", "abby"]}, {variables})
     expect(one(actual)).to.equal("angie")
@@ -215,16 +218,12 @@ describe("Statement tests", () => {
       const stmt = compile('strict $.thing')
       let actual = one(stmt.values({zz: "top"}, {defaultOnError: "Rock band"}))
       expect (actual).to.equal("Rock band")
-      actual = stmt.exists({zz: "top"}, {defaultOnError: true})
-      expect (actual).to.be.true
     })
 
     it("uses default value on empty", () => {
       const stmt = compile('$.thing')
       let actual = one(stmt.values({zz: "top"}, {defaultOnEmpty: "Rock band"}))
       expect (actual).to.equal("Rock band")
-      actual = stmt.exists({zz: "top"}, {defaultOnEmpty: false})
-      expect (actual).to.be.false
     })
   })
 
@@ -519,6 +518,228 @@ describe("Statement tests", () => {
     })
   })
 
+  describe("Wildcards", () => {
+    describe(".*", () => {
+      it("lax .*", () => {
+        const statement = compile('$.*')
+        const objectValue = statement.values({"a": 1, "b": {c: "2"}})
+        expect(Array.from(objectValue)).to.deep.equal([1, {c: "2"}])
+
+        const arrayValue = statement.values([{"a": 1, e: [], q: null, g: undefined}, 77, {"b": {c: "2"}}, true, [], "cats"])
+        expect(Array.from(arrayValue)).to.deep.equal([1, [], null, undefined, {c: "2"}])
+
+        expect(Array.from(statement.values(undefined))).to.be.empty
+        expect(Array.from(statement.values(null))).to.be.empty
+        expect(Array.from(statement.values({}))).to.be.empty
+        expect(Array.from(statement.values([]))).to.be.empty
+        expect(Array.from(statement.values("dogs"))).to.be.empty
+        expect(Array.from(statement.values(707))).to.be.empty
+        expect(Array.from(statement.values(false))).to.be.empty
+      })
+
+      it("strict .*", () => {
+        const statement = compile('strict $.*')
+        const iteratorValue = statement.values({"a": 1, "b": {c: "2"}, u: undefined})
+        expect(Array.from(iteratorValue)).to.deep.equal([1, {c: "2"}, undefined])
+        expect(() => Array.from(statement.values([{"a": 1}, 77, {"b": {c: "2"}}, true, "cats"]))).to.throw
+        expect(() => Array.from(statement.values(undefined))).to.throw
+        expect(() => Array.from(statement.values(null))).to.throw
+        expect(() => Array.from(statement.values({}))).to.throw
+        expect(() => Array.from(statement.values([]))).to.throw
+        expect(() => Array.from(statement.values("mice"))).to.throw
+        expect(() => Array.from(statement.values(707))).to.throw
+        expect(() => Array.from(statement.values(false))).to.throw
+      })
+
+      it(".* iterator values", () => {
+        const statement = compile('$[*].*')
+        const arrayDates = statement.values([{"a": 1, "b": 2}, {"c": {d: "2"}}])
+        expect(Array.from(arrayDates)).to.deep.equal([1, 2, {d: "2"}])
+      })
+    })
+
+    describe("[*]", () => {
+      it("lax [*]", () => {
+        const statement = compile('$[*]')
+        const undefinedValue = one(statement.values(undefined))
+        expect(undefinedValue).to.equal(undefined)
+        const nullValue = one(statement.values(null))
+        expect(nullValue).to.equal(null)
+        const stringValue = one(statement.values("galaxies"))
+        expect(stringValue).to.equal("galaxies")
+        const numberValue = one(statement.values(9944.839))
+        expect(numberValue).to.equal(9944.839)
+        const booleanValue = one(statement.values(true))
+        expect(booleanValue).to.equal(true)
+        const objectValue = one(statement.values({t: "shirt"}))
+        expect(objectValue).to.deep.equal({t: "shirt"})
+        let arrayValue = Array.from(statement.values([]))
+        expect(arrayValue).to.be.empty
+        arrayValue = Array.from(statement.values([true, false]))
+        expect(arrayValue).to.deep.equal([true, false])
+        arrayValue = Array.from(statement.values([[]]))
+        expect(arrayValue).to.deep.equal([[]])
+        arrayValue = Array.from(statement.values([undefined]))
+        expect(arrayValue).to.deep.equal([undefined])
+        arrayValue = Array.from(statement.values([7, 9, 55]))
+        expect(arrayValue).to.deep.equal([7, 9, 55])
+      })
+
+      it("strict [*]", () => {
+        const statement = compile('strict $[*]')
+        const arrayValue = Array.from(statement.values([7, 9, 55]))
+        expect(arrayValue).to.deep.equal([7, 9, 55])
+        expect(() => one(statement.values(undefined))).to.throw
+        expect(() => one(statement.values(null))).to.throw
+        expect(() => one(statement.values("galaxies"))).to.throw
+        expect(() => one(statement.values(9944.839))).to.throw
+        expect(() => one(statement.values(true))).to.throw
+        expect(() => one(statement.values({t: "shirt"}))).to.throw
+      })
+
+      it("lax [*][*] iterator values", () => {
+        const statement = compile('$[*][*]')
+        const arrayDates = statement.values([[77, 88], [14, 16], [true, false], [["a", "b"]]])
+        expect(Array.from(arrayDates)).to.deep.equal([77, 88, 14, 16, true, false, ["a", "b"]])
+      })
+
+      it("strict [*][*] iterator values", () => {
+        const statement = compile('strict $[*][*]')
+        const arrayDates = statement.values([[77, 88], [14, 16], [true, false], [["a", "b"]]])
+        expect(Array.from(arrayDates)).to.deep.equal([77, 88, 14, 16, true, false, ["a", "b"]])
+      })
+    })
+  })
+
+  describe("member tests", () => {
+    it(".member", () => {
+      const statement = compile('$.thing')
+      let objectActual = one(statement.values({thing: "bird"}))
+      expect(objectActual).to.equal("bird")
+      objectActual = one(statement.values({thing: []}))
+      expect(objectActual).to.deep.equal([])
+      objectActual = one(statement.values({thing: [9, 8, 7]}))
+      expect(objectActual).to.deep.equal([9, 8, 7])
+      objectActual = one(statement.values({thing: undefined}))
+      expect(objectActual).to.be.undefined
+      expect(statement.values({not: "thing"}).next().done).to.be.true
+      expect(statement.values(undefined).next().done).to.be.true
+      expect(statement.values(null).next().done).to.be.true
+      expect(statement.values([]).next().done).to.be.true
+      expect(statement.values("dogs").next().done).to.be.true
+      expect(statement.values(707).next().done).to.be.true
+      expect(statement.values(true).next().done).to.be.true
+    })
+
+    it(".\"member\"", () => {
+      const statement = compile('$."thing\\tbrick"')
+      const objectActual = one(statement.values({"thing\tbrick": 14}))
+      expect(objectActual).to.equal(14)
+      expect(statement.values(undefined).next().done).to.be.true
+      expect(statement.values(null).next().done).to.be.true
+      expect(statement.values([]).next().done).to.be.true
+      expect(statement.values("dogs").next().done).to.be.true
+      expect(statement.values(707).next().done).to.be.true
+      expect(statement.values(true).next().done).to.be.true
+    })
+
+    it("nested member", () => {
+      const statement = compile('$.character.name')
+      const objectActual = one(statement.values({character: {name: "Constance"}}))
+      expect(objectActual).to.equal("Constance")
+    })
+
+    it("strict .member", () => {
+      const statement = compile('strict $.thing')
+      let objectActual = one(statement.values({thing: []}))
+      expect(objectActual).to.deep.equal([])
+      objectActual = one(statement.values({thing: "bird"}))
+      expect(objectActual).to.equal("bird")
+      expect(() => one(statement.values({not: "thing"}))).to.throw
+      expect(() => one(statement.values(undefined))).to.throw
+      expect(() => one(statement.values(null))).to.throw
+      expect(() => one(statement.values([]))).to.throw
+      expect(() => one(statement.values("dogs"))).to.throw
+      expect(() => one(statement.values(707))).to.throw
+      expect(() => one(statement.values(true))).to.throw
+    })
+
+    it("supports iterator values", () => {
+      const statement = compile('$[*].a')
+      const arrayDates = statement.values([{a: 1}, {a: 2}, {a: {a: 5}}])
+      expect(Array.from(arrayDates)).to.deep.equal([1, 2, {a: 5}])
+    })
+  })
+
+  describe("array accessor", () => {
+    it("single elements", () => {
+      // tests $.size() which is out of bounds, but in lax mode, ignores the access
+      const statement = compile('$[0,4,last,$.size()]')
+      const actualArray = Array.from(statement.values(["a", "b", "c", "d", [66,77], "f", "g", "h"]))
+      expect(actualArray).to.deep.equal(["a", [66,77], "h"])
+    })
+
+    it("rejects out-of-bounds array access in strict mode", () => {
+      const statement = compile('strict $[100]')
+      expect(() => one(statement.values(["tea", "Cookies"]))).to.throw
+    })
+
+    it("auto-wraps non-arrays in lax mode", () => {
+      const statement = compile('$[last]')
+      const actual = one(statement.values("coffee"))
+      expect(actual).to.equal("coffee")
+    })
+
+    it("rejects non-arrays in strict mode", () => {
+      const statement = compile('strict $[last]')
+      expect(() => one(statement.values("tea"))).to.throw
+    })
+
+    it("range elements", () => {
+      const statement = compile('$[1 to 3]')
+      const actualArray = Array.from(statement.values(["a", "b", "c", "d", [66,77]]))
+      expect(actualArray).to.deep.equal(["b", "c", "d"])
+    })
+
+    it("unwraps lax", () => {
+      const statement = compile('$.phones.type')
+      const data = {phones: [
+          {type: "cell", number: "abc-defg"},
+          {number: "pqr-wxyz"},
+          {type: "home", number: "hij-klmn"}
+        ]}
+      const actual = Array.from(statement.values(data))
+      expect(actual).to.deep.equal(["cell", "home"])
+    })
+
+    it("nested array unwrapping", () => {
+      const statement = compile('$.phones[last]')
+      const data = [
+        { name: "Fred", phones: [ "372-0453", "558-9345"] },
+        { name: "Manjit", phones: "906-2051" }
+      ]
+      const actual = Array.from(statement.values(data))
+      expect(actual).to.deep.equal(["558-9345", "906-2051"])
+    })
+
+    it("does not unwrap strict", () => {
+      const statement = compile('strict $.phones.type')
+      const data = { name: "Fred", phones: [
+          { type: "home", number: "372-0453" },
+          { type: "work", number: "506-2051" }
+        ] }
+      expect(() => one(statement.values(data))).to.throw
+    })
+
+    it("nested elements", () => {
+      // $[last] is [1, 2], and [1] is 2
+      // So get [0, 2]
+      const statement = compile('$[0,$[last][1]]')
+      const actualArray = Array.from(statement.values([27, "testy", true, [1, 2]]))
+      expect(actualArray).to.deep.equal([27, true])
+    })
+  })
+
   describe("README samples", () => {
     it("Usage section", () => {
       const statement = compile('$.name')
@@ -535,7 +756,7 @@ describe("Statement tests", () => {
       expect(Array.from(existsIterator)).to.deep.equal([true, true, false])
 
 // values()
-      const valuesIterator = statement.values(data[Symbol.iterator]())
+      const valuesIterator = statement.values(data.values())
       expect(Array.from(valuesIterator)).to.deep.equal(['scripty', 'readme'])
     })
 

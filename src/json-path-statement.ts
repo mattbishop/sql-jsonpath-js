@@ -4,8 +4,8 @@ import {IteratorWithOperators} from "iterare/lib/iterate.js"
 
 import {type CodegenContext, newCodegenVisitor} from "./codegen-visitor.ts"
 import {ƒBase} from "./ƒ-base.ts"
-import {DefaultOnEmptyIterator, DefaultOnErrorIterator, EMPTY_ITERATOR, isIterableInput, one} from "./iterators.ts"
-import type {Input, NamedVariables, SqlJsonPathStatement, StatementConfig} from "./json-path.ts"
+import {DefaultOnEmptyIterator, DefaultOnErrorIterator, isIterableInput, one, SingletonIterator} from "./iterators.ts"
+import type {Input, NamedVariables, SqlJsonPathStatement, ValuesConfig} from "./json-path.ts"
 import {JsonPathParser} from "./parser.ts"
 import {allTokens} from "./tokens.ts"
 
@@ -60,53 +60,49 @@ export function createFunction({source, lax, scope}: CodegenContext): SJPFn {
 }
 
 
-/**
- * @internal
- */
+/** @internal */
 export function createStatement(text: string): SqlJsonPathStatement {
   const ctx = generateFunctionSource(text)
-  const find = createFunction(ctx)
+  const fn = createFunction(ctx)
 
   return {
     mode:     ctx.lax ? "lax" : "strict",
     source:   text,
     fnSource: ctx.source,
 
-    exists<T>(input: Input<T>, config: StatementConfig<boolean> = {}): boolean | IterableIterator<boolean> {
+    exists(input, config = {}): boolean | IterableIterator<boolean> {
       const {variables} = config
-      // iterate through the inputs one at a time and test them against find()
-      // because ƒ.filter() will omit the exists == false elements
-      const existsƒ = (i: unknown) => !find(i, variables).next().done
-      const iterator = defaultsIterator(
-          wrapInput(input).map(existsƒ),
-          config)
+      // iterate through the inputs one at a time and test them against fn()
+      // filter() will omit the exists == false elements, and the caller needs to know this
+      const existsƒ = (i: unknown) => !fn(i, variables).next().done
+      const iterator = iterate(toIterator(input))
+            .map(existsƒ)
 
+      // return the shape that matches input
       return isIterableInput(input)
-        ? iterator
+        ? iterator as IterableIterator<boolean>
         : one(iterator) ?? false
     },
 
-    values<T>(input: Input<T>, config: StatementConfig = {}): IterableIterator<unknown> {
+    values<T>(input: Input<T>, config: ValuesConfig = {}): IterableIterator<unknown> {
       const {variables} = config
-      const iterator = find(wrapInput(input), variables)
-        .filter((v) => v !== EMPTY_ITERATOR)
-      return defaultsIterator(iterator, config)
+      const valuesƒ = (i: unknown) => fn(i, variables)
+      const valuesIterator = iterate(toIterator(input))
+        .map(valuesƒ)
+        .flatten()
+      return defaultsIterator(valuesIterator, config) as IterableIterator<unknown>
     }
   }
 }
 
-
-function wrapInput<T>(input: any): IteratorWithOperators<T> {
-  // arrays are iterable, but treat them as singleton inputs
-  const iterator = isIterableInput(input)
-      ? input
-      : [input]
-  return iterate(iterator)
+function toIterator<T>(input: Input<T>): Iterator<T> {
+  return isIterableInput(input)
+    ? input[Symbol.iterator]()
+    : new SingletonIterator<T>(input as T)
 }
 
 
-function defaultsIterator<T>(input: Iterator<T>, config: StatementConfig<T>): IteratorWithOperators<T> {
-  let iterator = input
+function defaultsIterator<T>(iterator: Iterator<T>, config: ValuesConfig<T>): Iterator<T> {
   const {defaultOnEmpty, defaultOnError} = config
   // test against undefined so statements can default to false, "", 0, and other truthy values.
   if (defaultOnError !== undefined) {
@@ -115,7 +111,5 @@ function defaultsIterator<T>(input: Iterator<T>, config: StatementConfig<T>): It
   if (defaultOnEmpty !== undefined) {
     iterator = new DefaultOnEmptyIterator<T>(defaultOnEmpty, iterator)
   }
-  return iterator instanceof IteratorWithOperators
-    ? iterator
-    : iterate(iterator)
+  return iterator
 }

@@ -28,6 +28,10 @@ type StrictConfig = {
 }
 
 
+const KV_INDEX = "KV-index"
+
+const NO_VALUE = Symbol.for("No Value")
+
 /** @internal */
 export type TemporalType =
     Temporal.PlainDateTime
@@ -143,7 +147,7 @@ export class ƒBase {
    * @param strict strict config, if any.
    * @private
    */
-  private _wrap(input: unknown, strict?: StrictConfig): Array<unknown> {
+  private _toArray(input: unknown, strict?: StrictConfig): Array<unknown> {
     this._checkStrict(input, strict)
     if (ƒBase._isSeq(input)) {
       return input.map((v) => Array.isArray(v) ? v : [v])
@@ -156,17 +160,15 @@ export class ƒBase {
 
   /**
    * Turn any input, like an array, into an iterator. Only used in lax mode.
-   * @param input The input to unwrap.
+   * @param input The input to iterate.
    * @param strict strict config, if any.
    * @private
    */
-  private _unwrap(input: unknown, strict?: StrictConfig): Seq<unknown> {
+  private _toIterator(input: unknown, strict?: StrictConfig): Seq<unknown> {
     if (this.lax) {
       return ƒBase._toSeq(input)
     }
-
     this._checkStrict(input, strict)
-
     return ƒBase._isSeq(input)
       ? input
       : iterate([input])
@@ -191,7 +193,7 @@ export class ƒBase {
       : Pred.FALSE
   }
 
-  private static _objectValues(input: unknown): Seq<unknown> {
+  private static _objectValues(input: unknown): Iterator<unknown> {
     return ƒBase._isObject(input)
       ? iterate(Object.values(input))
       : EMPTY_ITERATOR
@@ -337,11 +339,13 @@ export class ƒBase {
   }
 
   keyvalue(input: unknown): Seq<KeyValue> {
-    const objects = this._unwrap(input, {test: ƒBase._isObject, error: "keyvalue() param must be an object."})
-    let id = 0
+    const objects = this._toIterator(input, {test: ƒBase._isObject, error: "keyvalue() param must be an object."})
     const mapƒ = (row: unknown) => {
       if (ƒBase._isObject(row)) {
-        return ƒBase._toKV(row, id++)
+        const id = this.scope.get(KV_INDEX) as number ?? 0
+        // Loop back around to 0
+        this.scope.set(KV_INDEX, id === Number.MAX_SAFE_INTEGER ? 0 : id + 1)
+        return ƒBase._toKV(row, id)
       }
       throw new Error(`keyvalue() param must have object values, found ${JSON.stringify(row)}.`)
     }
@@ -350,7 +354,7 @@ export class ƒBase {
 
 
   private _dotStar(input: unknown): Seq<unknown> {
-    return this._unwrap(input, { test: ƒBase._isObject, error: ".* can only be applied to an object." })
+    return this._toIterator(input, { test: ƒBase._isObject, error: ".* can only be applied to an object." })
         .map(ƒBase._objectValues)
         .flatten()
   }
@@ -376,15 +380,15 @@ export class ƒBase {
       return obj[member]
     }
     if (this.lax) {
-      return EMPTY_ITERATOR
+      return NO_VALUE
     }
-    throw new Error(`Object does not contain key ${member}, in strict mode.`)
+    throw new Error(`Object does not contain key '${member}', in strict mode.`)
   }
 
   private _member(input: unknown, member: string): Seq<unknown> {
-    return this._unwrap(input, { test: ƒBase._isObject, error: ".member can only be applied to an object." })
+    return this._toIterator(input, { test: ƒBase._isObject, error: ".member can only be applied to an object." })
       .map((i) => this._getMember(i, member))
-      .filter((i) => i !== EMPTY_ITERATOR)
+      .filter((i) => i !== NO_VALUE)
   }
 
   member(input: unknown, member: string): Seq<unknown> {
@@ -400,13 +404,13 @@ export class ƒBase {
         : value
     }
     if (this.lax) {
-      return EMPTY_ITERATOR
+      return NO_VALUE
     }
     throw new Error (`In 'strict' mode. Array subscript [${pos}] is out of bounds.`)
   }
 
   private _array(input: unknown, subscripts: any[]): Seq<any> {
-    const array = this._wrap(input, { test: Array.isArray, error: "Array accessors can only be applied to an array." })
+    const array = this._toArray(input, { test: Array.isArray, error: "Array accessors can only be applied to an array." })
     return iterate(subscripts)
       .map((sub) => {
         const subType = ƒBase._type(sub)
@@ -420,7 +424,9 @@ export class ƒBase {
           return sub.map((s) => this._maybeElement(array, s))
         }
         throw new Error("array accessor must be numbers")
-      }).flatten()
+      })
+      .filter((i) => i !== NO_VALUE)
+      .flatten()
   }
 
   array(input: unknown, subscripts: unknown[]): Seq<any> {
@@ -460,7 +466,7 @@ export class ƒBase {
   }
 
   filter(input: any, filterExp: Predƒ): Seq<unknown> {
-    return this._unwrap(input)
+    return this._toIterator(input)
       .filter((i) => ƒBase._filter(i, filterExp))
   }
 
@@ -562,12 +568,12 @@ export class ƒBase {
       if (ƒBase._isSeq(result)) {
         const next = result.next()
         value = next.done
-          ? EMPTY_ITERATOR
+          ? NO_VALUE
           : next.value
       } else {
         value = result
       }
-      return ƒBase._toPred(value !== EMPTY_ITERATOR)
+      return ƒBase._toPred(value !== NO_VALUE)
     } catch (e) {
       return Pred.UNKNOWN
     }

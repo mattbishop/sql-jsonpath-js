@@ -1,42 +1,57 @@
-import {iterate} from "iterare"
 import {isIterable} from "iterare/lib/utils.js"
+import type {Input} from "./json-path.ts";
 
 
 /**
  * Arrays are iterable, but for SQL JSONPath they are considered individual elements, unless unwrapped later by
  * a function.
  * @internal */
-export function isIterableInput(input: any): boolean {
+export function isIterableInput<T>(input: Input<T>): input is Iterable<T> {
   return typeof input !== "string" && !Array.isArray(input) && isIterable(input)
 }
 
 
-/**
- * Needs to be an IteratorWithOperators for equality testing.
- * @internal
- */
-export const EMPTY_ITERATOR = iterate([])
+/** @internal */
+export const EMPTY_ITERATOR = [][Symbol.iterator]()
 
 
 /** @internal */
+export class SingletonIterator<T> implements Iterator<T> {
+  constructor(private readonly value: T) { }
+
+  private done = false
+
+  next() {
+    if (this.done) {
+      return {
+        done:   true,
+        value:  undefined as T
+      }
+    }
+    this.done = true
+    return {
+      done:   false,
+      value:  this.value
+    }
+  }
+}
+
+
+/** Return a default value if the iterator has no values (done at the start) @internal */
 export class DefaultOnEmptyIterator<T> implements Iterator<T> {
 
   private started = false
 
-  constructor(private readonly  value:    T,
-              private           iterator: Iterator<T>) { }
+  constructor(private readonly  defaultValue: T,
+              private           iterator:     Iterator<T>) { }
 
   next(): IteratorResult<T> {
     if (!this.started) {
       this.started = true
       const first = this.iterator.next()
-      if (first.done) {
-        // iterator is empty, vend the default value
-        this.iterator = [this.value][Symbol.iterator]()
-      } else {
-        // iterator has at least one value, so vend it back.
-        return first
-      }
+      return first.done
+        ? {value: this.defaultValue, done: true}
+        : first;
     }
     return this.iterator.next()
   }
@@ -48,14 +63,14 @@ export class DefaultOnEmptyIterator<T> implements Iterator<T> {
  */
 export class DefaultOnErrorIterator<T> implements Iterator<T> {
 
-  constructor(private readonly value:     T,
-              private readonly iterator:  Iterator<T>) { }
+  constructor(private readonly defaultValue:  T,
+              private readonly iterator:      Iterator<T>) { }
 
   next(): IteratorResult<T> {
     try {
       return this.iterator.next()
     } catch (e: any) {
-      return {value: this.value, done: false}
+      return {value: this.defaultValue, done: false}
     }
   }
 }
@@ -64,8 +79,8 @@ export class DefaultOnErrorIterator<T> implements Iterator<T> {
 /**
  * Pulls one element from an iterator. If no elements are available, returns undefined.
  *
- * @param iter an iterable iterator to consume from.
+ * @param iter an iterator to consume from.
  */
-export function one<T>(iter: IterableIterator<T>): T | undefined {
+export function one<T>(iter: Iterator<T>): T | undefined {
   return iter.next().value
 }
