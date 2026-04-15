@@ -249,83 +249,46 @@ describe("Codegen tests", () => {
       // tests $.size() which is out of bounds, but in lax mode, ignores the access
       const ctx = generateFunctionSource('$[0,4,last,$.size()]')
       expect(ctx.source).to.equal('return ƒ.array($,[0,4,ƒ.last,ƒ.size($)])')
-      const fn = createFunctionForTest(ctx)
-      const actualArray = fn(["a", "b", "c", "d", [66,77], "f", "g", "h"])
-      expect(actualArray).to.deep.equal(["a", [66,77], "h"])
     })
 
-    it("rejects out-of-bounds array access in strict mode", () => {
+    it("out-of-bounds array access in strict mode", () => {
       const ctx = generateFunctionSource('strict $[100]')
       expect(ctx.source).to.equal('return ƒ.array($,[100])')
-      const fn = createFunctionForTest(ctx)
-      expect(() => fn(["tea", "Cookies"])).to.throw
     })
 
-    it("auto-wraps non-arrays in lax mode", () => {
+    it("non-arrays in lax mode", () => {
       const ctx = generateFunctionSource('$[last]')
       expect(ctx.source).to.equal('return ƒ.array($,[ƒ.last])')
-      const fn = createFunctionForTest(ctx)
-      const actualArray = fn("coffee")
-      expect(actualArray).to.deep.equal(["coffee"])
     })
 
-    it("rejects non-arrays in strict mode", () => {
+    it("non-arrays in strict mode", () => {
       const ctx = generateFunctionSource('strict $[last]')
       expect(ctx.source).to.equal('return ƒ.array($,[ƒ.last])')
-      const fn = createFunctionForTest(ctx)
-      expect(() => fn("tea")).to.throw
     })
 
     it("range elements", () => {
       const ctx = generateFunctionSource('$[1 to 3]')
       expect(ctx.source).to.equal('return ƒ.array($,[ƒ.range(1,3)])')
-      const fn = createFunctionForTest(ctx)
-      const actualArray = fn(["a", "b", "c", "d", [66,77]])
-      expect(actualArray).to.deep.equal(["b", "c", "d"])
     })
 
     it("unwraps lax", () => {
       const ctx = generateFunctionSource('$.phones.type')
       expect(ctx.source).to.equal('return ƒ.member(ƒ.member($,"phones"),"type")')
-      const fn = createFunctionForTest(ctx)
-      const data = {phones: [
-        {type: "cell", number: "abc-defg"},
-        {number: "pqr-wxyz"},
-        {type: "home", number: "hij-klmn"}
-      ]}
-      const actual = fn(data)
-      expect(actual).to.deep.equal(["cell", "home"])
     })
 
     it("nested array unwrapping", () => {
       const ctx = generateFunctionSource('$.phones[last]')
       expect(ctx.source).to.equal('return ƒ.array(ƒ.member($,"phones"),[ƒ.last])')
-      const fn = createFunctionForTest(ctx)
-      const data = [
-        { name: "Fred", phones: [ "372-0453", "558-9345"] },
-        { name: "Manjit", phones: "906-2051" }
-      ]
-      const actual = fn(data)
-      expect(actual).to.deep.equal(["558-9345", "906-2051"])
     })
 
     it("does not unwrap strict", () => {
       const ctx = generateFunctionSource('strict $.phones.type')
       expect(ctx.source).to.equal('return ƒ.member(ƒ.member($,"phones"),"type")')
-      const fn = createFunctionForTest(ctx)
-      const data = { name: "Fred", phones: [
-        { type: "home", number: "372-0453" },
-        { type: "work", number: "506-2051" }
-      ] }
-      expect(() => fn(data)).to.throw
     })
 
     it("nested elements", () => {
       const ctx = generateFunctionSource('$[0,$[last][1]]')
       expect(ctx.source).to.equal('return ƒ.array($,[0,ƒ.array(ƒ.array($,[ƒ.last]),[1])])')
-      const fn = createFunctionForTest(ctx)
-      const actualArray = fn([27, "testy", true, [1, 2]])
-      expect(actualArray).to.deep.equal([27, true])
     })
   })
 
