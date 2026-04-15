@@ -10,6 +10,7 @@ import {Temporal} from "temporal-polyfill"
 // testing from /dist to ensure the exported interface is correct
 import {compile, one} from "../dist/index.js"
 import type {SqlJsonPathStatement} from "../dist/index.d.ts"
+import {generateFunctionSource} from "../src/json-path-statement";
 
 
 describe("Statement tests", () => {
@@ -738,6 +739,57 @@ describe("Statement tests", () => {
       const actualArray = Array.from(statement.values([27, "testy", true, [1, 2]]))
       expect(actualArray).to.deep.equal([27, true])
     })
+  })
+
+  describe("arithmetic", () => {
+    it("can negate a value", () => {
+      const statement = compile('-$.x')
+      const actualNumber = statement.values({x: 100})
+      expect(one(actualNumber)).to.equal(-100)
+    })
+
+    it("can triple-negate a value", () => {
+      const statement = compile('---30')
+      const actualNumber = statement.values(null)
+      expect(one(actualNumber)).to.equal(-30)
+    })
+
+    it("can add to a number", () => {
+      const statement = compile('$ + 4')
+      const actualNumber = statement.values(10)
+      expect(one(actualNumber)).to.equal(14)
+    })
+
+    it("can multiply a number", () => {
+      const statement = compile('$ * 10')
+      const actualNumber = statement.values(2)
+      expect(one(actualNumber)).to.equal(20)
+    })
+
+    it("can modulo an array of numbers", () => {
+      const statement = compile('$ ? (@ % 2 == 0)')
+      const actual = statement.values([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+      expect(Array.from(actual)).to.deep.equal([0, 2, 4, 6, 8])
+    })
+
+    it("can divide by a function", () => {
+      const statement = compile('$[0] / $.size()')
+      const actualNumber = statement.values([20, 0])
+      expect(one(actualNumber)).to.equal(10)
+    })
+
+    it("chain arithmetic statements", () => {
+      const statement = compile('$[0] / ($.size() + 2)')
+      const actualNumber = statement.values([20, 0])
+      expect(one(actualNumber)).to.equal(5)
+    })
+
+    it("chain arithmetic statements again", () => {
+      const statement = compile('$[0] / 5 * $.size() + 9 - 1')
+      const actualNumber = statement.values([20, 3])
+      expect(one(actualNumber)).to.equal(16)
+    })
+
   })
 
   describe("README samples", () => {
