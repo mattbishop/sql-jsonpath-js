@@ -10,7 +10,6 @@ import {Temporal} from "temporal-polyfill"
 // testing from /dist to ensure the exported interface is correct
 import {compile, one} from "../dist/index.js"
 import type {SqlJsonPathStatement} from "../dist/index.d.ts"
-import {generateFunctionSource} from "../src/json-path-statement";
 
 
 describe("Statement tests", () => {
@@ -92,7 +91,7 @@ describe("Statement tests", () => {
 
   it("unwraps sequence of arrays", () => {
     const stmt = compile('$.things[*][*]')
-    const actual = stmt.values({things:[["matt", true], 100, ["mary", "abby"], [{a: 4}]]})
+    const actual = stmt.values({things: [["matt", true], 100, ["mary", "abby"], [{a: 4}]]})
     expect(one(actual)).to.equal("matt")
     expect(one(actual)).to.be.true
     expect(one(actual)).to.equal(100)
@@ -104,7 +103,7 @@ describe("Statement tests", () => {
 
   it("strictly unwraps sequence of arrays", () => {
     const stmt = compile('strict $.things[*][*]')
-    const actual = stmt.values({things:[["matt", true], [1, 2], [{a: 4}]]})
+    const actual = stmt.values({things: [["matt", true], [1, 2], [{a: 4}]]})
     expect(one(actual)).to.equal("matt")
     expect(one(actual)).to.be.true
     expect(one(actual)).to.equal(1)
@@ -115,8 +114,8 @@ describe("Statement tests", () => {
 
   it("searches array with an named array value on right side of comparison", () => {
     const stmt = compile('$.players ? (@ == $names[*])')
-    const variables = {names:["mary", "angie"]}
-    const actual = stmt.values({players:["matt", "angie", "mark", "mary", "abby"]}, {variables})
+    const variables = {names: ["mary", "angie"]}
+    const actual = stmt.values({players: ["matt", "angie", "mark", "mary", "abby"]}, {variables})
     expect(one(actual)).to.equal("angie")
     expect(one(actual)).to.equal("mary")
     expect(actual.next().done).to.be.true
@@ -132,8 +131,8 @@ describe("Statement tests", () => {
 
   it("searches array with an named array value on right side of comparison", () => {
     const stmt = compile('$.players ? (@ == $names)')
-    const variables = {names:["mary", "angie"]}
-    const actual = stmt.values({players:["matt", "angie", "mark", "mary", "abby"]}, {variables})
+    const variables = {names: ["mary", "angie"]}
+    const actual = stmt.values({players: ["matt", "angie", "mark", "mary", "abby"]}, {variables})
     expect(one(actual)).to.equal("angie")
     expect(one(actual)).to.equal("mary")
     expect(actual.next().done).to.be.true
@@ -141,15 +140,15 @@ describe("Statement tests", () => {
 
   it("strict does not unwrap named array, but also does not throw an error.", () => {
     const stmt = compile('strict $.players ? ($names == @)')
-    const variables = {names:["mary", "angie"]}
-    const actual = stmt.values({players:["matt", "angie", "mark", "mary", "abby"]}, {variables})
+    const variables = {names: ["mary", "angie"]}
+    const actual = stmt.values({players: ["matt", "angie", "mark", "mary", "abby"]}, {variables})
     expect(actual.next().done).to.be.true
   })
 
   it("searches array with an unwrapped named array value on left side of comparison", () => {
     const stmt = compile('$.players ? ($names == @)')
-    const variables = {names:["mary", "angie"]}
-    const actual = stmt.values({players:["matt", "angie", "mark", "mary", "abby"]}, {variables})
+    const variables = {names: ["mary", "angie"]}
+    const actual = stmt.values({players: ["matt", "angie", "mark", "mary", "abby"]}, {variables})
     expect(one(actual)).to.equal("angie")
     expect(one(actual)).to.equal("mary")
     expect(actual.next().done).to.be.true
@@ -157,8 +156,8 @@ describe("Statement tests", () => {
 
   it("searches array with a specific element in a named array value", () => {
     const stmt = compile('$.players ? ($names.first[1] == @)')
-    const variables = {names:{first:["mary", "angie"]}}
-    const actual = stmt.values({players:["matt", "angie", "mark", "mary", "abby"]}, {variables})
+    const variables = {names: {first: ["mary", "angie"]}}
+    const actual = stmt.values({players: ["matt", "angie", "mark", "mary", "abby"]}, {variables})
     expect(one(actual)).to.equal("angie")
     expect(actual.next().done).to.be.true
   })
@@ -179,6 +178,164 @@ describe("Statement tests", () => {
     const stmt = compile('$ ? (@.datetime() == $a)')
     const actual = stmt.exists("2020-02-01", {variables: {a: Temporal.PlainDate.from("2020-02-01")}})
     expect(actual).to.be.true
+  })
+
+
+  describe("filter", () => {
+    describe("lax compare", () => {
+      it("can filter comparison predicates", () => {
+        const statement = compile('$ ? (@ == 1)')
+        const actual = statement.values(1)
+        expect(one(actual)).to.equal(1)
+      })
+
+      it("can filter comparison ! predicates", () => {
+        const statement = compile('$ ? (!(@ == 1))')
+        const actual = statement.values(3)
+        expect(one(actual)).to.equal(3)
+      })
+
+      it("can filter comparison predicate iterators", () => {
+        const statement = compile('$ ? (@[*] == 1)')
+        const actual = statement.values([[1], [21, 7], [5, 1]])
+        expect(Array.from(actual)).to.deep.equal([[1], [5, 1]])
+      })
+
+      it("can filter value accessor predicates", () => {
+        const statement = compile('$ ? (@.sleepy == true)')
+        const actual = statement.values([{sleepy: true}, {sleepy: false}, {sleepy: "yes"}, {not: 1}])
+        expect(Array.from(actual)).to.deep.equal([{sleepy: true}])
+      })
+    })
+
+    describe("strict filter", () => {
+      it("filter does not unwrap arrays in strict mode, and does not throw errors", () => {
+        const statement = compile('strict $ ? (@.sleepy == true)')
+        const actual = statement.values([{sleepy: true}, {sleepy: false}, {sleepy: "yes"}, {not: 1}])
+        expect(Array.from(actual)).to.deep.equal([])
+      })
+
+      it("can filter predicate", () => {
+        const statement = compile('strict $ ? (@ == 1)')
+        const actual = statement.values(1)
+        expect(one(actual)).to.equal(1)
+      })
+    })
+
+    describe("exists", () => {
+      it("can filter predicates on members", () => {
+        const statement = compile('$ ? (exists(@.z))')
+        const actual = statement.values([{z: true}, {y: false}, {a: "yes"}])
+        expect(Array.from(actual)).to.deep.equal([{z: true}])
+      })
+
+      it("can filter not predicates on members", () => {
+        const statement = compile('$ ? (!exists(@.z))')
+        const actual = statement.values([{z: true}, {y: false}, {a: "yes"}])
+        expect(Array.from(actual)).to.deep.equal([{y: false}, {a: "yes"}])
+      })
+
+      it("can filter predicates and extract members", () => {
+        const statement = compile('$ ? (exists(@.z)).z')
+        const actual = statement.values([{z: 121.2}, {y: -99.828}, {a: "yes"}])
+        expect(Array.from(actual)).to.deep.equal([121.2])
+      })
+
+      it("can filter predicate iterators", () => {
+        const statement = compile('$ ? (exists(@[*].z))')
+        const actual = statement.values([[{z: true}, {y: false}], [{a: "yes"}], [{q: 6, z: 1}]])
+        expect(Array.from(actual)).to.deep.equal([[{z: true}, {y: false}], [{q: 6, z: 1}]])
+      })
+    })
+
+    describe("'is unknown'", () => {
+      it("can filter 'is unknown' predicates", () => {
+        const statement = compile('$ ? ((@.sleepy == true) is unknown)')
+        const actual = statement.values([{sleepy: 77}, {sleepy: true}, {sleepy: false}, {sleepy: "yes"}])
+        expect(Array.from(actual)).to.deep.equal([{sleepy: 77}, {sleepy: "yes"}])
+      })
+
+      it("can filter 'is unknown' predicate iterators", () => {
+        const statement = compile('$ ? ((@[*] == true) is unknown)')
+        const actual = statement.values([[false, 100], [true], ["baby", true, {"g": 22}]])
+        expect(Array.from(actual)).to.deep.equal([[false, 100], ["baby", true, {"g": 22}]])
+      })
+    })
+
+    it("can filter not 'is unknown' predicate iterators", () => {
+      const statement = compile('$ ? (!(@[*] == true) is unknown)')
+      const actual = statement.values([[false, 100], [true], ["baby", true, {"g": 22}]])
+      expect(Array.from(actual)).to.deep.equal([[false, 100], [true], ["baby", true, {"g": 22}]])
+    })
+
+    it("can filter multiple predicates with && and ||", () => {
+      const statement = compile('$ ? ((@.a==1 || @.b==2 || @.b==3) && @.c=="hi")')
+      const actual = statement.values([{a: 1, c: "hi"}, {b: 2, c: "hi"}, {b: 3, c: "hi"}, {a: "yes"}, {a: 4, c: "hi"}])
+      expect(Array.from(actual)).to.deep.equal([{a: 1, c: "hi"}, {b: 2, c: "hi"}, {b: 3, c: "hi"}])
+    })
+
+    describe("starts with", () => {
+      it("can filter 'starts with' predicates", () => {
+        const statement = compile('$ ? (@ starts with "a")')
+        const actual = statement.values(["apple", "orange", "argon"])
+        expect(Array.from(actual)).to.deep.equal(["apple", "argon"])
+      })
+
+      it("can filter iterator values", () => {
+        const statement = compile('$ ? (@[*] starts with "m")')
+        const actual = statement.values([["matt"], ["arjun", "mark", "mary"], ["abby"]])
+        expect(Array.from(actual)).to.deep.equal([["matt"], ["arjun", "mark", "mary"]])
+      })
+    })
+
+    describe("can filter 'like_regex' predicates", () => {
+      it("without flags", () => {
+        const statement = compile('$ ? (@ like_regex "\\\\d+")')
+        const actual = statement.values(["8854", "bear"])
+        expect(Array.from(actual)).to.deep.equal(["8854"])
+      })
+
+      it("with flags", () => {
+        const statement = compile('$ ? (@ like_regex "court" flag "i")')
+        const actual = statement.values(["cOuRt", "COURT", 17])
+        expect(Array.from(actual)).to.deep.equal(["cOuRt", "COURT"])
+      })
+
+      it("can filter an iterator of values", () => {
+        const statement = compile('$ ? (@[*] like_regex "\\\\d+")')
+        const actual = statement.values([true, ["bear", "8854"], ["not a number"], ["1", "-2"]])
+        expect(Array.from(actual)).to.deep.equal([["bear", "8854"], ["1", "-2"]])
+      })
+    })
+
+    it("chains filters", () => {
+      const data = [[{"z": true}, {"y": false}], [{"a": "yes"}], [{"z": 1}]]
+      let statement = compile('$ ? (exists(@[*].z))')
+      const actualExists = statement.values(data)
+      expect(Array.from(actualExists)).to.deep.equal([[{"z": true}, {"y": false}], [{"z": 1}]])
+
+      statement = compile('$ ? (@.size() > 0)')
+      const actualSize = statement.values(data)
+      expect(Array.from(actualSize)).to.deep.equal(data)
+
+      statement = compile('$ ? (exists(@[*].z)) ? (@.size() > 0)')
+      const actualChain = statement.values(data)
+      expect(Array.from(actualChain)).to.deep.equal([{"z": true}, {"y": false}, {"z": 1}])
+    })
+  })
+
+  describe("strict filter", () => {
+    it("filter does not unwrap arrays in strict mode, and does not throw errors", () => {
+      const statement = compile('strict $ ? (@.sleepy == true)')
+      const actual = statement.values([{sleepy: true}, {sleepy: false}, {sleepy: "yes"}, {not: 1}])
+      expect(Array.from(actual)).to.deep.equal([])
+    })
+
+    it("can filter predicate", () => {
+      const statement = compile('strict $ ? (@ == 1)')
+      const actual = statement.values(1)
+      expect(one(actual)).to.deep.equal(1)
+    })
   })
 
   describe("compares arrays", () => {
@@ -266,6 +423,8 @@ describe("Statement tests", () => {
       ])
     })
   })
+
+
 
   describe("size()", () => {
     it ("single values", () => {

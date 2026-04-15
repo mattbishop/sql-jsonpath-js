@@ -1,20 +1,7 @@
 import {expect} from "chai"
 import {describe, it} from "node:test"
 
-import type {CodegenContext} from "../src/codegen-visitor.ts"
-import type {NamedVariables} from "../src/json-path.ts"
-import {createFunction, generateFunctionSource} from "../src/json-path-statement.ts"
-
-
-/**
- TODO move all usages of this into statement tests. This test is just supposed to be about codegen.
- @deprecated
- */
-function createFunctionForTest(ctx: CodegenContext): ($: any, $named?: NamedVariables) => any[] {
-  const fn = createFunction(ctx)
-  // this is different from createStatement. This does not wrap the input in an iterator.
-  return ($: any, $named?: NamedVariables) => fn($, $named).toArray()
-}
+import {generateFunctionSource} from "../src/json-path-statement.ts"
 
 
 describe("Codegen tests", () => {
@@ -339,33 +326,21 @@ describe("Codegen tests", () => {
       it("can filter comparison predicates", () => {
         const ctx = generateFunctionSource('$ ? (@ == 1)')
         expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare("==",v,1))')
-        const fn = createFunctionForTest(ctx)
-        const actual = fn(1)
-        expect(actual).to.deep.equal([1])
       })
 
       it("can filter comparison ! predicates", () => {
         const ctx = generateFunctionSource('$ ? (!(@ == 1))')
         expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.not(ƒ.compare("==",v,1)))')
-        const fn = createFunctionForTest(ctx)
-        const actual = fn(3)
-        expect(actual).to.deep.equal([3])
       })
 
       it("can filter comparison predicate iterators", () => {
         const ctx = generateFunctionSource('$ ? (@[*] == 1)')
         expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare("==",ƒ.boxStar(v),1))')
-        const fn = createFunctionForTest(ctx)
-        const actual = fn([[1], [21, 7], [5, 1]])
-        expect(actual).to.deep.equal([[1], [5, 1]])
       })
 
       it("can filter value accessor predicates", () => {
         const ctx = generateFunctionSource('$ ? (@.sleepy == true)')
         expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare("==",ƒ.member(v,"sleepy"),true))')
-        const fn = createFunctionForTest(ctx)
-        const actual = fn([{sleepy: true}, {sleepy: false}, {sleepy: "yes"}, {not: 1}])
-        expect(actual).to.deep.equal([{sleepy: true}])
       })
     })
 
@@ -373,17 +348,11 @@ describe("Codegen tests", () => {
       it("filter does not unwrap arrays in strict mode, and does not throw errors", () => {
         const ctx = generateFunctionSource('strict $ ? (@.sleepy == true)')
         expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare("==",ƒ.member(v,"sleepy"),true))')
-        const fn = createFunctionForTest(ctx)
-        const actual = fn([{sleepy: true}, {sleepy: false}, {sleepy: "yes"}, {not: 1}])
-        expect(actual).to.deep.equal([])
       })
 
       it("can filter predicate", () => {
         const ctx = generateFunctionSource('strict $ ? (@ == 1)')
         expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare("==",v,1))')
-        const fn = createFunctionForTest(ctx)
-        const actual = fn(1)
-        expect(actual).to.deep.equal([1])
       })
     })
 
@@ -391,33 +360,21 @@ describe("Codegen tests", () => {
       it("can filter predicates on members", () => {
         const ctx = generateFunctionSource('$ ? (exists(@.z))')
         expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.exists(()=>(ƒ.member(v,"z"))))')
-        const fn = createFunctionForTest(ctx)
-        const actual = fn([{z: true}, {y: false}, {a: "yes"}])
-        expect(actual).to.deep.equal([{z: true}])
       })
 
       it("can filter not predicates on members", () => {
         const ctx = generateFunctionSource('$ ? (!exists(@.z))')
         expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.not(ƒ.exists(()=>(ƒ.member(v,"z")))))')
-        const fn = createFunctionForTest(ctx)
-        const actual = fn([{z: true}, {y: false}, {a: "yes"}])
-        expect(actual).to.deep.equal([{y: false}, {a: "yes"}])
       })
 
       it("can filter predicates and extract members", () => {
         const ctx = generateFunctionSource('$ ? (exists(@.z)).z')
         expect(ctx.source).to.equal('return ƒ.member(ƒ.filter($,v=>ƒ.exists(()=>(ƒ.member(v,"z")))),"z")')
-        const fn = createFunctionForTest(ctx)
-        const actual = fn([{z: 121.2}, {y: -99.828}, {a: "yes"}])
-        expect(actual).to.deep.equal([121.2])
       })
 
       it("can filter predicate iterators", () => {
         const ctx = generateFunctionSource('$ ? (exists(@[*].z))')
         expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.exists(()=>(ƒ.member(ƒ.boxStar(v),"z"))))')
-        const fn = createFunctionForTest(ctx)
-        const actual = fn([[{z: true}, {y: false}], [{a: "yes"}], [{q: 6, z: 1}]])
-        expect(actual).to.deep.equal([[{z: true}, {y: false}], [{q: 6, z: 1}]])
       })
     })
 
@@ -425,51 +382,33 @@ describe("Codegen tests", () => {
       it("can filter 'is unknown' predicates", () => {
         const ctx = generateFunctionSource('$ ? ((@.sleepy == true) is unknown)')
         expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.isUnknown(ƒ.compare("==",ƒ.member(v,"sleepy"),true)))')
-        const fn = createFunctionForTest(ctx)
-        const actual = fn([{sleepy: 77},{sleepy: true}, {sleepy: false}, {sleepy: "yes"}])
-        expect(actual).to.deep.equal([{sleepy: 77}, {sleepy: "yes"}])
       })
 
       it("can filter 'is unknown' predicate iterators", () => {
         const ctx = generateFunctionSource('$ ? ((@[*] == true) is unknown)')
         expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.isUnknown(ƒ.compare("==",ƒ.boxStar(v),true)))')
-        const fn = createFunctionForTest(ctx)
-        const actual = fn([[false, 100], [true], ["baby", true, {"g": 22}]])
-        expect(actual).to.deep.equal([[false, 100], ["baby", true, {"g": 22}]])
       })
     })
 
     it("can filter not 'is unknown' predicate iterators", () => {
       const ctx = generateFunctionSource('$ ? (!(@[*] == true) is unknown)')
       expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.not(ƒ.isUnknown(ƒ.compare("==",ƒ.boxStar(v),true))))')
-      const fn = createFunctionForTest(ctx)
-      const actual = fn([[false, 100], [true], ["baby", true, {"g": 22}]])
-      expect(actual).to.deep.equal([[false, 100], [true], ["baby", true, {"g": 22}]])
     })
 
     it("can filter multiple predicates with && and ||", () => {
       const ctx = generateFunctionSource('$ ? ((@.a==1 || @.b==2 || @.b==3) && @.c=="hi")')
       expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.and([(ƒ.or([ƒ.compare("==",ƒ.member(v,"a"),1),ƒ.compare("==",ƒ.member(v,"b"),2),ƒ.compare("==",ƒ.member(v,"b"),3)])),ƒ.compare("==",ƒ.member(v,"c"),"hi")]))')
-      const fn = createFunctionForTest(ctx)
-      const actual = fn([{a: 1, c: "hi"}, {b: 2, c: "hi"}, {b: 3, c: "hi"}, {a: "yes"}, {a: 4, c: "hi"}])
-      expect(actual).to.deep.equal([{a: 1, c: "hi"}, {b: 2, c: "hi"}, {b: 3, c: "hi"}])
     })
 
     describe("starts with", () => {
       it("can filter 'starts with' predicates", () => {
         const ctx = generateFunctionSource('$ ? (@ starts with "a")')
         expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.startsWith(v,"a"))')
-        const fn = createFunctionForTest(ctx)
-        const actual = fn(["apple", "orange", "argon"])
-        expect(actual).to.deep.equal(["apple", "argon"])
       })
 
       it("can filter iterator values", () => {
         const ctx = generateFunctionSource('$ ? (@[*] starts with "m")')
         expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.startsWith(ƒ.boxStar(v),"m"))')
-        const fn = createFunctionForTest(ctx)
-        const actual = fn([["matt"], ["arjun", "mark", "mary"], ["abby"]])
-        expect(actual).to.deep.equal([["matt"], ["arjun", "mark", "mary"]])
       })
     })
 
@@ -477,25 +416,16 @@ describe("Codegen tests", () => {
       it("without flags", () => {
         const ctx = generateFunctionSource('$ ? (@ like_regex "\\\\d+")')
         expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.match(v,/\\d+/))')
-        const fn = createFunctionForTest(ctx)
-        const actual = fn(["8854", "bear"])
-        expect(actual).to.deep.equal(["8854"])
       })
 
       it("with flags", () => {
         const ctx = generateFunctionSource('$ ? (@ like_regex "court" flag "i")')
         expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.match(v,/court/i))')
-        const fn = createFunctionForTest(ctx)
-        const actual = fn(["cOuRt", "COURT", 17])
-        expect(actual).to.deep.equal(["cOuRt", "COURT"])
       })
 
       it("can filter an iterator of values", () => {
         const ctx = generateFunctionSource('$ ? (@[*] like_regex "\\\\d+")')
         expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.match(ƒ.boxStar(v),/\\d+/))')
-        const fn = createFunctionForTest(ctx)
-        const actual = fn([true, ["bear", "8854"], ["not a number"], ["1", "-2"]])
-        expect(actual).to.deep.equal([["bear", "8854"], ["1", "-2"]])
       })
 
       it("with wrong flags", () => {
@@ -511,21 +441,12 @@ describe("Codegen tests", () => {
       const data = [[{"z": true}, {"y": false}], [{"a": "yes"}], [{"z": 1}]]
       let ctx = generateFunctionSource('$ ? (exists(@[*].z))')
       expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.exists(()=>(ƒ.member(ƒ.boxStar(v),"z"))))')
-      const existsFn = createFunctionForTest(ctx)
-      const actualExists = existsFn(data)
-      expect(actualExists).to.deep.equal([[{"z": true}, {"y": false}], [{"z": 1}]])
 
       ctx = generateFunctionSource('$ ? (@.size() > 0)')
       expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare(">",ƒ.size(v),0))')
-      const sizeFn = createFunctionForTest(ctx)
-      const actualSize = sizeFn(data)
-      expect(actualSize).to.deep.equal(data)
 
       ctx = generateFunctionSource('$ ? (exists(@[*].z)) ? (@.size() > 0)')
       expect(ctx.source).to.equal('return ƒ.filter(ƒ.filter($,v=>ƒ.exists(()=>(ƒ.member(ƒ.boxStar(v),"z")))),v=>ƒ.compare(">",ƒ.size(v),0))')
-      const chainFn = createFunctionForTest(ctx)
-      const actualChain = chainFn(data)
-      expect(actualChain).to.deep.equal([{"z": true}, {"y": false}, {"z": 1}])
     })
   })
 })

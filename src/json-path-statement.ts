@@ -39,8 +39,7 @@ export function generateFunctionSource(text: string): CodegenContext {
 export type SJPFn = ($: unknown, $named?: NamedVariables) => IteratorWithOperators<unknown>
 
 
-/** @internal */
-export function createFunction({source, lax, scope}: CodegenContext): SJPFn {
+function createFunction({source, lax, scope}: CodegenContext): SJPFn {
   const fn = new Function("ƒ", "$", "$$", source)
   const ƒ = new ƒBase(lax, scope)
 
