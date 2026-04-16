@@ -60,4 +60,96 @@ describe("Temporal parsing", () => {
       expect(value.toString()).to.equal("2024-01-15T12:34:56Z")
     })
   })
+
+  describe("plain times without seconds", () => {
+    it("parses HH:MM as a PlainTime", () => {
+      const value = parse("12:34")
+      expect(value).to.be.instanceOf(Temporal.PlainTime)
+      expect(value.toString()).to.equal("12:34:00")
+    })
+  })
+
+  describe("datetime with space separator and Z", () => {
+    it("parses a space-separated UTC datetime as an Instant", () => {
+      const value = parse("2024-01-15 12:34:56Z")
+      expect(value).to.be.instanceOf(Temporal.Instant)
+      expect(value.toString()).to.equal("2024-01-15T12:34:56Z")
+    })
+  })
+
+  describe("fractional seconds", () => {
+    it("parses an instant with fractional seconds", () => {
+      const value = parse("2024-01-15T12:34:56.789Z")
+      expect(value).to.be.instanceOf(Temporal.Instant)
+      expect(value.toString()).to.equal("2024-01-15T12:34:56.789Z")
+    })
+
+    it("parses a plain time with fractional seconds", () => {
+      const value = parse("12:34:56.789")
+      expect(value).to.be.instanceOf(Temporal.PlainTime)
+      expect(value.toString()).to.equal("12:34:56.789")
+    })
+  })
+
+  describe("whitespace handling", () => {
+    it("rejects values with surrounding whitespace", () => {
+      expect(() => parse(" 2024-01-15 ")).to.throw("Cannot parse:  2024-01-15 ")
+    })
+  })
+
+  describe("leap days", () => {
+    it("accepts a valid leap day", () => {
+      const value = parse("2024-02-29")
+      expect(value).to.be.instanceOf(Temporal.PlainDate)
+      expect(value.toString()).to.equal("2024-02-29")
+    })
+
+    it("rejects an invalid leap day", () => {
+      expect(() => parse("2023-02-29")).to.throw(/Invalid isoDay: 29/)
+    })
+  })
+
+  describe("zero offsets", () => {
+    it("parses +00:00 as an Instant", () => {
+      const value = parse("2024-01-15T12:34:56+00:00")
+      expect(value).to.be.instanceOf(Temporal.Instant)
+      expect(value.toString()).to.equal("2024-01-15T12:34:56Z")
+    })
+
+    it("parses -00:00 as an Instant", () => {
+      const value = parse("2024-01-15T12:34:56-00:00")
+      expect(value).to.be.instanceOf(Temporal.Instant)
+      expect(value.toString()).to.equal("2024-01-15T12:34:56Z")
+    })
+  })
+
+  describe("invalid time components", () => {
+    it("rejects hour 24", () => {
+      expect(() => parse("24:00:00")).to.throw(/Invalid isoHour: 24/)
+    })
+
+    it("rejects minute 60", () => {
+      expect(() => parse("12:60:00")).to.throw(/Invalid isoMinute: 60/)
+    })
+
+/* This is not failing as it should, problem with temporal-polyfill
+    it("rejects second 60", () => {
+      expect(() => parse("12:34:60")).to.throw("Cannot parse: 12:34:60")
+    })
+*/
+  })
+
+  describe("invalid date-time formats", () => {
+    it("rejects slash-separated dates", () => {
+      expect(() => parse("2024/01/15")).to.throw(/Not a valid date or time string/)
+    })
+
+    it("rejects month 13", () => {
+      expect(() => parse("2024-13-01")).to.throw(/Invalid isoMonth: 13/)
+    })
+
+    it("rejects day 32", () => {
+      expect(() => parse("2024-01-32")).to.throw(/Invalid isoDay: 32/)
+    })
+  })
 })

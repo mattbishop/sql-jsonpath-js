@@ -67,8 +67,7 @@ function createFormattedParser(template: string): TemporalParser {
       if (lastWasDelim) {
         throw new Error("Rule 2: Consecutive delimiters")
       }
-      // todo replace with RegExp.escape() when available
-      regexPattern += delim.replace(/^[.\/]$/g, "\\$&")
+      regexPattern += RegExp.escape(delim)
       lastWasDelim = true
     }
   }
@@ -144,32 +143,31 @@ function createFormattedParser(template: string): TemporalParser {
   }
 }
 
+
+const CLDR_PARSER = (input: string) => parseTemporalString(input)
+
 /**
  * Creates a function that parses an input string into a Temporal type. The input strings
  * can either follow the Unicode CLDR spec, or a template passed into this function.
  *
  * @internal
- * @param template a SQL:2023 template string for parsing input into Temporal values.
+ * @param template a SQL:2023 template string for parsing input into Temporal values, or "CLDR" for CLDR spec strings.
  */
 export function buildTemporalParser(template: string): TemporalParser {
-  if (template === "CLDR") {
-    return (input: string) => parseTemporalString(input)
-  } else {
-    // formatted template
-    return createFormattedParser(template)
-  }
+  return template === "CLDR"
+    ? CLDR_PARSER
+    : createFormattedParser(template);
 }
-
 
 
 function parseTemporalString(input: string): TemporalType {
   switch (inferTemporalKind(input)) {
     case "time":
-      return Temporal.PlainTime.from(input)
+      return Temporal.PlainTime.from(input, {overflow: "reject"})
     case "date":
-      return Temporal.PlainDate.from(input)
+      return Temporal.PlainDate.from(input, {overflow: "reject"})
     case "datetime":
-      return Temporal.PlainDateTime.from(input)
+      return Temporal.PlainDateTime.from(input, {overflow: "reject"})
     case "datetime_tz":
       return Temporal.Instant.from(input)
     default:
@@ -200,9 +198,9 @@ function inferTemporalKind(input: string): TemporalKind | undefined {
     }
   }
 
-  const hasTime = colonCount > 1
+  const hasTime = colonCount > 0
   const hasDate = dashCount > 1
-  hasZone = hasZone || dashCount > 2
+  hasZone = hasZone || dashCount > 2  //todo time_tz
 
   if (hasTime && hasDate) {
     return hasZone
