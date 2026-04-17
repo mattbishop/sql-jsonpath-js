@@ -19,16 +19,16 @@ export const DatetimeMethod = createRegexToken({
 })
 
 /** @internal */
-export const DateTimeTzMethod = createRegexToken({
-  name:             "DateTimeTzMethod",
-  pattern:          /\.\s*((?:date)?time)_tz\s*\(\s*(\d+)?\s*\)/y,
+export const TimeStampTzMethod = createRegexToken({
+  name:             "TimeStampTzMethod",
+  pattern:          /\.\s*(timestamp_tz|timestamp|time_tz|time)\s*\(\s*(\d+)?\s*\)/y,
   start_chars_hint: ["."]
 })
 
 /** @internal */
 export const ItemMethod = createRegexToken({
   name:             "ItemMethod",
-  pattern:          /\.\s*(type|size|double|ceiling|floor|abs|keyvalue|date|time)\s*\(\s*\)/y,
+  pattern:          /\.\s*(type|size|double|ceiling|floor|abs|keyvalue|date)\s*\(\s*\)/y,
   start_chars_hint: ["."]
 })
 
@@ -143,7 +143,7 @@ export const allTokens = [
   BinaryOperator,
   ItemMethod,
   DatetimeMethod,
-  DateTimeTzMethod,
+  TimeStampTzMethod,
   WildcardMember,
   Member,
   WildcardArray,

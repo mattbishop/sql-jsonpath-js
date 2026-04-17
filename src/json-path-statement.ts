@@ -83,21 +83,21 @@ export function createStatement(text: string): SqlJsonPathStatement {
         : one(iterator) ?? false
     },
 
-    values<T>(input: Input<T>, config: ValuesConfig = {}): IterableIterator<unknown> {
+    values<T>(input: Input, config: ValuesConfig<T> = {}): IterableIterator<T> {
       const {variables} = config
       const valuesƒ = (i: unknown) => fn(i, variables)
       const valuesIterator = iterate(toIterator(input))
         .map(valuesƒ)
         .flatten()
-      return defaultsIterator(valuesIterator, config) as IterableIterator<unknown>
+      return defaultsIterator(valuesIterator, config) as IterableIterator<T>
     }
   }
 }
 
-function toIterator<T>(input: Input<T>): Iterator<T> {
+function toIterator(input: Input): Iterator<unknown> {
   return isIterableInput(input)
     ? input[Symbol.iterator]()
-    : new SingletonIterator<T>(input as T)
+    : new SingletonIterator(input)
 }
 
 

@@ -33,7 +33,7 @@ export type ValuesConfig<DEFAULT = unknown> = StatementConfig & {
 
 export type Mode = "strict" | "lax"
 
-export type Input<T> = T | Iterable<T> | Iterator<T>
+export type Input<T = unknown> = T | Iterable<T> | Iterator<T>
 
 export type KeyValue = {
   id:     number
@@ -73,17 +73,18 @@ export interface SqlJsonPathStatement {
    * @param config Contains default values for misses and errors as well as named variables to use in the
    * SQL JSONPath evaluation.
    */
-  exists(input: Input<unknown>, config?: StatementConfig): boolean | IterableIterator<boolean>
+  exists(input: Input, config?: StatementConfig): boolean | IterableIterator<boolean>
 
   /**
    * Searches the JSON input for values that match the SQL JSONPath statement, returning the extracted values
    * when found.
-   * todo does <T> do anything useful?
+   *
+   * @template T The element type of the values sequence.
    * @param input A single value or an iterator of values. Arrays are treated as a single value.
    * @param config Contains default values for misses and errors as well as named variables to use in the
    * SQL JSONPath evaluation.
    */
-  values<T>(input: Input<T>, config?: ValuesConfig): IterableIterator<unknown>
+  values<T>(input: Input, config?: ValuesConfig<T>): IterableIterator<T>
 }
 
 

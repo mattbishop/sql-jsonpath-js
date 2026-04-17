@@ -104,6 +104,7 @@ export type AccessorCstChildren = {
   filter?: FilterCstNode[];
   ItemMethod?: IToken[];
   DatetimeMethod?: IToken[];
+  TimeStampTzMethod?: IToken[];
 };
 
 export interface ArrayCstNode extends CstNode {

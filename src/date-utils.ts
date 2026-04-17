@@ -200,7 +200,7 @@ function inferTemporalKind(input: string): TemporalKind | undefined {
 
   const hasTime = colonCount > 0
   const hasDate = dashCount > 1
-  hasZone = hasZone || dashCount > 2  //todo time_tz
+  hasZone = hasZone || dashCount > 2
 
   if (hasTime && hasDate) {
     return hasZone

@@ -134,6 +134,11 @@ describe("Codegen tests", () => {
         expect(ctx.source).to.equal('return ƒ.time($)')
       })
 
+      it("single values with precision", () => {
+        const ctx = generateFunctionSource('$ .time ( 3 )')
+        expect(ctx.source).to.equal('return ƒ.time($,3)')
+      })
+
       it("iterator of values", () => {
         const ctx = generateFunctionSource('$[*].date()')
         expect (ctx.source).to.equal('return ƒ.date(ƒ.boxStar($))')

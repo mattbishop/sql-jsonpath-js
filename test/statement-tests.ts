@@ -613,6 +613,30 @@ describe("Statement tests", () => {
         expect(() => one(statement.values([]))).to.throw
       })
 
+      it("single values with precision", () => {
+        const statement = compile('$.time(3)')
+        const timeActual = one(statement.values<Temporal.PlainTime>("12:34:56.7894"))
+        expect(timeActual.toString()).to.equal("12:34:56.789")
+      })
+
+      it("rounds half expand at the requested precision", () => {
+        const statement = compile('$.time(3)')
+        const timeActual = one(statement.values<Temporal.PlainTime>("12:34:56.7895"))
+        expect(timeActual.toString()).to.equal("12:34:56.79")
+      })
+
+      it("supports zero precision", () => {
+        const statement = compile('$.time(0)')
+        const timeActual = one(statement.values<Temporal.PlainTime>("12:34:56.5"))
+        expect(timeActual.toString()).to.equal("12:34:57")
+      })
+
+      it("rejects invalid precision values", () => {
+        const statement = compile('$.time(10)')
+        expect(() => one(statement.values("12:34:56.789"))).to.throw
+      })
+
+
       it("iterator of values", () => {
         const statement = compile('$[*].time()')
         const arrayTypes = statement.values(["01:01:01", "15:32:21", "23:59:59"])

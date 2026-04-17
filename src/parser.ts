@@ -9,7 +9,7 @@ import {
   ComparisonOperator,
   ContextVariable,
   DatetimeMethod,
-  DateTimeTzMethod,
+  TimeStampTzMethod,
   Exists,
   FilterStart,
   FilterValue,
@@ -188,7 +188,7 @@ export class JsonPathParser extends CstParser {
       { ALT: () => this.SUBRULE(this.filterExpression) },
       { ALT: () => this.CONSUME(ItemMethod) },
       { ALT: () => this.CONSUME(DatetimeMethod) },
-      { ALT: () => this.CONSUME(DateTimeTzMethod) }
+      { ALT: () => this.CONSUME(TimeStampTzMethod) }
     ])
   })
 

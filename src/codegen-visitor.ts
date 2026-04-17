@@ -207,7 +207,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
 
 
     accessor(node: AccessorCstChildren, ctx: CodegenContext): CodegenContext {
-      const {array, filter, DatetimeMethod, ItemMethod, Member, WildcardArray, WildcardMember} = node
+      const {array, filter, DatetimeMethod, TimeStampTzMethod, ItemMethod, Member, WildcardArray, WildcardMember} = node
       ctx = this.maybeVisit(array, ctx)
       ctx = this.maybeVisit(filter, ctx)
       const {source: primary} = ctx
@@ -224,7 +224,6 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
           case "abs" :
           case "keyvalue" :
           case "date" :
-          case "time" :
             const attrs = maybeParen(primary)
             methodImpl = `ƒ.${methodName}${attrs}`
             break
@@ -232,21 +231,27 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
             throw new Error(`Item methodName unrecognized: ${methodName}`)
         }
         source = methodImpl
-      } else if (DatetimeMethod) {
-        const template = DatetimeMethod[0].payload[1] ?? "CLDR"
-        const parser = buildTemporalParser(template)
-        ctx.scope.set(template, parser)
-        source = `ƒ.datetime(${primary},"${template}")`
+      } else if (Member) {
+        const payloads = Member[0].payload
+        const member = payloads[0] ?? payloads[1]
+        source = `ƒ.member(${primary},"${member}")`
       } else if (WildcardMember) {
         const attrs = maybeParen(primary)
         source = `ƒ.dotStar${attrs}`
       } else if (WildcardArray) {
         const attrs = maybeParen(primary)
         source = `ƒ.boxStar${attrs}`
-      } else if (Member) {
-        const payloads = Member[0].payload
-        const member = payloads[0] ?? payloads[1]
-        source = `ƒ.member(${primary},"${member}")`
+      } else if (DatetimeMethod) {
+        const template = DatetimeMethod[0].payload[1] ?? "CLDR"
+        const parser = buildTemporalParser(template)
+        ctx.scope.set(template, parser)
+        source = `ƒ.datetime(${primary},"${template}")`
+      } else if (TimeStampTzMethod) {
+        // page 735 of the 2023 spec
+        const methodName = TimeStampTzMethod[0].payload[0]
+        const precision = TimeStampTzMethod[0].payload[1]
+        const precisionStr = precision !== undefined ? `,${precision}` : ""
+        source = `ƒ.${methodName}(${primary}${precisionStr})`
       }
       if (source) {
         ctx = {...ctx, source}

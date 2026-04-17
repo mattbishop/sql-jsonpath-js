@@ -283,16 +283,50 @@ export class ƒBase {
     return ƒBase._autoMap(input, (v: unknown) => ƒBase._date(v))
   }
 
+  private static _timeRoundOptions(precision: number): Temporal.RoundTo<"second" | "millisecond" | "microsecond" | "nanosecond"> {
+    if (precision > 9) {
+      throw new Error(`time() precision must be an integer between 0 and 9, found ${JSON.stringify(precision)}.`)
+    }
+    if (precision === 0) {
+      return {
+        smallestUnit: "second",
+        roundingMode: "halfExpand"
+      }
+    }
+    if (precision <= 3) {
+      return {
+        smallestUnit: "millisecond",
+        roundingIncrement: 10 ** (3 - precision),
+        roundingMode: "halfExpand"
+      }
+    }
+    if (precision <= 6) {
+      return {
+        smallestUnit: "microsecond",
+        roundingIncrement: 10 ** (6 - precision),
+        roundingMode: "halfExpand"
+      }
+    }
+    return {
+      smallestUnit: "nanosecond",
+      roundingIncrement: 10 ** (9 - precision),
+      roundingMode: "halfExpand"
+    }
+  }
 
-  private static _time(input: unknown): Temporal.PlainTime {
+  private static _time(input: unknown, precision?: number): Temporal.PlainTime {
     if (ƒBase._isString(input)) {
-      return Temporal.PlainTime.from(input)
+      let time = Temporal.PlainTime.from(input)
+      if (precision !== undefined) {
+        time = time.round(this._timeRoundOptions(precision))
+      }
+      return time
     }
     throw new Error(`time() param must be a string, found ${JSON.stringify(input)}.`)
   }
 
-  time(input: unknown): SingleOrIterator<Temporal.PlainTime> {
-    return ƒBase._autoMap(input, (v: unknown) => ƒBase._time(v))
+  time(input: unknown, precision?: number): SingleOrIterator<Temporal.PlainTime> {
+    return ƒBase._autoMap(input, (v: unknown) => ƒBase._time(v, precision))
   }
 
 
