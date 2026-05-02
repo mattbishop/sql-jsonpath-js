@@ -1,5 +1,6 @@
 import {isIterable} from "iterare/lib/utils.js"
-import type {Input} from "./json-path.ts";
+
+import type {Input} from "./json-path.ts"
 
 
 /**
@@ -37,13 +38,16 @@ export class SingletonIterator<T> implements Iterator<T> {
 }
 
 
-/** Return a default value if the iterator has no values (done at the start) @internal */
+/**
+ * Return a default value if the iterator has no values (done at the start) @internal
+ * @internal
+ */
 export class DefaultOnEmptyIterator<T> implements Iterator<T> {
 
   private started = false
 
   constructor(private readonly  defaultValue: T,
-              private           iterator:     Iterator<T>) { }
+              private readonly  iterator:     Iterator<T>) { }
 
   next(): IteratorResult<T> {
     if (!this.started) {
@@ -51,7 +55,7 @@ export class DefaultOnEmptyIterator<T> implements Iterator<T> {
       const first = this.iterator.next()
       return first.done
         ? {value: this.defaultValue, done: true}
-        : first;
+        : first
     }
     return this.iterator.next()
   }

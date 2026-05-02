@@ -32,7 +32,7 @@
     "chevrotain": "^12.0.0",
     "indexed-iterable": "^1.0.2",
     "iterare": "^1.2.1",
-    "safe-regex2": "^5.1.0",
+    "safe-regex2": "^5.1.1",
     "temporal-polyfill": "^0.3.2"
   },
   "devDependencies": {
@@ -40,7 +40,7 @@
     "@types/node": "24.12.2",
     "chai": "6.2.2",
     "tsx": "4.21.0",
-    "typescript": "6.0.2",
+    "typescript": "6.0.3",
     "typescript-fsm": "1.6.0"
   }
 }

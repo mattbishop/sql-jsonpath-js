@@ -2,13 +2,13 @@ import {expect} from "chai"
 import {describe, it} from "node:test"
 import {Temporal} from "temporal-polyfill"
 
-import {buildTemporalParser} from "../src/date-utils.ts"
+import {buildTemporalParser} from "../src/datetime-parser.ts"
 
 
 describe("Temporal parsing", () => {
-  const parse = buildTemporalParser("CLDR")
+  const parse = buildTemporalParser().toTemporal
 
-  describe("inferTemporalKind via CLDR parser", () => {
+  describe("infers Temporal Kind", () => {
     it("parses plain dates", () => {
       const value = parse("2024-01-15")
       expect(value).to.be.instanceOf(Temporal.PlainDate)
@@ -19,6 +19,24 @@ describe("Temporal parsing", () => {
       const value = parse("12:34:56")
       expect(value).to.be.instanceOf(Temporal.PlainTime)
       expect(value.toString()).to.equal("12:34:56")
+    })
+
+    it("parses times with timezone offsets as PlainTime", () => {
+      const value = parse("04:11:18.0214+00:00")
+      expect(value).to.be.instanceOf(Temporal.PlainTime)
+      expect(value.toString()).to.equal("04:11:18.0214")
+    })
+
+    it("parses times with positive offsets as PlainTime", () => {
+      const value = parse("12:34:56+05:30")
+      expect(value).to.be.instanceOf(Temporal.PlainTime)
+      expect(value.toString()).to.equal("07:04:56")
+    })
+
+    it("parses times with negative offsets as PlainTime", () => {
+      const value = parse("12:34:56-03:30")
+      expect(value).to.be.instanceOf(Temporal.PlainTime)
+      expect(value.toString()).to.equal("16:04:56")
     })
 
     it("parses datetimes without a zone", () => {

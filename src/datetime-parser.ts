@@ -3,6 +3,89 @@ import {Temporal} from "temporal-polyfill"
 import type {TemporalParser, TemporalType} from "./ƒ-base.ts"
 
 /**
+ * Constant for Unicode CLDR spec to parse strings into date / time objects.
+ */
+export const CLDR = "CLDR"
+
+type StringToTemporal = (input: string) => TemporalType
+
+/**
+ * Creates a function that parses an input string into a Temporal type. The input strings
+ * can either follow the Unicode CLDR spec, or a template passed into this function.
+ *
+ * @internal
+ * @param template a SQL:2023 template string for parsing input into Temporal values, or "CLDR" for CLDR spec strings.
+ */
+export function buildTemporalParser(template?: string): TemporalParser {
+  const parser = template === undefined
+    ? parseTemporalString
+    : createFormattedParser(template)
+
+  return {
+    toTemporal:     (i) => parser(i),
+    toDate:         (i) => _toDate(parser, i),
+    toTime:         (i) => _toTime(parser, i),
+    toTimeTz:       (i) => _toTimeTz(parser, i),
+    toTimestamp:    (i) => _toTimestamp(parser, i),
+    toTimestampTz:  (i) => _toTimestampTz(parser, i)
+  }
+}
+
+function _toDate(parser: StringToTemporal, input: string): Temporal.PlainDate {
+  const value = parser(input)
+  if (value instanceof Temporal.PlainDate) {
+    return value
+  }
+  if (value instanceof Temporal.PlainDateTime) {
+    return value.toPlainDate()
+  }
+  throw new Error(`Cannot convert input to a date: "${input}"`)
+}
+
+function _toTime(parser: StringToTemporal, input: string): Temporal.PlainTime {
+  const value = parser(input)
+  if (value instanceof Temporal.PlainTime) {
+    return value
+  }
+  if (value instanceof Temporal.PlainDateTime) {
+    return value.toPlainTime()
+  }
+  throw new Error(`Cannot convert input to a time: "${input}"`)
+}
+
+function _toTimeTz(parser: StringToTemporal, input: string): Temporal.PlainTime {
+  const value = parser(input)
+  if (value instanceof Temporal.PlainTime) {
+    return value
+  }
+  if (value instanceof Temporal.Instant) {
+    // PG 18 goes to UTC, 17 goes to local timezone. I may need to revisit this during comparison
+    return value.toZonedDateTimeISO("UTC").toPlainTime()
+  }
+  throw new Error(`Cannot convert input to a time with time zone: "${input}"`)
+}
+
+function _toTimestamp(parser: StringToTemporal, input: string): Temporal.PlainDateTime {
+  const value = parser(input)
+  if (value instanceof Temporal.PlainDateTime) {
+    return value
+  }
+  if (value instanceof Temporal.PlainDate) {
+    return value.toPlainDateTime()
+  }
+  throw new Error(`Cannot convert input to a datetime: "${input}"`)
+}
+
+function _toTimestampTz(parser: StringToTemporal, input: string): Temporal.Instant {
+  const value = parser(input)
+  if (value instanceof Temporal.Instant) {
+    return value
+  }
+  throw new Error(`Cannot convert the string to an instant: "${input}"`)
+}
+
+
+/*
  * SQL:2023 Standard Patterns (ISO/IEC 9075-2 2023 Sections 9.50 - 9.52)
  * NOTE: the standard is strict and does not allow quoted strings
  *
@@ -41,19 +124,15 @@ const FIELD_TO_REGEX: Record<string, string> = {
   "FF9":    "(?<ff>\\d{9})"
 }
 
-/**
- * @internal
- * @param template The template string to create a temporal parser for.
- */
-function createFormattedParser(template: string): TemporalParser {
+// Matches standard tokens, or single delimiters
+const templateTokenizer = /(A\.M\.|P\.M\.|HH12|HH24|HH|SSSSS|YYYY|YYY|MM|DD|DDD|MI|SS|TZH|TZM|FF[1-9]|RRRR|RR|YY|Y)|([-.\/,';: ])/g
+
+function createFormattedParser(template: string): StringToTemporal {
   const fields = new Set<string>()
   let regexPattern = ""
   let lastWasDelim = false
 
-  // Matches standard tokens, or single delimiters
-  const tokenizer = /(A\.M\.|P\.M\.|HH12|HH24|HH|SSSSS|YYYY|YYY|MM|DD|DDD|MI|SS|TZH|TZM|FF[1-9]|RRRR|RR|YY|Y)|([-.\/,';: ])/g
-
-  for (const match of template.matchAll(tokenizer)) {
+  for (const match of template.matchAll(templateTokenizer)) {
     const [_, field, delim] = match
 
     if (field) {
@@ -144,31 +223,20 @@ function createFormattedParser(template: string): TemporalParser {
 }
 
 
-const CLDR_PARSER = (input: string) => parseTemporalString(input)
-
-/**
- * Creates a function that parses an input string into a Temporal type. The input strings
- * can either follow the Unicode CLDR spec, or a template passed into this function.
- *
- * @internal
- * @param template a SQL:2023 template string for parsing input into Temporal values, or "CLDR" for CLDR spec strings.
- */
-export function buildTemporalParser(template: string): TemporalParser {
-  return template === "CLDR"
-    ? CLDR_PARSER
-    : createFormattedParser(template);
-}
-
-
 function parseTemporalString(input: string): TemporalType {
   switch (inferTemporalKind(input)) {
     case "time":
       return Temporal.PlainTime.from(input, {overflow: "reject"})
+    case "time_tz":
+      // Instant wants a date portion
+      const instant = Temporal.Instant.from("1970-01-01T" + input)
+      // apply effect of timezone to plain time
+      return instant.toZonedDateTimeISO("UTC").toPlainTime()
     case "date":
       return Temporal.PlainDate.from(input, {overflow: "reject"})
-    case "datetime":
+    case "timestamp":
       return Temporal.PlainDateTime.from(input, {overflow: "reject"})
-    case "datetime_tz":
+    case "timestamp_tz":
       return Temporal.Instant.from(input)
     default:
       throw new Error(`Not a valid date or time string: "${input}"`)
@@ -176,20 +244,20 @@ function parseTemporalString(input: string): TemporalType {
 }
 
 
-type TemporalKind = "date" | "time" | "datetime" | "datetime_tz"
+type TemporalKind = "date" | "time" | "time_tz" | "timestamp" | "timestamp_tz"
 
 function inferTemporalKind(input: string): TemporalKind | undefined {
-  let colonCount = 0,
-    dashCount = 0,
-    hasZone = false
+  let dashCount = 0,
+      hasTime = false,
+      hasZone = false
 
   for (const char of input) {
     switch (char) {
-      case ":":
-        colonCount++
-        break
       case "-":
         dashCount++
+        break
+      case ":":
+        hasTime = true
         break
       case "+":
       case "Z":
@@ -197,18 +265,22 @@ function inferTemporalKind(input: string): TemporalKind | undefined {
         hasZone = true
     }
   }
-
-  const hasTime = colonCount > 0
+  // 12:34:56-03:30 has a dash, but it is not a date
   const hasDate = dashCount > 1
-  hasZone = hasZone || dashCount > 2
+  // handle negative offsets like -0800
+  hasZone = hasZone
+    || (hasDate && dashCount === 3)
+    || (hasTime && dashCount === 1)
 
   if (hasTime && hasDate) {
     return hasZone
-      ? "datetime_tz"
-      : "datetime"
+      ? "timestamp_tz"
+      : "timestamp"
   }
   if (hasTime) {
-    return "time"
+    return hasZone
+      ? "time_tz"
+      : "time"
   }
   if (hasDate) {
     return "date"

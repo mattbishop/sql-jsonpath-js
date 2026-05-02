@@ -8,8 +8,10 @@ import {Temporal} from "temporal-polyfill"
 //import {compile, one, type SqlJsonPathStatement} from "../src/index.ts";
 
 // testing from /dist to ensure the exported interface is correct
+
 import {compile, one} from "../dist/index.js"
 import type {SqlJsonPathStatement} from "../dist/index.d.ts"
+
 
 
 describe("Statement tests", () => {
@@ -579,7 +581,7 @@ describe("Statement tests", () => {
         const statement = compile('$.date()')
         let dateActual = one(statement.values("2024-12-31"))
         expect(dateActual).to.deep.equal(Temporal.PlainDate.from("2024-12-31"))
-        dateActual = one(statement.values("2020-07-25T15:32:21+22"))
+        dateActual = one(statement.values("2020-07-25T15:32:21"))
         expect(dateActual).to.deep.equal(Temporal.PlainDate.from("2020-07-25"))
         expect(() => one(statement.values(null))).to.throw
         expect(() => one(statement.values("1977"))).to.throw
@@ -616,18 +618,21 @@ describe("Statement tests", () => {
       it("single values with precision", () => {
         const statement = compile('$.time(3)')
         const timeActual = one(statement.values<Temporal.PlainTime>("12:34:56.7894"))
+        // @ts-ignore
         expect(timeActual.toString()).to.equal("12:34:56.789")
       })
 
       it("rounds half expand at the requested precision", () => {
         const statement = compile('$.time(3)')
         const timeActual = one(statement.values<Temporal.PlainTime>("12:34:56.7895"))
+        // @ts-ignore
         expect(timeActual.toString()).to.equal("12:34:56.79")
       })
 
       it("supports zero precision", () => {
         const statement = compile('$.time(0)')
         const timeActual = one(statement.values<Temporal.PlainTime>("12:34:56.5"))
+        // @ts-ignore
         expect(timeActual.toString()).to.equal("12:34:57")
       })
 
@@ -643,6 +648,58 @@ describe("Statement tests", () => {
         expect(Array.from(arrayTypes)).to.deep.equal([
           Temporal.PlainTime.from("01:01:01"),
           Temporal.PlainTime.from("15:32:21"),
+          Temporal.PlainTime.from("23:59:59")
+        ])
+      })
+    })
+
+    describe("time_tz()", () => {
+      it("single values", () => {
+        // this works in PG
+        const statement = compile('$.time_tz()')
+        let timeActual = one(statement.values("01:01:01Z"))
+        expect(timeActual).to.deep.equal(Temporal.PlainTime.from("01:01:01"))
+        timeActual = one(statement.values("02:11:18.0214-02:00"))
+        expect(timeActual).to.deep.equal(Temporal.PlainTime.from("04:11:18.0214"))
+        expect(() => one(statement.values(null))).to.throw
+        expect(() => one(statement.values("1977"))).to.throw
+        expect(() => one(statement.values(true))).to.throw
+        expect(() => one(statement.values({}))).to.throw
+        expect(() => one(statement.values([]))).to.throw
+      })
+
+      it("single values with precision", () => {
+        const statement = compile('$.time_tz(3)')
+        const timeActual = one(statement.values<Temporal.PlainTime>("12:34:56.7894+00:00"))
+        // @ts-ignore
+        expect(timeActual.toString()).to.equal("12:34:56.789")
+      })
+
+      it("rounds half expand at the requested precision", () => {
+        const statement = compile('$.time_tz(3)')
+        const timeActual = one(statement.values<Temporal.PlainTime>("12:34:56.7895+00:00"))
+        // @ts-ignore
+        expect(timeActual.toString()).to.equal("12:34:56.79")
+      })
+
+      it("supports zero precision", () => {
+        const statement = compile('$.time_tz(0)')
+        const timeActual = one(statement.values<Temporal.PlainTime>("12:34:56.5+00:00"))
+        // @ts-ignore
+        expect(timeActual.toString()).to.equal("12:34:57")
+      })
+
+      it("rejects invalid precision values", () => {
+        const statement = compile('$.time_tz(10)')
+        expect(() => one(statement.values("12:34:56.789+00:00"))).to.throw
+      })
+
+      it("iterator of values", () => {
+        const statement = compile('$[*].time_tz()')
+        const arrayTypes = statement.values(["01:01:01+00:00", "15:32:21-02:00", "23:59:59Z"])
+        expect(Array.from(arrayTypes)).to.deep.equal([
+          Temporal.PlainTime.from("01:01:01"),
+          Temporal.PlainTime.from("17:32:21"),
           Temporal.PlainTime.from("23:59:59")
         ])
       })

@@ -6,6 +6,7 @@ import {Temporal} from "temporal-polyfill"
 
 import type {KeyValue} from "./json-path.ts"
 import {EMPTY_ITERATOR} from "./iterators.ts"
+import {CLDR} from "./datetime-parser.ts"
 
 
 enum Pred {
@@ -41,7 +42,14 @@ export type TemporalType =
   | Temporal.PlainTime
 
 /** @internal */
-export type TemporalParser = (input: string) => TemporalType
+export interface TemporalParser {
+  toDate(input: string): Temporal.PlainDate
+  toTime(input: string): Temporal.PlainTime
+  toTimeTz(input: string): Temporal.PlainTime
+  toTimestamp(input: string): Temporal.PlainDateTime
+  toTimestampTz(input: string): Temporal.Instant
+  toTemporal(input: string): TemporalType
+}
 
 
 
@@ -84,6 +92,7 @@ export class ƒBase {
       return "timestamp without time zone"
     }
 
+    // note javascript/Temporal does not have the concept of "time with time zone"
     if (input instanceof Temporal.PlainTime) {
       return "time without time zone"
     }
@@ -271,52 +280,50 @@ export class ƒBase {
   }
 
 
-  private static _date(input: unknown): Temporal.PlainDate {
+  private static _date(input: unknown, parser: TemporalParser): Temporal.PlainDate {
     if (ƒBase._isString(input)) {
-      // ISO 8601 calendar
-      return Temporal.PlainDate.from(input)
+      return parser.toDate(input)
     }
     throw new Error(`date() param must be a string, found ${JSON.stringify(input)}.`)
   }
 
   date(input: unknown): SingleOrIterator<Temporal.PlainDate> {
-    return ƒBase._autoMap(input, (v: unknown) => ƒBase._date(v))
+    const parser = this.scope.get(CLDR) as TemporalParser
+    return ƒBase._autoMap(input, (v: unknown) => ƒBase._date(v, parser))
   }
 
   private static _timeRoundOptions(precision: number): Temporal.RoundTo<"second" | "millisecond" | "microsecond" | "nanosecond"> {
+    const roundingMode = "halfExpand"
     if (precision > 9) {
       throw new Error(`time() precision must be an integer between 0 and 9, found ${JSON.stringify(precision)}.`)
     }
     if (precision === 0) {
-      return {
-        smallestUnit: "second",
-        roundingMode: "halfExpand"
-      }
+      return { smallestUnit: "second", roundingMode }
     }
     if (precision <= 3) {
       return {
         smallestUnit: "millisecond",
         roundingIncrement: 10 ** (3 - precision),
-        roundingMode: "halfExpand"
+        roundingMode
       }
     }
     if (precision <= 6) {
       return {
         smallestUnit: "microsecond",
         roundingIncrement: 10 ** (6 - precision),
-        roundingMode: "halfExpand"
+        roundingMode
       }
     }
     return {
       smallestUnit: "nanosecond",
       roundingIncrement: 10 ** (9 - precision),
-      roundingMode: "halfExpand"
+      roundingMode
     }
   }
 
-  private static _time(input: unknown, precision?: number): Temporal.PlainTime {
+  private static _time(input: unknown, parser: TemporalParser, precision?: number): Temporal.PlainTime {
     if (ƒBase._isString(input)) {
-      let time = Temporal.PlainTime.from(input)
+      let time = parser.toTime(input)
       if (precision !== undefined) {
         time = time.round(this._timeRoundOptions(precision))
       }
@@ -325,8 +332,137 @@ export class ƒBase {
     throw new Error(`time() param must be a string, found ${JSON.stringify(input)}.`)
   }
 
+
+  // cannot accept time zones, must throw an error:
+  // > SELECT jsonb_path_query('"2020-01-01T02:11:18.0214-02:00"'::JSONB, '$.time()');
+  // ERROR: cannot convert value from timestamptz to time without time zone usage
   time(input: unknown, precision?: number): SingleOrIterator<Temporal.PlainTime> {
-    return ƒBase._autoMap(input, (v: unknown) => ƒBase._time(v, precision))
+    const parser = this.scope.get(CLDR) as TemporalParser
+    return ƒBase._autoMap(input, (v: unknown) => ƒBase._time(v, parser, precision))
+  }
+
+
+  private static _time_tz(input: unknown, parser: TemporalParser, precision?: number): Temporal.PlainTime {
+    if (ƒBase._isString(input)) {
+      let time = parser.toTimeTz(input)
+      if (precision !== undefined) {
+        time = time.round(this._timeRoundOptions(precision))
+      }
+      return time
+    }
+    throw new Error(`time() param must be a string, found ${JSON.stringify(input)}.`)
+  }
+
+  // returns the time value in UTC, so calculates the effect of the time zone
+  // > SELECT jsonb_path_query('"2020-01-01T02:11:18.0214-02:00"'::JSONB, '$.time_tz()');
+  // "04:11:18.0214+00:00"
+  // It converts to UTC time and returns that
+  time_tz(input: unknown, precision?: number): SingleOrIterator<Temporal.PlainTime> {
+    const parser = this.scope.get(CLDR) as TemporalParser
+    return ƒBase._autoMap(input, (v: unknown) => ƒBase._time_tz(v, parser, precision))
+  }
+
+
+  private static _timestampRoundOptions(precision: number): Temporal.RoundTo<"day" | "hour" | "minute" | "second" | "millisecond" | "microsecond" | "nanosecond"> {
+    if (precision > 9) {
+      throw new Error(`timestamp() precision must be an integer between 0 and 9, found ${JSON.stringify(precision)}.`)
+    }
+    const roundingMode = "halfExpand"
+    if (precision === 0) {
+      return { smallestUnit: "day", roundingMode }
+    }
+    if (precision <= 2) {
+      return {
+        smallestUnit: "hour",
+        roundingIncrement: 10 ** (2 - precision),
+        roundingMode
+      }
+    }
+    if (precision <= 4) {
+      return {
+        smallestUnit: "minute",
+        roundingIncrement: 10 ** (4 - precision),
+        roundingMode
+      }
+    }
+    if (precision <= 6) {
+      return {
+        smallestUnit: "second",
+        roundingIncrement: 10 ** (6 - precision),
+        roundingMode
+      }
+    }
+    if (precision === 7) {
+      return { smallestUnit: "millisecond", roundingMode }
+    }
+    if (precision === 8) {
+      return { smallestUnit: "microsecond", roundingMode }
+    }
+    return { smallestUnit: "nanosecond", roundingMode }
+  }
+
+
+  private static _timestamp(input: unknown, parser: TemporalParser, precision?: number): Temporal.PlainDateTime {
+    if (ƒBase._isString(input)) {
+      let timestamp = parser.toTimestamp(input)
+      if (precision !== undefined) {
+        timestamp = timestamp.round(this._timestampRoundOptions(precision))
+      }
+      return timestamp
+    }
+    throw new Error(`timestamp() param must be a string, found ${JSON.stringify(input)}.`)
+  }
+
+  timestamp(input: unknown, precision?: number): SingleOrIterator<Temporal.PlainDateTime> {
+    const parser = this.scope.get(CLDR) as TemporalParser
+    return ƒBase._autoMap(input, (v: unknown) => ƒBase._timestamp(v, parser, precision))
+  }
+
+  private static _timestampTzRoundOptions(precision: number): Temporal.RoundTo<"second" | "millisecond" | "microsecond" | "nanosecond"> {
+    if (precision > 9) {
+      throw new Error(`timestamp_tz() precision must be an integer between 0 and 9, found ${JSON.stringify(precision)}.`)
+    }
+    const roundingMode = "halfExpand"
+    if (precision === 0) {
+      return { smallestUnit: "second", roundingMode }
+    }
+    if (precision <= 3) {
+      return {
+        smallestUnit: "millisecond",
+        roundingIncrement: 10 ** (3 - precision),
+        roundingMode
+      }
+    }
+    if (precision <= 6) {
+      return {
+        smallestUnit: "microsecond",
+        roundingIncrement: 10 ** (6 - precision),
+        roundingMode
+      }
+    }
+    return {
+      smallestUnit: "nanosecond",
+      roundingIncrement: 10 ** (9 - precision),
+      roundingMode
+    }
+  }
+
+
+  // todo is this what I want actually? Does timestamp_tz actually round?
+  private static _timestamp_tz(input: unknown, parser: TemporalParser, precision?: number): Temporal.Instant {
+    if (ƒBase._isString(input)) {
+      let timestamp = parser.toTimestampTz(input)
+      if (precision !== undefined) {
+        timestamp = timestamp.round(this._timestampTzRoundOptions(precision))
+      }
+      return timestamp
+    }
+    throw new Error(`timestamp() param must be a string, found ${JSON.stringify(input)}.`)
+  }
+
+  timestamp_tz(input: unknown, precision?: number): SingleOrIterator<Temporal.Instant> {
+    const parser = this.scope.get(CLDR) as TemporalParser
+    return ƒBase._autoMap(input, (v: unknown) => ƒBase._timestamp_tz(v, parser, precision))
   }
 
 
@@ -356,7 +492,7 @@ export class ƒBase {
    */
   private static _datetime(input: unknown, parser: TemporalParser): TemporalType {
     if (ƒBase._isString(input)) {
-      return parser(input)
+      return parser.toTemporal(input)
     }
     throw new Error(`datetime() param must be a string, found ${JSON.stringify(input)}.`)
   }

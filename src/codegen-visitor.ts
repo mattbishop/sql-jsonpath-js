@@ -25,7 +25,7 @@ import type {
   UnaryCstChildren,
   WffCstChildren
 } from "./sql_jsonpath_cst.ts"
-import {buildTemporalParser} from "./date-utils.ts"
+import {buildTemporalParser, CLDR} from "./datetime-parser.ts"
 
 
 /** @internal */
@@ -214,8 +214,12 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       let source
       if (ItemMethod) {
         const methodName = ItemMethod[0].payload[0]
-        let methodImpl = ""
+        const attrs = maybeParen(primary)
+        let methodImpl = `ƒ.${methodName}${attrs}`
         switch (methodName) {
+          case "date" :
+            ctx.scope.set(CLDR, buildTemporalParser())
+            break
           case "size" :
           case "type" :
           case "double" :
@@ -223,9 +227,6 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
           case "floor" :
           case "abs" :
           case "keyvalue" :
-          case "date" :
-            const attrs = maybeParen(primary)
-            methodImpl = `ƒ.${methodName}${attrs}`
             break
           default :
             throw new Error(`Item methodName unrecognized: ${methodName}`)
@@ -242,11 +243,15 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
         const attrs = maybeParen(primary)
         source = `ƒ.boxStar${attrs}`
       } else if (DatetimeMethod) {
-        const template = DatetimeMethod[0].payload[1] ?? "CLDR"
+        const template = DatetimeMethod[0].payload[1]
         const parser = buildTemporalParser(template)
         ctx.scope.set(template, parser)
-        source = `ƒ.datetime(${primary},"${template}")`
+        const templateParam = template !== undefined
+          ? `,"${template}"`
+          : ""
+        source = `ƒ.datetime(${primary}${templateParam})`
       } else if (TimeStampTzMethod) {
+        ctx.scope.set(CLDR, buildTemporalParser())
         // page 735 of the 2023 spec
         const methodName = TimeStampTzMethod[0].payload[0]
         const precision = TimeStampTzMethod[0].payload[1]

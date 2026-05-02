@@ -140,15 +140,32 @@ describe("Codegen tests", () => {
       })
 
       it("iterator of values", () => {
-        const ctx = generateFunctionSource('$[*].date()')
-        expect (ctx.source).to.equal('return ƒ.date(ƒ.boxStar($))')
+        const ctx = generateFunctionSource('$[*].time()')
+        expect (ctx.source).to.equal('return ƒ.time(ƒ.boxStar($))')
+      })
+    })
+
+    describe("time_tz()", () => {
+      it("single values", () => {
+        const ctx = generateFunctionSource('$ .time_tz (  )')
+        expect(ctx.source).to.equal('return ƒ.time_tz($)')
+      })
+
+      it("single values with precision", () => {
+        const ctx = generateFunctionSource('$ .time_tz ( 3 )')
+        expect(ctx.source).to.equal('return ƒ.time_tz($,3)')
+      })
+
+      it("iterator of values", () => {
+        const ctx = generateFunctionSource('$[*].time_tz()')
+        expect (ctx.source).to.equal('return ƒ.time_tz(ƒ.boxStar($))')
       })
     })
 
     describe("datetime()", () => {
       it("ISO string date", () => {
         const ctx = generateFunctionSource('$ .datetime(  )')
-        expect(ctx.source).to.equal('return ƒ.datetime($,"CLDR")')
+        expect(ctx.source).to.equal('return ƒ.datetime($)')
       })
 
       it("template string date", () => {
@@ -163,7 +180,7 @@ describe("Codegen tests", () => {
 
       it("handles datetime iterators", () => {
         const ctx = generateFunctionSource('$[*].datetime()')
-        expect (ctx.source).to.equal('return ƒ.datetime(ƒ.boxStar($),"CLDR")')
+        expect (ctx.source).to.equal('return ƒ.datetime(ƒ.boxStar($))')
       })
     })
   })
