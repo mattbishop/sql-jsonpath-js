@@ -498,8 +498,8 @@ export class ƒBase {
   }
 
   datetime(input: unknown, template: string): SingleOrIterator<TemporalType> {
-    const parser = this.scope.get(template)
-    return ƒBase._autoMap(input, (v: unknown) => ƒBase._datetime(v, parser as TemporalParser))
+    const parser = this.scope.get(template ?? CLDR) as TemporalParser
+    return ƒBase._autoMap(input, (v: unknown) => ƒBase._datetime(v, parser))
   }
 
 

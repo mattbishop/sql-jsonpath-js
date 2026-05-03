@@ -215,23 +215,10 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       if (ItemMethod) {
         const methodName = ItemMethod[0].payload[0]
         const attrs = maybeParen(primary)
-        let methodImpl = `ƒ.${methodName}${attrs}`
-        switch (methodName) {
-          case "date" :
-            ctx.scope.set(CLDR, buildTemporalParser())
-            break
-          case "size" :
-          case "type" :
-          case "double" :
-          case "ceiling" :
-          case "floor" :
-          case "abs" :
-          case "keyvalue" :
-            break
-          default :
-            throw new Error(`Item methodName unrecognized: ${methodName}`)
+        if (methodName === "date") {
+          ctx.scope.set(CLDR, buildTemporalParser())
         }
-        source = methodImpl
+        source = `ƒ.${methodName}${attrs}`
       } else if (Member) {
         const payloads = Member[0].payload
         const member = payloads[0] ?? payloads[1]
@@ -244,18 +231,23 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
         source = `ƒ.boxStar${attrs}`
       } else if (DatetimeMethod) {
         const template = DatetimeMethod[0].payload[1]
+        let templateParam = ""
         const parser = buildTemporalParser(template)
-        ctx.scope.set(template, parser)
-        const templateParam = template !== undefined
-          ? `,"${template}"`
-          : ""
+        if (template === undefined) {
+          ctx.scope.set(CLDR, parser)
+        } else {
+          ctx.scope.set(template, parser)
+          templateParam = `,"${template}"`
+        }
         source = `ƒ.datetime(${primary}${templateParam})`
       } else if (TimeStampTzMethod) {
         ctx.scope.set(CLDR, buildTemporalParser())
         // page 735 of the 2023 spec
         const methodName = TimeStampTzMethod[0].payload[0]
         const precision = TimeStampTzMethod[0].payload[1]
-        const precisionStr = precision !== undefined ? `,${precision}` : ""
+        const precisionStr = precision !== undefined
+          ? `,${precision}`
+          : ""
         source = `ƒ.${methodName}(${primary}${precisionStr})`
       }
       if (source) {
