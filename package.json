@@ -17,6 +17,7 @@
   ],
   "scripts": {
     "test": "yarn build && node --test --import tsx test/*-tests.ts",
+    "coverage": "yarn build && node --test --experimental-test-coverage --import tsx test/*-tests.ts",
     "clean": "rm -rf ./dist",
     "build": "yarn clean && tsc",
     "diagram": "yarn build && node utils/generate-diagrams.js",
