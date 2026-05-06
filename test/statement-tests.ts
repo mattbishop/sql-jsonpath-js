@@ -2,7 +2,6 @@ import {expect} from "chai"
 import {CachedIterable} from "indexed-iterable"
 import {iterate} from "iterare"
 import {describe, it} from "node:test"
-import {Temporal} from "temporal-polyfill"
 
 // better for debugging issues
 //import {compile, one, type SqlJsonPathStatement} from "../src/index.ts";
@@ -1091,8 +1090,8 @@ describe("Statement tests", () => {
       expect(Array.from(actual)).to.deep.equal([135])
 
       stmt = compile('$.track.segments[*] ? (@.HR > 130)."start time".datetime()')
-      actual = stmt.values(data)
-      expect(Array.from(actual)).to.deep.equal([Temporal.PlainDateTime.from("2018-10-14 10:39:21")])
+      actual = one(stmt.values(data))
+      expect(actual.toString()).to.equal("2018-10-14T10:39:21")
 
       stmt = compile('$.track.segments[*] ? (@.location[1] < 13.4).HR ? (@ > 130)')
       actual = stmt.values(data)

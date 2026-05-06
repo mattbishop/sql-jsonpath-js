@@ -1,6 +1,7 @@
-import {Temporal} from "temporal-polyfill"
+import {Temporal} from "@js-temporal/polyfill"
 
-import type {TemporalParser, TemporalType} from "./ƒ-base.ts"
+import {TemporalTypes, type TemporalParser, type TemporalType} from "./ƒ-base.ts"
+import {ZonedTime} from "./json-path.ts";
 
 /**
  * Constant for Unicode CLDR spec to parse strings into date / time objects.
@@ -39,12 +40,14 @@ function _toDate(parser: StringToTemporal, input: string): Temporal.PlainDate {
   if (value instanceof Temporal.PlainDateTime) {
     return value.toPlainDate()
   }
+  // not allowed to convert zoned timestamp to date
   throw new Error(`Cannot convert input to a date: "${input}"`)
 }
 
 function _toTime(parser: StringToTemporal, input: string): Temporal.PlainTime {
   const value = parser(input)
-  if (value instanceof Temporal.PlainTime) {
+  // not allowed to convert zoned time to time
+  if (value instanceof Temporal.PlainTime && !(value instanceof ZonedTime)) {
     return value
   }
   if (value instanceof Temporal.PlainDateTime) {
@@ -53,14 +56,14 @@ function _toTime(parser: StringToTemporal, input: string): Temporal.PlainTime {
   throw new Error(`Cannot convert input to a time: "${input}"`)
 }
 
-function _toTimeTz(parser: StringToTemporal, input: string): Temporal.PlainTime {
+function _toTimeTz(parser: StringToTemporal, input: string): ZonedTime {
   const value = parser(input)
-  if (value instanceof Temporal.PlainTime) {
+  if (value instanceof ZonedTime) {
     return value
   }
   if (value instanceof Temporal.Instant) {
-    // PG 18 goes to UTC, 17 goes to local timezone. I may need to revisit this during comparison
-    return value.toZonedDateTimeISO("UTC").toPlainTime()
+    //?? PG 18 goes to UTC, 17 goes to local timezone. I may need to revisit this during comparison
+    return ZonedTime.from(value.toZonedDateTimeISO("UTC"))
   }
   throw new Error(`Cannot convert input to a time with time zone: "${input}"`)
 }
@@ -161,12 +164,14 @@ function createFormattedParser(template: string): StringToTemporal {
     }
 
     const g = match.groups
-    let year = g.year ? parseInt(g.year, 10) : 2026
+    let year = g.year ? parseInt(g.year, 10) : 1970
     let month = g.month ? parseInt(g.month, 10) : 1
     let day = g.day ? parseInt(g.day, 10) : 1
     let hour = g.hour ? parseInt(g.hour, 10) : 0
     let minute = g.minute ? parseInt(g.minute, 10) : 0
     let second = g.second ? parseInt(g.second, 10) : 0
+    let millisecond = 0
+    let microsecond = 0
     let nanosecond = 0
 
     if (is12hr && g.ampm) {
@@ -188,55 +193,71 @@ function createFormattedParser(template: string): StringToTemporal {
 
     if (g.ff) {
       nanosecond = parseInt(g.ff.padEnd(9, "0"), 10)
+      millisecond = Math.floor(nanosecond / 1_000_000)
+      microsecond = Math.floor((nanosecond % 1_000_000) / 1_000)
+      nanosecond = nanosecond % 1_000
     }
 
-    const dateArgs = { year, month, day, hour, minute, second, nanosecond }
+    const dateArgs = { year, month, day, hour, minute, second, millisecond, microsecond, nanosecond }
 
     const hasYear = ["YYYY", "YYY", "YY", "Y", "RRRR", "RR"].some((f) => { return fields.has(f) })
     const hasMonthDay = ["MM", "DD", "DDD"].some((f) => { return fields.has(f) })
     const hasDate = hasYear || hasMonthDay
-
     const hasTime = ["HH24", "HH", "SSSSS"].some((f) => { return fields.has(f) }) ||
       ["A.M.", "P.M."].some((f) => { return fields.has(f) }) ||
       ["FF1", "FF2", "FF3", "FF4", "FF5", "FF6", "FF7", "FF8", "FF9"].some((f) => { return fields.has(f) })
-
+    const offset = fields.has("TZH") && `${g.tzh}:${g.tzm || "00"}`
+    const overflow = "reject"
     if (hasDate && hasTime) {
-      if (fields.has("TZH")) {
-        const offset = `${g.tzh}:${g.tzm || "00"}`
+      if (offset) {
         return Temporal.ZonedDateTime.from({
             ...dateArgs,
             timeZone: "Etc/UTC",  // timeZone is required, but will probably not match the offset
             offset
-          }, {offset: "use"}      // in the case of conflict between offset and timeZone, use the offset value
+          }, {
+            offset: "use",      // in the case of conflict between offset and timeZone, use the offset value
+            overflow
+          }
         ).toInstant()
-      }
-       else {
-         return Temporal.PlainDateTime.from(dateArgs)
+      } else {
+         return Temporal.PlainDateTime.from(dateArgs, {overflow})
       }
     }
     if (hasDate) {
-      return Temporal.PlainDate.from({ year, month, day })
+      return Temporal.PlainDate.from({ year, month, day }, {overflow})
     }
-
-    return Temporal.PlainTime.from({ hour, minute, second, nanosecond })
+    if (offset) {
+      const zdt = Temporal.ZonedDateTime.from({
+          ...dateArgs,
+          timeZone: "Etc/UTC",  // timeZone is required, but will probably not match the offset
+          offset
+        }, {
+          offset: "use",      // in the case of conflict between offset and timeZone, use the offset value
+          overflow
+        }
+      )
+      return ZonedTime.from(zdt)
+    }
+    return Temporal.PlainTime.from({ hour, minute, second, nanosecond }, {overflow})
   }
 }
 
 
 function parseTemporalString(input: string): TemporalType {
+  const options: Temporal.AssignmentOptions = {overflow: "reject"}
   switch (inferTemporalKind(input)) {
-    case "time":
-      return Temporal.PlainTime.from(input, {overflow: "reject"})
-    case "time_tz":
+    case TemporalTypes.TIME:
+      return Temporal.PlainTime.from(input, options)
+    case TemporalTypes.TIME_TZ:
       // Instant wants a date portion
       const instant = Temporal.Instant.from("1970-01-01T" + input)
-      // apply effect of timezone to plain time
-      return instant.toZonedDateTimeISO("UTC").toPlainTime()
-    case "date":
-      return Temporal.PlainDate.from(input, {overflow: "reject"})
-    case "timestamp":
-      return Temporal.PlainDateTime.from(input, {overflow: "reject"})
-    case "timestamp_tz":
+      // apply effect of timezone to time
+      return ZonedTime.from(instant.toZonedDateTimeISO("UTC"), options)
+    case TemporalTypes.DATE:
+      return Temporal.PlainDate.from(input, options)
+    case TemporalTypes.TIMESTAMP:
+      return Temporal.PlainDateTime.from(input, options)
+    case TemporalTypes.TIMESTAMP_TZ:
       return Temporal.Instant.from(input)
     default:
       throw new Error(`Not a valid date or time string: "${input}"`)
@@ -244,9 +265,7 @@ function parseTemporalString(input: string): TemporalType {
 }
 
 
-type TemporalKind = "date" | "time" | "time_tz" | "timestamp" | "timestamp_tz"
-
-function inferTemporalKind(input: string): TemporalKind | undefined {
+function inferTemporalKind(input: string): TemporalTypes | undefined {
   let dashCount = 0,
       hasTime = false,
       hasZone = false
@@ -274,16 +293,16 @@ function inferTemporalKind(input: string): TemporalKind | undefined {
 
   if (hasTime && hasDate) {
     return hasZone
-      ? "timestamp_tz"
-      : "timestamp"
+      ? TemporalTypes.TIMESTAMP_TZ
+      : TemporalTypes.TIMESTAMP
   }
   if (hasTime) {
     return hasZone
-      ? "time_tz"
-      : "time"
+      ? TemporalTypes.TIME_TZ
+      : TemporalTypes.TIME
   }
   if (hasDate) {
-    return "date"
+    return TemporalTypes.DATE
   }
 }
 

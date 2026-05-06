@@ -1,8 +1,9 @@
 import {expect} from "chai"
 import {describe, it} from "node:test"
-import {Temporal} from "temporal-polyfill"
+import {Temporal} from "@js-temporal/polyfill"
 
 import {buildTemporalParser} from "../src/datetime-parser.ts"
+import {ZonedTime} from "../src/json-path.ts"
 
 
 describe("Temporal parsing", () => {
@@ -21,22 +22,22 @@ describe("Temporal parsing", () => {
       expect(value.toString()).to.equal("12:34:56")
     })
 
-    it("parses times with timezone offsets as PlainTime", () => {
+    it("parses times with timezone offsets as ZonedTime", () => {
       const value = parse("04:11:18.0214+00:00")
-      expect(value).to.be.instanceOf(Temporal.PlainTime)
-      expect(value.toString()).to.equal("04:11:18.0214")
+      expect(value).to.be.instanceOf(ZonedTime)
+      expect(value.toString()).to.equal("04:11:18.0214Z")
     })
 
-    it("parses times with positive offsets as PlainTime", () => {
+    it("parses times with positive offsets as ZonedTime", () => {
       const value = parse("12:34:56+05:30")
-      expect(value).to.be.instanceOf(Temporal.PlainTime)
-      expect(value.toString()).to.equal("07:04:56")
+      expect(value).to.be.instanceOf(ZonedTime)
+      expect(value.toString()).to.equal("07:04:56Z")
     })
 
-    it("parses times with negative offsets as PlainTime", () => {
+    it("parses times with negative offsets as ZonedTime", () => {
       const value = parse("12:34:56-03:30")
-      expect(value).to.be.instanceOf(Temporal.PlainTime)
-      expect(value.toString()).to.equal("16:04:56")
+      expect(value).to.be.instanceOf(ZonedTime)
+      expect(value.toString()).to.equal("16:04:56Z")
     })
 
     it("parses datetimes without a zone", () => {
@@ -69,7 +70,7 @@ describe("Temporal parsing", () => {
     })
 
     it("rejects invalid temporal strings", () => {
-      expect(() => parse("not-a-date")).to.throw("Cannot parse: not-a-date")
+      expect(() => parse("not-a-date")).to.throw("invalid RFC 9557 string: not-a-date")
     })
 
     it("accepts lowercase z as a zone designator", () => {
@@ -111,7 +112,7 @@ describe("Temporal parsing", () => {
 
   describe("whitespace handling", () => {
     it("rejects values with surrounding whitespace", () => {
-      expect(() => parse(" 2024-01-15 ")).to.throw("Cannot parse:  2024-01-15 ")
+      expect(() => parse(" 2024-01-15 ")).to.throw("invalid RFC 9557 string:  2024-01-15 ")
     })
   })
 
@@ -123,7 +124,7 @@ describe("Temporal parsing", () => {
     })
 
     it("rejects an invalid leap day", () => {
-      expect(() => parse("2023-02-29")).to.throw(/Invalid isoDay: 29/)
+      expect(() => parse("2023-02-29")).to.throw("value out of range: 1 <= 29 <= 28")
     })
   })
 
@@ -143,14 +144,14 @@ describe("Temporal parsing", () => {
 
   describe("invalid time components", () => {
     it("rejects hour 24", () => {
-      expect(() => parse("24:00:00")).to.throw(/Invalid isoHour: 24/)
+      expect(() => parse("24:00:00")).to.throw("value out of range: 0 <= 24 <= 23")
     })
 
     it("rejects minute 60", () => {
-      expect(() => parse("12:60:00")).to.throw(/Invalid isoMinute: 60/)
+      expect(() => parse("12:60:00")).to.throw("value out of range: 0 <= 60 <= 59")
     })
 
-/* This is not failing as it should, problem with temporal-polyfill
+/* This is not failing as it should, problem with temporal-polyfill?
     it("rejects second 60", () => {
       expect(() => parse("12:34:60")).to.throw("Cannot parse: 12:34:60")
     })
@@ -159,15 +160,15 @@ describe("Temporal parsing", () => {
 
   describe("invalid date-time formats", () => {
     it("rejects slash-separated dates", () => {
-      expect(() => parse("2024/01/15")).to.throw(/Not a valid date or time string/)
+      expect(() => parse("2024/01/15")).to.throw('Not a valid date or time string: "2024/01/15"')
     })
 
     it("rejects month 13", () => {
-      expect(() => parse("2024-13-01")).to.throw(/Invalid isoMonth: 13/)
+      expect(() => parse("2024-13-01")).to.throw("invalid RFC 9557 string: 2024-13-01")
     })
 
     it("rejects day 32", () => {
-      expect(() => parse("2024-01-32")).to.throw(/Invalid isoDay: 32/)
+      expect(() => parse("2024-01-32")).to.throw("invalid RFC 9557 string: 2024-01-32")
     })
   })
 })

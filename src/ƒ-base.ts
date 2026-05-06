@@ -2,9 +2,9 @@ import {CachedIterable} from "indexed-iterable"
 import {iterate} from "iterare"
 import {IteratorWithOperators} from "iterare/lib/iterate.js"
 import {isIterable} from "iterare/lib/utils.js"
-import {Temporal} from "temporal-polyfill"
+import {Temporal} from "@js-temporal/polyfill"
 
-import type {KeyValue} from "./json-path.ts"
+import {type KeyValue, ZonedTime} from "./json-path.ts"
 import {EMPTY_ITERATOR} from "./iterators.ts"
 import {CLDR} from "./datetime-parser.ts"
 
@@ -14,6 +14,16 @@ enum Pred {
   FALSE,
   UNKNOWN
 }
+
+/** @internal */
+export enum TemporalTypes {
+  DATE = "date",
+  TIME = "time without time zone",
+  TIME_TZ = "time with time zone",
+  TIMESTAMP = "timestamp without time zone",
+  TIMESTAMP_TZ = "timestamp with time zone",
+}
+
 
 type Seq<T> = IteratorWithOperators<T>
 
@@ -33,6 +43,7 @@ const KV_INDEX = "KV-index"
 
 const NO_VALUE = Symbol.for("No Value")
 
+
 /** @internal */
 export type TemporalType =
     Temporal.PlainDateTime
@@ -40,12 +51,13 @@ export type TemporalType =
   // | Temporal.ZonedDateTime   // These have named time zones like "[Pacific/Vancouver]"
   | Temporal.PlainDate
   | Temporal.PlainTime
+  | ZonedTime
 
 /** @internal */
 export interface TemporalParser {
   toDate(input: string): Temporal.PlainDate
   toTime(input: string): Temporal.PlainTime
-  toTimeTz(input: string): Temporal.PlainTime
+  toTimeTz(input: string): ZonedTime
   toTimestamp(input: string): Temporal.PlainDateTime
   toTimestampTz(input: string): Temporal.Instant
   toTemporal(input: string): TemporalType
@@ -82,21 +94,19 @@ export class ƒBase {
     if (input === null) {
       return "null"
     }
-
     // input instanceof Date would fit here, if we used it
     if (input instanceof Temporal.Instant) {
       return "timestamp with time zone"
     }
-
     if (input instanceof Temporal.PlainDateTime) {
       return "timestamp without time zone"
     }
-
-    // note javascript/Temporal does not have the concept of "time with time zone"
+    if (input instanceof ZonedTime) {
+      return "time with time zone"
+    }
     if (input instanceof Temporal.PlainTime) {
       return "time without time zone"
     }
-
     if (input instanceof Temporal.PlainDate) {
       return "date"
     }
@@ -642,14 +652,17 @@ export class ƒBase {
 
 
   private static _compare(compOp: string, left: any, right: any): Pred {
+    let typeLeft = ƒBase._type(left)
+    let typeRight = ƒBase._type(right)
+
+    if (this._areTemporalComparable(typeLeft, typeRight)) {
+      left = ƒBase._toTemporalComparable(left)
+      right = ƒBase._toTemporalComparable(right)
+      typeLeft = typeRight = "temporal"
+    }
+
     // check that left and right can be compared
-    const typeLeft = ƒBase._type(left)
-    const typeRight = ƒBase._type(right)
     if (typeLeft === typeRight) {
-      if (typeLeft === "date") {
-        left = left.toString()
-        right = right.toString()
-      }
       switch (compOp) {
         case "==" :
           return ƒBase._toPred(left === right)
@@ -667,6 +680,39 @@ export class ƒBase {
       }
     }
     return Pred.UNKNOWN
+  }
+
+  /*
+      COMPARABLE:
+      * date and timestamp
+      * date and datetime
+      * datetime and timestamp
+
+      NOT COMPARABLE:
+      * date and timestamp_tz
+      * date and time
+      * date and time_tz
+      * time and time_tz
+  */
+  private static _areTemporalComparable(typeLeft: string, typeRight: string): boolean {
+    if (typeLeft === typeRight
+        && (typeLeft === "date" || typeLeft.startsWith("time"))) {
+      return true
+    }
+    const leftIsComparable = typeLeft === TemporalTypes.DATE
+      || typeLeft === TemporalTypes.TIMESTAMP
+
+    const rightIsComparable = typeRight === TemporalTypes.DATE
+      || typeRight === TemporalTypes.TIMESTAMP
+
+    return leftIsComparable && rightIsComparable
+  }
+
+  private static _toTemporalComparable(temporal: Temporal.PlainDate | Temporal.PlainDateTime): string {
+    if (temporal instanceof Temporal.PlainDate) {
+      temporal = Temporal.PlainDateTime.from(temporal)
+    }
+    return temporal.toString()
   }
 
   compare(compOp: string, left: unknown, right: any): SingleOrIterator<Pred> {

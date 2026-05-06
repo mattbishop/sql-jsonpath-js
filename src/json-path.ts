@@ -1,3 +1,5 @@
+import {Temporal} from "@js-temporal/polyfill";
+
 /**
  * Declared variable values for SQL JSONPath evaluation.
  */
@@ -88,3 +90,27 @@ export interface SqlJsonPathStatement {
 }
 
 
+/**
+ * Represents a Sql JSONPath 'time with time zone' object. Not something Temporal supports.
+ * Instances of this will be converted to UTC time zone, the declared time zone is not preserved at this time.
+ */
+export class ZonedTime extends Temporal.PlainTime {
+  static override from(input:     Temporal.PlainTime | Temporal.PlainTimeLike | string,
+                       options?:  Temporal.AssignmentOptions): ZonedTime {
+    const time = typeof input === "string"
+      ? Temporal.PlainTime.from(input, options)
+      : input
+    return new ZonedTime(
+      time.hour,
+      time.minute,
+      time.second,
+      time.millisecond,
+      time.microsecond,
+      time.nanosecond
+    )
+  }
+
+  toString(options?: Temporal.ToStringPrecisionOptions): string {
+    return super.toString(options) + "Z"
+  }
+}

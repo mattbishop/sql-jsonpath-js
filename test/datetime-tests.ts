@@ -1,11 +1,12 @@
 import {expect} from "chai"
 import {describe, it} from "node:test"
-import {Temporal} from "temporal-polyfill"
+import {Temporal} from "@js-temporal/polyfill"
 
 import {compile, one} from "../src/index.ts"
+import {ZonedTime} from "../src/json-path.ts"
+
 
 describe("datetime tests", () => {
-
 
   it("understands dates", () => {
     const stmt = compile('$.datetime().type()')
@@ -13,12 +14,93 @@ describe("datetime tests", () => {
     expect(actual).to.equal("date")
   })
 
-  it("compares dates", () => {
-    const stmt = compile('$ ? (@.datetime() == $a)')
-    const actual = stmt.exists("2020-02-01", {variables: {a: Temporal.PlainDate.from("2020-02-01")}})
-    expect(actual).to.be.true
+  describe("date and time comparisons", () => {
+    it("compares dates", () => {
+      const stmt = compile('$ ? (@.datetime() == $a)')
+      const actual = stmt.exists("2020-02-01", {variables: {a: Temporal.PlainDate.from("2020-02-01")}})
+      expect(actual).to.be.true
+    })
+
+    it("compares with date()", () => {
+      const stmt = compile('$ ? (@.date() > "2020-01-01".date())')
+      expect(stmt.exists("2020-02-01")).to.be.true
+      expect(stmt.exists("2019-12-31")).to.be.false
+    })
+
+    it("compares with time()", () => {
+      const stmt = compile('$ ? (@.time() < "12:00:00".time())')
+      expect(stmt.exists("10:00:00")).to.be.true
+      expect(stmt.exists("14:00:00")).to.be.false
+    })
+
+    it("compares with time_tz()", () => {
+      // 10:00:00+02:00 is 08:00:00Z
+      // 09:00:00Z
+      const stmt = compile('$ ? (@.time_tz() > "09:00:00Z".time_tz())')
+      expect(stmt.exists("12:00:00+02:00")).to.be.true // 10:00:00Z > 09:00:00Z
+      expect(stmt.exists("08:00:00Z")).to.be.false
+    })
+
+    it("compares with timestamp()", () => {
+      const stmt = compile('$ ? (@.timestamp() == "2020-01-01T10:00:00".timestamp())')
+      expect(stmt.exists("2020-01-01T10:00:00")).to.be.true
+      expect(stmt.exists("2020-01-01T11:00:00")).to.be.false
+    })
+
+    it("compares with timestamp_tz()", () => {
+      const stmt = compile('$ ? (@.timestamp_tz() >= "2020-01-01T10:00:00Z".timestamp_tz())')
+      expect(stmt.exists("2020-01-01T11:00:00Z")).to.be.true
+      expect(stmt.exists("2020-01-01T09:00:00Z")).to.be.false
+    })
   })
 
+  describe("datetime comparisons", () => {
+    it("compares date and timestamp values at midnight", () => {
+      const sameInstant = compile('$ ? (@.date() == "2020-01-01T00:00:00".timestamp())')
+      expect(sameInstant.exists("2020-01-01")).to.be.true
+
+      const differentInstant = compile('$ ? (@.date() == "2020-01-01T00:00:01".timestamp())')
+      expect(differentInstant.exists("2020-01-01")).to.be.false
+    })
+
+    it("compares timestamp and date values in either direction", () => {
+      const dateOnLeft = compile('$ ? (@.date() == "2020-01-01T00:00:00".timestamp())')
+      expect(dateOnLeft.exists("2020-01-01")).to.be.true
+
+      const timestampOnLeft = compile('$ ? (@.timestamp() == "2020-01-01".date())')
+      expect(timestampOnLeft.exists("2020-01-01T00:00:00")).to.be.true
+    })
+
+    it("supports ordering comparisons between date and timestamp values", () => {
+      expect(compile('$ ? (@.date() < "2020-01-02T00:00:00".timestamp())').exists("2020-01-01")).to.be.true
+      expect(compile('$ ? (@.date() <= "2020-01-01T00:00:00".timestamp())').exists("2020-01-01")).to.be.true
+      expect(compile('$ ? (@.date() > "2019-12-31T23:59:59".timestamp())').exists("2020-01-01")).to.be.true
+      expect(compile('$ ? (@.date() >= "2020-01-01T00:00:00".timestamp())').exists("2020-01-01")).to.be.true
+      expect(compile('$ ? (@.date() != "2020-01-02T00:00:00".timestamp())').exists("2020-01-01")).to.be.true
+    })
+
+    it("treats non-comparable temporal values as unknown", () => {
+      const dateAndTime = compile('$ ? ((@.date() == "10:11:12".time()) is unknown)')
+      expect(dateAndTime.exists("2020-01-01")).to.be.true
+
+      const dateAndTimeTz = compile('$ ? ((@.date() == "10:11:12Z".time_tz()) is unknown)')
+      expect(dateAndTimeTz.exists("2020-01-01")).to.be.true
+
+      const timeAndTimeTz = compile('$ ? ((@.time() == "10:11:12Z".time_tz()) is unknown)')
+      expect(timeAndTimeTz.exists("10:11:12")).to.be.true
+    })
+
+    it("does not match non-comparable temporal comparisons without is unknown", () => {
+      const dateAndTime = compile('$ ? (@.date() == "10:11:12".time())')
+      expect(dateAndTime.exists("2020-01-01")).to.be.false
+
+      const dateAndTimestampTz = compile('$ ? (@.date() == "2020-01-01T00:00:00Z".timestamp_tz())')
+      expect(dateAndTimestampTz.exists("2020-01-01")).to.be.false
+
+      const timeAndTimeTz = compile('$ ? (@.time() == "10:11:12Z".time_tz())')
+      expect(timeAndTimeTz.exists("10:11:12")).to.be.false
+    })
+  })
 
   describe("date and time functions", () => {
 
@@ -215,6 +297,23 @@ describe("datetime tests", () => {
         const statement = compile('$.datetime("HH;MI:SS")')
         const actualDate = statement.values("02;41:12")
         expect(one(actualDate)).to.deep.equal(Temporal.PlainTime.from("02:41:12"))
+      })
+      it("time with timezone hour", () => {
+        const statement = compile('$.datetime("HH24:MI:SSTZH")')
+        const actualTime = statement.values("12:00:00-02")
+        expect(one(actualTime)).to.deep.equal(ZonedTime.from("14:00:00"))
+      })
+
+      it("time with timezone hour and minute", () => {
+        const statement = compile('$.datetime("HH24:MI:SSTZH:TZM")')
+        const actualTime = statement.values("12:34:56+05:30")
+        expect(one(actualTime)).to.deep.equal(ZonedTime.from("07:04:56"))
+      })
+
+      it("time with fractional seconds and timezone", () => {
+        const statement = compile('$.datetime("HH24:MI:SS.FF4TZH:TZM")')
+        const actualTime = statement.values("02:11:18.0214-02:00")
+        expect(one(actualTime)).to.deep.equal(ZonedTime.from("04:11:18.0214"))
       })
     })
   })
