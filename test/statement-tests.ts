@@ -20,6 +20,56 @@ describe("Statement tests", () => {
     expect(actual).to.be.true
   })
 
+  describe("public compile error handling", () => {
+    function withoutConsoleError(test: () => void) {
+      const originalError = console.error
+      console.error = () => undefined
+      try {
+        test()
+      } finally {
+        console.error = originalError
+      }
+    }
+
+    it("throws for lexical errors", () => {
+      withoutConsoleError(() => {
+        expect(() => compile("$ # bad")).to.throw()
+      })
+    })
+
+    it("throws for parser errors", () => {
+      withoutConsoleError(() => {
+        expect(() => compile("$.")).to.throw()
+      })
+    })
+  })
+
+  describe("public exists return shape", () => {
+    it("returns an iterator of booleans for iterable input", () => {
+      const statement = compile("$.name")
+      const input = new Set([
+        {name: "Ada"},
+        {missing: true},
+        {name: "Grace"}
+      ])
+
+      const actual = statement.exists(input)
+
+      expect(actual).to.not.be.a("boolean")
+      expect(Array.from(actual as IterableIterator<boolean>)).to.deep.equal([
+        true,
+        false,
+        true
+      ])
+    })
+
+    it("returns false for a single input with no match", () => {
+      const statement = compile("$.missing")
+
+      expect(statement.exists({name: "Ada"})).to.be.false
+    })
+  })
+
   it("values", () => {
     const stmt = compile('$.a')
     // .values() returns the iterator
