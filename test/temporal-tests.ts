@@ -9,6 +9,108 @@ import {ZonedTime} from "../src/json-path.ts"
 describe("Temporal parsing", () => {
   const parse = buildTemporalParser().toTemporal
 
+  describe("typed conversions", () => {
+    const parser = buildTemporalParser()
+
+    describe("toDate", () => {
+      it("returns a PlainDate unchanged", () => {
+        const value = parser.toDate("2024-01-15")
+
+        expect(value).to.be.instanceOf(Temporal.PlainDate)
+        expect(value.toString()).to.equal("2024-01-15")
+      })
+
+      it("converts a PlainDateTime to a PlainDate", () => {
+        const value = parser.toDate("2024-01-15T12:34:56")
+
+        expect(value).to.be.instanceOf(Temporal.PlainDate)
+        expect(value.toString()).to.equal("2024-01-15")
+      })
+
+      it("rejects an instant", () => {
+        expect(() => parser.toDate("2024-01-15T12:34:56Z"))
+          .to.throw('Cannot convert input to a date: "2024-01-15T12:34:56Z"')
+      })
+    })
+
+    describe("toTime", () => {
+      it("returns a PlainTime unchanged", () => {
+        const value = parser.toTime("12:34:56")
+
+        expect(value).to.be.instanceOf(Temporal.PlainTime)
+        expect(value.toString()).to.equal("12:34:56")
+      })
+
+      it("converts a PlainDateTime to a PlainTime", () => {
+        const value = parser.toTime("2024-01-15T12:34:56")
+
+        expect(value).to.be.instanceOf(Temporal.PlainTime)
+        expect(value.toString()).to.equal("12:34:56")
+      })
+
+      it("rejects a time with time zone", () => {
+        expect(() => parser.toTime("12:34:56+02:00"))
+          .to.throw('Cannot convert input to a time: "12:34:56+02:00"')
+      })
+    })
+
+    describe("toTimeTz", () => {
+      it("returns a ZonedTime unchanged", () => {
+        const value = parser.toTimeTz("12:34:56+00:00")
+
+        expect(value).to.be.instanceOf(ZonedTime)
+        expect(value.toString()).to.equal("12:34:56Z")
+      })
+
+      it("converts an instant to a ZonedTime", () => {
+        const value = parser.toTimeTz("2024-01-15T12:34:56Z")
+
+        expect(value).to.be.instanceOf(ZonedTime)
+        expect(value.toString()).to.equal("12:34:56Z")
+      })
+
+      it("rejects a plain time", () => {
+        expect(() => parser.toTimeTz("12:34:56"))
+          .to.throw('Cannot convert input to a time with time zone: "12:34:56"')
+      })
+    })
+
+    describe("toTimestamp", () => {
+      it("returns a PlainDateTime unchanged", () => {
+        const value = parser.toTimestamp("2024-01-15T12:34:56")
+
+        expect(value).to.be.instanceOf(Temporal.PlainDateTime)
+        expect(value.toString()).to.equal("2024-01-15T12:34:56")
+      })
+
+      it("converts a PlainDate to a PlainDateTime", () => {
+        const value = parser.toTimestamp("2024-01-15")
+
+        expect(value).to.be.instanceOf(Temporal.PlainDateTime)
+        expect(value.toString()).to.equal("2024-01-15T00:00:00")
+      })
+
+      it("rejects a plain time", () => {
+        expect(() => parser.toTimestamp("12:34:56"))
+          .to.throw('Cannot convert input to a datetime: "12:34:56"')
+      })
+    })
+
+    describe("toTimestampTz", () => {
+      it("returns an Instant unchanged", () => {
+        const value = parser.toTimestampTz("2024-01-15T12:34:56Z")
+
+        expect(value).to.be.instanceOf(Temporal.Instant)
+        expect(value.toString()).to.equal("2024-01-15T12:34:56Z")
+      })
+
+      it("rejects a PlainDateTime", () => {
+        expect(() => parser.toTimestampTz("2024-01-15T12:34:56"))
+          .to.throw('Cannot convert the string to an instant: "2024-01-15T12:34:56"')
+      })
+    })
+  })
+
   describe("infers Temporal Kind", () => {
     it("parses plain dates", () => {
       const value = parse("2024-01-15")
@@ -169,6 +271,108 @@ describe("Temporal parsing", () => {
 
     it("rejects day 32", () => {
       expect(() => parse("2024-01-32")).to.throw("invalid RFC 9557 string: 2024-01-32")
+    })
+  })
+
+  describe("formatted parser token coverage", () => {
+    it("parses RRRR year fields", () => {
+      const parser = buildTemporalParser("RRRR-MM-DD")
+
+      const value = parser.toTemporal("2024-01-15")
+
+      expect(value).to.be.instanceOf(Temporal.PlainDate)
+      expect(value.toString()).to.equal("2024-01-15")
+    })
+
+    it("recognizes shortened year fields", () => {
+      expect(buildTemporalParser("YYY-MM-DD").toTemporal("024-01-15").toString()).to.equal("1970-01-15")
+      expect(buildTemporalParser("YY-MM-DD").toTemporal("24-01-15").toString()).to.equal("1970-01-15")
+      expect(buildTemporalParser("Y-MM-DD").toTemporal("4-01-15").toString()).to.equal("1970-01-15")
+      expect(buildTemporalParser("RR-MM-DD").toTemporal("24-01-15").toString()).to.equal("1970-01-15")
+    })
+
+    it("recognizes day-of-year fields", () => {
+      const value = buildTemporalParser("YYYY-DDD").toTemporal("2024-032")
+
+      expect(value).to.be.instanceOf(Temporal.PlainDate)
+      expect(value.toString()).to.equal("2024-01-01")
+    })
+
+    it("parses seconds since midnight with SSSSS", () => {
+      const value = buildTemporalParser("SSSSS").toTemporal("45296")
+
+      expect(value).to.be.instanceOf(Temporal.PlainTime)
+      expect(value.toString()).to.equal("12:34:56")
+    })
+
+    it("parses 12-hour times with A.M.", () => {
+      const value = buildTemporalParser("HH:MI:SS A.M.").toTemporal("12:34:56 A.M.")
+
+      expect(value).to.be.instanceOf(Temporal.PlainTime)
+      expect(value.toString()).to.equal("00:34:56")
+    })
+
+    it("parses 12-hour times with P.M.", () => {
+      const value = buildTemporalParser("HH:MI:SS P.M.").toTemporal("01:34:56 P.M.")
+
+      expect(value).to.be.instanceOf(Temporal.PlainTime)
+      expect(value.toString()).to.equal("13:34:56")
+    })
+
+    it("parses FF1 fractional seconds", () => {
+      const value = buildTemporalParser("HH24:MI:SS.FF1").toTemporal("12:34:56.1")
+
+      expect(value).to.be.instanceOf(Temporal.PlainTime)
+      expect(value.toString()).to.equal("12:34:56.1")
+    })
+
+    it("parses FF2 fractional seconds", () => {
+      const value = buildTemporalParser("HH24:MI:SS.FF2").toTemporal("12:34:56.12")
+
+      expect(value).to.be.instanceOf(Temporal.PlainTime)
+      expect(value.toString()).to.equal("12:34:56.12")
+    })
+
+    it("parses FF3 fractional seconds", () => {
+      const value = buildTemporalParser("HH24:MI:SS.FF3").toTemporal("12:34:56.123")
+
+      expect(value).to.be.instanceOf(Temporal.PlainTime)
+      expect(value.toString()).to.equal("12:34:56.123")
+    })
+
+    it("parses FF5 fractional seconds", () => {
+      const value = buildTemporalParser("HH24:MI:SS.FF5").toTemporal("12:34:56.12345")
+
+      expect(value).to.be.instanceOf(Temporal.PlainTime)
+      expect(value.toString()).to.equal("12:34:56.12345")
+    })
+
+    it("parses FF6 fractional seconds", () => {
+      const value = buildTemporalParser("HH24:MI:SS.FF6").toTemporal("12:34:56.123456")
+
+      expect(value).to.be.instanceOf(Temporal.PlainTime)
+      expect(value.toString()).to.equal("12:34:56.123456")
+    })
+
+    it("parses FF7 fractional seconds", () => {
+      const value = buildTemporalParser("HH24:MI:SS.FF7").toTemporal("12:34:56.1234567")
+
+      expect(value).to.be.instanceOf(Temporal.PlainTime)
+      expect(value.toString()).to.equal("12:34:56.1234567")
+    })
+
+    it("parses FF8 fractional seconds", () => {
+      const value = buildTemporalParser("HH24:MI:SS.FF8").toTemporal("12:34:56.12345678")
+
+      expect(value).to.be.instanceOf(Temporal.PlainTime)
+      expect(value.toString()).to.equal("12:34:56.12345678")
+    })
+
+    it("parses FF9 fractional seconds", () => {
+      const value = buildTemporalParser("HH24:MI:SS.FF9").toTemporal("12:34:56.123456789")
+
+      expect(value).to.be.instanceOf(Temporal.PlainTime)
+      expect(value.toString()).to.equal("12:34:56.123456789")
     })
   })
 })

@@ -103,8 +103,8 @@ const FIELD_TO_REGEX: Record<string, string> = {
   "RRRR":   "(?<year>\\d{4})",
   "RR":     "(?<year_short>\\d{2})",
   "MM":     "(?<month>\\d{2})",
-  "DD":     "(?<day>\\d{2})",
   "DDD":    "(?<day_of_year>\\d{3})",
+  "DD":     "(?<day>\\d{2})",
   "HH":     "(?<hour>\\d{2})",
   "HH12":   "(?<hour>\\d{2})",
   "HH24":   "(?<hour>\\d{2})",
@@ -128,7 +128,7 @@ const FIELD_TO_REGEX: Record<string, string> = {
 }
 
 // Matches standard tokens, or single delimiters
-const templateTokenizer = /(A\.M\.|P\.M\.|HH12|HH24|HH|SSSSS|YYYY|YYY|MM|DD|DDD|MI|SS|TZH|TZM|FF[1-9]|RRRR|RR|YY|Y)|([-.\/,';: ])/g
+const templateTokenizer = /(A\.M\.|P\.M\.|HH12|HH24|HH|YYYY|YYY|YY|Y|MM|DDD|DD|MI|SSSSS|SS|TZH|TZM|FF[1-9]|RRRR|RR)|([-.\/,';: ])/g
 
 function createFormattedParser(template: string): StringToTemporal {
   const fields = new Set<string>()
@@ -238,7 +238,7 @@ function createFormattedParser(template: string): StringToTemporal {
       )
       return ZonedTime.from(zdt)
     }
-    return Temporal.PlainTime.from({ hour, minute, second, nanosecond }, {overflow})
+    return Temporal.PlainTime.from({ hour, minute, second, millisecond, microsecond, nanosecond }, {overflow})
   }
 }
 
