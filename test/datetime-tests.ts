@@ -14,6 +14,43 @@ describe("datetime tests", () => {
     expect(actual).to.equal("date")
   })
 
+  describe("type() temporal values", () => {
+    it("reports date type", () => {
+      const statement = compile('$.datetime().type()')
+      const actual = one(statement.values("2024-01-15"))
+
+      expect(actual).to.equal("date")
+    })
+
+    it("reports time without time zone type", () => {
+      const statement = compile('$.datetime().type()')
+      const actual = one(statement.values("12:34:56"))
+
+      expect(actual).to.equal("time without time zone")
+    })
+
+    it("reports time with time zone type", () => {
+      const statement = compile('$.datetime().type()')
+      const actual = one(statement.values("12:34:56+00:00"))
+
+      expect(actual).to.equal("time with time zone")
+    })
+
+    it("reports timestamp without time zone type", () => {
+      const statement = compile('$.datetime().type()')
+      const actual = one(statement.values("2024-01-15T12:34:56"))
+
+      expect(actual).to.equal("timestamp without time zone")
+    })
+
+    it("reports timestamp with time zone type", () => {
+      const statement = compile('$.datetime().type()')
+      const actual = one(statement.values("2024-01-15T12:34:56Z"))
+
+      expect(actual).to.equal("timestamp with time zone")
+    })
+  })
+
   describe("date and time comparisons", () => {
     it("compares dates", () => {
       const stmt = compile('$ ? (@.datetime() == $a)')
@@ -315,6 +352,231 @@ describe("datetime tests", () => {
         const actualTime = statement.values("02:11:18.0214-02:00")
         expect(one(actualTime)).to.deep.equal(ZonedTime.from("04:11:18.0214"))
       })
+    })
+  })
+
+  describe("temporal comparisons", () => {
+    it("compares dates", () => {
+      const statement = compile('$[*].datetime() ? (@ > "2024-01-15".datetime())')
+      const actual = statement.values([
+        "2024-01-14",
+        "2024-01-15",
+        "2024-01-16"
+      ])
+
+      expect(Array.from(actual).map((value) => value.toString())).to.deep.equal([
+        "2024-01-16"
+      ])
+    })
+
+    it("compares timestamps", () => {
+      const statement = compile('$[*].datetime() ? (@ >= "2024-01-15T12:34:56".datetime())')
+      const actual = statement.values([
+        "2024-01-15T12:34:55",
+        "2024-01-15T12:34:56",
+        "2024-01-15T12:34:57"
+      ])
+
+      expect(Array.from(actual).map((value) => value.toString())).to.deep.equal([
+        "2024-01-15T12:34:56",
+        "2024-01-15T12:34:57"
+      ])
+    })
+
+    it("compares dates and timestamps as comparable temporal values", () => {
+      const statement = compile('$[*].datetime() ? (@ == "2024-01-15".datetime())')
+      const actual = statement.values([
+        "2024-01-15T00:00:00",
+        "2024-01-15T12:00:00",
+        "2024-01-16T00:00:00"
+      ])
+
+      expect(Array.from(actual).map((value) => value.toString())).to.deep.equal([
+        "2024-01-15T00:00:00"
+      ])
+    })
+
+    it("does not compare incompatible temporal values", () => {
+      const statement = compile('$[*].datetime() ? (@ == "12:34:56".datetime())')
+      const actual = statement.values([
+        "2024-01-15",
+        "2024-01-15T12:34:56",
+        "2024-01-15T12:34:56Z"
+      ])
+
+      expect(Array.from(actual)).to.deep.equal([])
+    })
+  })
+
+  describe("time precision branches", () => {
+    it("rounds time to one digit of fractional second precision", () => {
+      const statement = compile('$.time(1)')
+      const actual = one(statement.values("12:34:56.149"))
+
+      expect(actual?.toString()).to.equal("12:34:56.1")
+    })
+
+    it("rounds time to four digits of fractional second precision", () => {
+      const statement = compile('$.time(4)')
+      const actual = one(statement.values("12:34:56.12345"))
+
+      expect(actual?.toString()).to.equal("12:34:56.1235")
+    })
+
+    it("rounds time to seven digits of fractional second precision", () => {
+      const statement = compile('$.time(7)')
+      const actual = one(statement.values("12:34:56.12345675"))
+
+      expect(actual?.toString()).to.equal("12:34:56.1234568")
+    })
+
+    it("rounds time at nanosecond precision", () => {
+      const statement = compile('$.time(9)')
+      const actual = one(statement.values("12:34:56.123456789"))
+
+      expect(actual?.toString()).to.equal("12:34:56.123456789")
+    })
+  })
+
+  describe("time_tz precision branches", () => {
+    it("rounds time_tz to one digit of fractional second precision", () => {
+      const statement = compile('$.time_tz(1)')
+      const actual = one(statement.values("12:34:56.149+00:00"))
+
+      expect(actual?.toString()).to.equal("12:34:56.1")
+    })
+
+    it("rounds time_tz to four digits of fractional second precision", () => {
+      const statement = compile('$.time_tz(4)')
+      const actual = one(statement.values("12:34:56.12345+00:00"))
+
+      expect(actual?.toString()).to.equal("12:34:56.1235")
+    })
+
+    it("rounds time_tz to seven digits of fractional second precision", () => {
+      const statement = compile('$.time_tz(7)')
+      const actual = one(statement.values("12:34:56.12345675+00:00"))
+
+      expect(actual?.toString()).to.equal("12:34:56.1234568")
+    })
+  })
+
+  describe("timestamp precision branches", () => {
+    it("rounds timestamp with zero precision", () => {
+      const statement = compile('$.timestamp(0)')
+      const actual = one(statement.values("2024-01-15T12:34:56.789"))
+
+      expect(actual?.toString()).to.equal("2024-01-16T00:00:00")
+    })
+
+    it("rounds timestamp to hour precision branch", () => {
+      const statement = compile('$.timestamp(2)')
+      const actual = one(statement.values("2024-01-15T12:34:56.789"))
+
+      expect(actual?.toString()).to.equal("2024-01-15T13:00:00")
+    })
+
+    it("rounds timestamp to minute precision branch", () => {
+      const statement = compile('$.timestamp(4)')
+      const actual = one(statement.values("2024-01-15T12:34:56.789"))
+
+      expect(actual?.toString()).to.equal("2024-01-15T12:35:00")
+    })
+
+    it("rounds timestamp to second precision branch", () => {
+      const statement = compile('$.timestamp(6)')
+      const actual = one(statement.values("2024-01-15T12:34:56.789"))
+
+      expect(actual?.toString()).to.equal("2024-01-15T12:34:57")
+    })
+
+    it("rounds timestamp to millisecond precision branch", () => {
+      const statement = compile('$.timestamp(7)')
+      const actual = one(statement.values("2024-01-15T12:34:56.7894"))
+
+      expect(actual?.toString()).to.equal("2024-01-15T12:34:56.789")
+    })
+
+    it("rounds timestamp to microsecond precision branch", () => {
+      const statement = compile('$.timestamp(8)')
+      const actual = one(statement.values("2024-01-15T12:34:56.7894564"))
+
+      expect(actual?.toString()).to.equal("2024-01-15T12:34:56.789456")
+    })
+
+    it("rounds timestamp to nanosecond precision branch", () => {
+      const statement = compile('$.timestamp(9)')
+      const actual = one(statement.values("2024-01-15T12:34:56.789456123"))
+
+      expect(actual?.toString()).to.equal("2024-01-15T12:34:56.789456123")
+    })
+
+    it("rejects invalid timestamp precision", () => {
+      const statement = compile('$.timestamp(10)')
+
+      expect(() => one(statement.values("2024-01-15T12:34:56.789"))).to.throw
+    })
+  })
+
+  describe("timestamp_tz precision branches", () => {
+    it("rounds timestamp_tz with zero precision", () => {
+      const statement = compile('$.timestamp_tz(0)')
+      const actual = one(statement.values("2024-01-15T12:34:56.789Z"))
+
+      expect(actual?.toString()).to.equal("2024-01-15T12:34:57Z")
+    })
+
+    it("rounds timestamp_tz to millisecond precision branch", () => {
+      const statement = compile('$.timestamp_tz(3)')
+      const actual = one(statement.values("2024-01-15T12:34:56.7894Z"))
+
+      expect(actual?.toString()).to.equal("2024-01-15T12:34:56.789Z")
+    })
+
+    it("rounds timestamp_tz to microsecond precision branch", () => {
+      const statement = compile('$.timestamp_tz(6)')
+      const actual = one(statement.values("2024-01-15T12:34:56.7894564Z"))
+
+      expect(actual?.toString()).to.equal("2024-01-15T12:34:56.789456Z")
+    })
+
+    it("rounds timestamp_tz to nanosecond precision branch", () => {
+      const statement = compile('$.timestamp_tz(9)')
+      const actual = one(statement.values("2024-01-15T12:34:56.789456123Z"))
+
+      expect(actual?.toString()).to.equal("2024-01-15T12:34:56.789456123Z")
+    })
+
+    it("rejects invalid timestamp_tz precision", () => {
+      const statement = compile('$.timestamp_tz(10)')
+
+      expect(() => one(statement.values("2024-01-15T12:34:56.789Z"))).to.throw
+    })
+  })
+
+  describe("non-string datetime method inputs", () => {
+    it("rejects non-string date input", () => {
+      const statement = compile('$.date()')
+
+      expect(() => one(statement.values(123))).to.throw
+    })
+
+    it("rejects non-string timestamp input", () => {
+      const statement = compile('$.timestamp()')
+
+      expect(() => one(statement.values(123))).to.throw
+    })
+
+    it("rejects non-string timestamp_tz input", () => {
+      const statement = compile('$.timestamp_tz()')
+
+      expect(() => one(statement.values(123))).to.throw
+    })
+
+    it("rejects non-string datetime input", () => {
+      const statement = compile('$.datetime()')
+
+      expect(() => one(statement.values(123))).to.throw
     })
   })
 })

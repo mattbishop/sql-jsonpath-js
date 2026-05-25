@@ -458,7 +458,6 @@ export class ƒBase {
   }
 
 
-  // todo is this what I want actually? Does timestamp_tz actually round?
   private static _timestamp_tz(input: unknown, parser: TemporalParser, precision?: number): Temporal.Instant {
     if (ƒBase._isString(input)) {
       let timestamp = parser.toTimestampTz(input)
