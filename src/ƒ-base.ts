@@ -4,15 +4,15 @@ import {IteratorWithOperators} from "iterare/lib/iterate.js"
 import {isIterable} from "iterare/lib/utils.js"
 import {Temporal} from "@js-temporal/polyfill"
 
-import {type KeyValue, ZonedTime} from "./json-path.ts"
-import {EMPTY_ITERATOR} from "./iterators.ts"
 import {CLDR} from "./datetime-parser.ts"
+import {type KeyValue, ZonedTime} from "./json-path.ts"
+import {EMPTY_ITERATOR, isIterableInput} from "./iterators.ts"
 
 
 enum Pred {
-  TRUE,
-  FALSE,
-  UNKNOWN
+  TRUE = "T",
+  FALSE = "F",
+  UNKNOWN = "U"
 }
 
 /** @internal */
@@ -138,9 +138,7 @@ export class ƒBase {
   private static _toSeq(input: unknown): Seq<unknown> {
     return ƒBase._isSeq(input)
       ? input.flatten()
-      : iterate(Array.isArray(input)
-        ? input
-        : [input])
+      : iterate(Array.isArray(input) ? input : [input])
   }
 
 
@@ -631,7 +629,7 @@ export class ƒBase {
   }
 
 
-  private static _filter(input: unknown, filterExp: Predƒ): boolean {
+  private static _matchesFilter(input: unknown, filterExp: Predƒ): boolean {
     try {
       const result = filterExp(input)
       // look for at least one Pred.TRUE in the iterator
@@ -644,9 +642,18 @@ export class ƒBase {
     }
   }
 
-  filter(input: any, filterExp: Predƒ): Seq<unknown> {
-    return this._toIterator(input)
-      .filter((i) => ƒBase._filter(i, filterExp))
+  filter(input: unknown, filterExp: Predƒ): Seq<unknown> {
+    const matches = (value: unknown) => ƒBase._matchesFilter(value, filterExp)
+
+    if (this.lax) {
+      return ƒBase._toSeq(input).filter(matches)
+    }
+
+    const matched = isIterableInput(input)
+      ? iterate(input).map(matches).some(Boolean)
+      : matches(input)
+
+    return ƒBase._toSeq(matched ? [input] : [])
   }
 
 
@@ -714,7 +721,7 @@ export class ƒBase {
     return temporal.toString()
   }
 
-  compare(compOp: string, left: unknown, right: any): SingleOrIterator<Pred> {
+  compare(compOp: string, left: unknown, right: unknown): SingleOrIterator<Pred> {
     if (!this.lax) {
       if (Array.isArray(left)) {
         throw new Error("In 'strict' mode! left side of comparison cannot be an array.")
@@ -728,7 +735,8 @@ export class ƒBase {
     if (isIterable(right)) {
       const resettableRight = new CachedIterable(right)
       rightCompare = (l: any) => {
-        let retVal = Pred.FALSE
+        let retVal = Pred.UNKNOWN
+        // seek the first TRUE
         for (const r of resettableRight) {
           retVal = ƒBase._compare(compOp, l, r)
           if (retVal == Pred.TRUE) {
@@ -745,6 +753,7 @@ export class ƒBase {
       ? iterate(left)
       : left
 
+    // works through all the left and compares to all the right
     return ƒBase._autoMap(left, rightCompare)
   }
 
@@ -755,10 +764,9 @@ export class ƒBase {
       : Pred.TRUE
   }
 
-
-  and(preds: Pred[]): Pred {
+  and(preds: SingleOrIterator<Pred>[]): Pred {
     for (const pred of preds) {
-      if (ƒBase._next(pred) !== Pred.TRUE) {
+      if (!(ƒBase._next(pred) === Pred.TRUE)) {
         return Pred.FALSE
       }
     }

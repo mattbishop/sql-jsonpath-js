@@ -1,78 +1,118 @@
 import {expect} from "chai"
 import {CachedIterable} from "indexed-iterable"
 import {iterate} from "iterare"
-import {describe, it} from "node:test"
+import * as assert from "node:assert"
+import {after, describe, it} from "node:test"
+import {PGlite} from "@electric-sql/pglite"
+
 
 // better for debugging issues
-//import {compile, one, type SqlJsonPathStatement} from "../src/index.ts";
+import {compile, one, type SqlJsonPathStatement} from "../src/index.ts"
+import {isIterableInput} from "../src/iterators.ts"
 
 // testing from /dist to ensure the exported interface is correct
 
+/*
 import {compile, one} from "../dist/index.js"
 import type {SqlJsonPathStatement} from "../dist/index.d.ts"
+*/
 
+const pg = await PGlite.create()
 
+after(async () => {
+  await pg.close()
+})
+
+async function pgExists(statement: string, data: any, vars?: Record<string, unknown>): Promise<boolean> {
+  const result = await _pgTest("exists", statement, data, vars)
+  assert.strictEqual(result.length, 1, `pgExists returned unexpected result: ${result}`)
+  return result[0] as boolean
+}
+
+async function pgQuery(statement: string, data: any, vars?: Record<string, unknown>) {
+  return _pgTest("query", statement, data, vars)
+}
+
+async function pgValues(statement: string, data: any, vars?: Record<string, unknown>) {
+  if (isIterableInput(data)) {
+    const results = await Promise.all(
+      Array.from(data).map((element) => pgQuery(statement, element, vars))
+    )
+    return results.flat()
+  }
+  return pgQuery(statement, data, vars)
+}
+
+async function _pgTest(method: string, statement: string, data: any, vars: Record<string, unknown> = {}) {
+  const result = await pg.query<{value: unknown}>(`
+    SELECT jsonb_path_${method}(
+      $1::JSONB,
+      $2,
+      $3::JSONB
+    ) AS value`, [
+      JSON.stringify(data),
+      statement,
+      JSON.stringify(vars)
+  ])
+
+  return result.rows.map(({value}) => value)
+}
+const url = new URL("http://somewhere")
 
 describe("Statement tests", () => {
-  it("exists", () => {
-    const stmt: SqlJsonPathStatement = compile('$')
-    const actual = stmt.exists("matt")
+  it("exists", async () => {
+    const src = '$'
+    const data = "matt"
+    const stmt: SqlJsonPathStatement = compile(src)
+    const actual = stmt.exists(data)
     expect(actual).to.be.true
+    const pgActual = await pgExists(src, data)
+    expect(pgActual).to.equal(actual)
   })
 
   describe("public compile error handling", () => {
-    function withoutConsoleError(test: () => void) {
-      const originalError = console.error
-      console.error = () => undefined
-      try {
-        test()
-      } finally {
-        console.error = originalError
-      }
-    }
-
     it("throws for lexical errors", () => {
-      withoutConsoleError(() => {
-        expect(() => compile("$ # bad")).to.throw()
-      })
+      expect(() => compile("$ # bad")).to.throw
     })
 
     it("throws for parser errors", () => {
-      withoutConsoleError(() => {
-        expect(() => compile("$.")).to.throw()
-      })
+      expect(() => compile("$.")).to.throw
     })
   })
 
   describe("public exists return shape", () => {
-    it("returns an iterator of booleans for iterable input", () => {
-      const statement = compile("$.name")
-      const input = new Set([
+    it("returns an iterator of booleans for iterable input", async () => {
+      const src = '$.name'
+      const data = [
         {name: "Ada"},
         {missing: true},
         {name: "Grace"}
-      ])
-
-      const actual = statement.exists(input)
-
+      ]
+      const statement = compile(src)
+      const actual = statement.exists(data.values())
       expect(actual).to.not.be.a("boolean")
-      expect(Array.from(actual as IterableIterator<boolean>)).to.deep.equal([
-        true,
-        false,
-        true
-      ])
+      const actualArray = Array.from(actual as IterableIterator<boolean>)
+      expect(actualArray).to.deep.equal([true, false, true])
+      const pgActualArray = await Promise.all(
+        data.map((element) => pgExists(src, element))
+      )
+      expect(pgActualArray).to.deep.equal(actualArray)
     })
 
-    it("returns false for a single input with no match", () => {
-      const statement = compile("$.missing")
-
-      expect(statement.exists({name: "Ada"})).to.be.false
+    it("returns false for a single input with no match", async () => {
+      const src = '$.missing'
+      const data = {name: "Ada"}
+      const statement = compile(src)
+      const actual = statement.exists(data)
+      expect(actual).to.be.false
+      const pgActual = await pgExists(src, data)
+      expect(pgActual).to.equal(actual)
     })
   })
 
   it("values", () => {
     const stmt = compile('$.a')
-    // .values() returns the iterator
+    // [].values() returns an iterator of objects
     const actual = stmt.values([{a: 1}, {b: 2}, {a: 3}].values())
     expect(actual.next().value).to.equal(1)
     expect(actual.next().value).to.equal(3)
@@ -88,7 +128,7 @@ describe("Statement tests", () => {
 
   it("one", () => {
     const stmt = compile('$')
-    const iter = stmt.values(iterate([1, 2, 3]))
+    const iter = stmt.values([1, 2, 3].values())
     expect(one(iter)).to.equal(1)
     expect(one(iter)).to.equal(2)
     expect(one(iter)).to.equal(3)
@@ -97,7 +137,7 @@ describe("Statement tests", () => {
 
   it("applies function to sequence", () => {
     const stmt = compile('$.type()')
-    const actual = stmt.values(iterate(["matt", true, 100, ["mary", "abby"], {a: 4}]))
+    const actual = stmt.values(["matt", true, 100, ["mary", "abby"], {a: 4}].values())
     expect(one(actual)).to.equal("string")
     expect(one(actual)).to.equal("boolean")
     expect(one(actual)).to.equal("number")
@@ -106,78 +146,152 @@ describe("Statement tests", () => {
     expect(actual.next().done).to.be.true
   })
 
-  it("unwraps sequence", () => {
-    const stmt = compile('$[*]')
-    const actual = stmt.values(iterate(["matt", true, 100, ["mary", "abby"], {a: 4}]))
-    expect(one(actual)).to.equal("matt")
-    expect(one(actual)).to.be.true
-    expect(one(actual)).to.equal(100)
-    expect(one(actual)).to.equal("mary")
-    expect(one(actual)).to.equal("abby")
-    expect(one(actual)).to.deep.equal({a: 4})
-    expect(actual.next().done).to.be.true
+  it("unwraps sequence", async () => {
+    const src = '$[*]'
+    const data = ["matt", true, 100, ["mary", "abby"], {a: 4}]
+    const expected = ["matt", true, 100, ["mary", "abby"], {a: 4}]
+    const stmt = compile(src)
+
+    const actual = stmt.values(data)
+    const actualArray = Array.from(actual)
+    expect(actualArray).to.deep.equal(expected)
+
+    const pgActual = await pgValues(src, data)
+    expect(pgActual).to.deep.equal(expected)
+  })
+
+  it("strictly unwraps sequence", async () => {
+    const src = 'strict $[*]'
+    const data = ["matt", true, 100, ["mary", "abby"], {a: 4}]
+    const expected = ["matt", true, 100, ["mary", "abby"], {a: 4}]
+    const stmt = compile(src)
+    const actual = stmt.values(data)
+    const actualArray = Array.from(actual)
+    expect(actualArray).to.deep.equal(expected)
+
+    const pgActual = await pgValues(src, data)
+    expect(pgActual).to.deep.equal(expected)
   })
 
   it("unwraps sequence and applies type()", () => {
     const stmt = compile('$[*].type()')
-    const actual = stmt.values(iterate(["matt", true, 100, ["mary", false], {a: 4}, undefined]))
+    const actual = stmt.values(["matt", true, 100, ["mary", false], {a: 4}, undefined])
     expect(one(actual)).to.equal("string")
     expect(one(actual)).to.equal("boolean")
     expect(one(actual)).to.equal("number")
-    expect(one(actual)).to.equal("string")
-    expect(one(actual)).to.equal("boolean")
+    expect(one(actual)).to.equal("array")
     expect(one(actual)).to.deep.equal("object")
     expect(one(actual)).to.deep.equal("undefined")
     expect(actual.next().done).to.be.true
   })
 
-  it("extracts values from an array", () => {
-    const stmt = compile('$ ? (@ starts with "m")')
-    const actual = stmt.values(iterate(["matt", "angie", "mark", "mary", "abby"]))
-    expect(one(actual)).to.equal("matt")
-    expect(one(actual)).to.equal("mark")
-    expect(one(actual)).to.equal("mary")
+  /*
+    strict: pg returns [] (empty results), code returns false
+    lax:    pg returns ["matt", "mark", "mary"], code returns false
+
+    lax unwraps the data into an iterator, and filters back the items therein.
+      It goes into iterator mode for filter
+    strict does not unwrap, and returns an empty result
+   */
+  it("extracts values from an array", async () => {
+    const src = '$ ? (@ starts with "m")'
+    const data = ["matt", "angie", "mark", "mary", "abby"]
+    const expected = ["matt", "mark", "mary"]
+
+    const pgActual = await pgValues(src, data)
+    expect(pgActual).to.deep.equal(expected)
+
+    const stmt = compile(src)
+    const actual = stmt.values(data)
+    expect(one(actual)).to.equal(expected[0])
+    expect(one(actual)).to.equal(expected[1])
+    expect(one(actual)).to.equal(expected[2])
     expect(actual.next().done).to.be.true
   })
 
-  it("unwraps sequence of arrays", () => {
-    const stmt = compile('$.things[*][*]')
-    const actual = stmt.values({things: [["matt", true], 100, ["mary", "abby"], [{a: 4}]]})
-    expect(one(actual)).to.equal("matt")
-    expect(one(actual)).to.be.true
-    expect(one(actual)).to.equal(100)
-    expect(one(actual)).to.equal("mary")
-    expect(one(actual)).to.equal("abby")
-    expect(one(actual)).to.deep.equal({a: 4})
-    expect(actual.next().done).to.be.true
+  it("does not extract values from an array in strict mode", async () => {
+    const src = 'strict $ ? (@ starts with "m")'
+    const data = ["matt", "angie", "mark", "mary", "abby"]
+
+    const pgActual = await pgValues(src, data)
+    expect(pgActual).to.be.empty
+
+    const stmt = compile(src)
+    const actual = stmt.values(data)
+    expect(pgActual).to.be.empty
   })
 
-  it("strictly unwraps sequence of arrays", () => {
-    const stmt = compile('strict $.things[*][*]')
-    const actual = stmt.values({things: [["matt", true], [1, 2], [{a: 4}]]})
-    expect(one(actual)).to.equal("matt")
-    expect(one(actual)).to.be.true
-    expect(one(actual)).to.equal(1)
-    expect(one(actual)).to.equal(2)
-    expect(one(actual)).to.deep.equal({a: 4})
+  it("unwraps sequence of arrays", async () => {
+    const src = '$.things[*][*]'
+    const data = {things: [["matt", true], 100, ["mary", "abby"], [{a: 4}]]}
+    const expected = ["matt", true, 100, "mary", "abby", {a: 4}]
+
+    const stmt = compile(src)
+    const actual = stmt.values(data)
+    expect(one(actual)).to.equal(expected[0])
+    expect(one(actual)).to.equal(expected[1])
+    expect(one(actual)).to.equal(expected[2])
+    expect(one(actual)).to.equal(expected[3])
+    expect(one(actual)).to.equal(expected[4])
+    expect(one(actual)).to.deep.equal(expected[5])
     expect(actual.next().done).to.be.true
+
+    const pgActual = await pgValues(src, data)
+    expect(pgActual).to.deep.equal(expected)
   })
 
-  it("searches array with an named array value on right side of comparison", () => {
-    const stmt = compile('$.players ? (@ == $names[*])')
-    const variables = {names: ["mary", "angie"]}
-    const actual = stmt.values({players: ["matt", "angie", "mark", "mary", "abby"]}, {variables})
-    expect(one(actual)).to.equal("angie")
-    expect(one(actual)).to.equal("mary")
+  it("strictly unwraps sequence of arrays", async () => {
+    const src = 'strict $.things[*][*]'
+    const data = {things: [["matt", true], [1, 2], [{a: 4}]]}
+    const expected = ["matt", true, 1, 2, {a: 4}]
+    const stmt = compile(src)
+    const actual = stmt.values(data)
+    expect(one(actual)).to.equal(expected[0])
+    expect(one(actual)).to.equal(expected[1])
+    expect(one(actual)).to.equal(expected[2])
+    expect(one(actual)).to.equal(expected[3])
+    expect(one(actual)).to.deep.equal(expected[4])
     expect(actual.next().done).to.be.true
+
+    const pgActual = await pgValues(src, data)
+    expect(pgActual).to.deep.equal(expected)
   })
 
-  it("strict searches array with an named array value on right side of comparison", () => {
-    const stmt = compile('strict $ ? (@[*] == "mary")')
-    const actual = stmt.values(["mary", "angie"])
-    const first = one(actual)
-    expect(first).to.deep.equal(["mary", "angie"])
-    expect(actual.next().done).to.be.true
+  it("searches array with an unboxed named array value on right side of comparison", async () => {
+    const src = '$.players ? (@ == $names[*])'
+    const stmt = compile(src)
+    const variables = {names: ["mary", "bob", "angie"]}
+    const data = {players: ["matt", "mark", "angie", "abby", "mary"]}
+    const expected = ["angie", "mary"]
+
+    const pgActual = await pgValues(src, data, variables)
+    expect(pgActual).to.deep.equal(expected)
+
+    const actual = stmt.values(data, {variables})
+    const actualArray = Array.from(actual)
+    expect(actualArray).to.deep.equal(expected)
+  })
+
+  /*
+    PG behavior:
+      lax:
+        @ and @[*] both return an iterator of the name matches, not the data array
+      strict:
+        @ returns []
+        @[*] returns data array
+   */
+  it("strict searches array with an named array value on right side of comparison", async () => {
+    const src = 'strict $ ? (@[*] == "angie")'
+    const data = ["mary", "angie"]
+    const expected = [data] // a single array
+
+    const stmt = compile(src)
+    const pgActual = await pgValues(src, data)
+    expect(pgActual).to.deep.equal(expected)
+
+    const actual = stmt.values(data)
+    const actualArray = Array.from(actual)
+    expect(actualArray).to.deep.equal(expected)
   })
 
   it("searches array with an named array value on right side of comparison", () => {
@@ -240,10 +354,88 @@ describe("Statement tests", () => {
         expect(Array.from(actual)).to.deep.equal([[1], [5, 1]])
       })
 
+      it("can filter multiple comparison predicates", async () => {
+        const src = '$ ? (@[*] == 2 && @[*] + 1 == 3)'
+        const data = [1, 2, 3]
+
+        const pgActual = await pgExists(src, data)
+        expect(pgActual).to.be.true
+
+        const statement = compile(src)
+        const actual = statement.exists(data)
+        expect(actual).to.be.true
+      })
+
       it("can filter value accessor predicates", () => {
         const statement = compile('$ ? (@.sleepy == true)')
         const actual = statement.values([{sleepy: true}, {sleepy: false}, {sleepy: "yes"}, {not: 1}])
         expect(Array.from(actual)).to.deep.equal([{sleepy: true}])
+      })
+    })
+
+    describe("filter and boolean branches", () => {
+      it("swallows filter errors and treats them as false", () => {
+        const statement = compile('$ ? (@.double() > 1)')
+        const actual = statement.values(["not-a-number", "2", 3])
+
+        expect(Array.from(actual)).to.deep.equal(["2", 3])
+      })
+
+      it("short-circuits OR when the first predicate is true", () => {
+        const statement = compile('$ ? (@ == 1 || @.double() > 1)')
+        // the values() array input is not being treated like a single item, it is being iterated over
+        const actual = statement.values([1, "not-a-number", "2"])
+        expect(Array.from(actual)).to.deep.equal([1, "2"])
+      })
+
+      it("short-circuits AND when the first predicate is false", () => {
+        const statement = compile('$ ? (@ == 1 && @.double() > 1)')
+        const actual = statement.values([1, "not-a-number", "2"])
+
+        expect(Array.from(actual)).to.deep.equal([])
+      })
+
+      it("treats exists errors as unknown", () => {
+        const statement = compile('$ ? ((exists(@.double())) is unknown)')
+        const actual = statement.values(["not-a-number", "2"])
+
+        expect(Array.from(actual)).to.deep.equal(["not-a-number"])
+      })
+    })
+
+    describe("strict iterator and structural branches", () => {
+      it("supports strict member access over iterable inputs", () => {
+        const statement = compile('strict $.name')
+        const actual = statement.values(new Set([
+          {name: "Ada"},
+          {name: "Grace"}
+        ]))
+
+        expect(Array.from(actual)).to.deep.equal(["Ada", "Grace"])
+      })
+
+      it("supports strict wildcard array access over iterable inputs", () => {
+        const statement = compile('strict $[*]')
+        const actual = statement.values(new Set([
+          [1, 2],
+          [3, 4]
+        ]))
+
+        expect(Array.from(actual)).to.deep.equal([1, 2, 3, 4])
+      })
+
+      it("uses defaultOnError with false", () => {
+        const statement = compile('strict $.name')
+        const actual = one(statement.values({}, {defaultOnError: false}))
+
+        expect(actual).to.equal(false)
+      })
+
+      it("uses defaultOnEmpty with false", () => {
+        const statement = compile('$.name')
+        const actual = one(statement.values({}, {defaultOnEmpty: false}))
+
+        expect(actual).to.equal(false)
       })
     })
 
@@ -258,6 +450,50 @@ describe("Statement tests", () => {
         const statement = compile('strict $ ? (@ == 1)')
         const actual = statement.values(1)
         expect(one(actual)).to.equal(1)
+      })
+    })
+
+    describe("comparison operators", () => {
+      it("supports not-equals comparison operator <>", () => {
+        const statement = compile('$ ? (@ <> 2)')
+        const actual = statement.values([1, 2, 3])
+
+        expect(Array.from(actual)).to.deep.equal([1, 3])
+      })
+
+      it("supports not-equals comparison operator !=", () => {
+        const statement = compile('$ ? (@ != 2)')
+        const actual = statement.values([1, 2, 3])
+
+        expect(Array.from(actual)).to.deep.equal([1, 3])
+      })
+
+      it("supports greater-than-or-equal comparison", () => {
+        const statement = compile('$ ? (@ >= 2)')
+        const actual = statement.values([1, 2, 3])
+
+        expect(Array.from(actual)).to.deep.equal([2, 3])
+      })
+
+      it("supports less-than comparison", () => {
+        const statement = compile('$ ? (@ < 2)')
+        const actual = statement.values([1, 2, 3])
+
+        expect(Array.from(actual)).to.deep.equal([1])
+      })
+
+      it("supports less-than-or-equal comparison", () => {
+        const statement = compile('$ ? (@ <= 2)')
+        const actual = statement.values([1, 2, 3])
+
+        expect(Array.from(actual)).to.deep.equal([1, 2])
+      })
+
+      it("returns no matches for incomparable values", () => {
+        const statement = compile('$ ? (@ > "2")')
+        const actual = statement.values([1, 2, 3])
+
+        expect(Array.from(actual)).to.deep.equal([])
       })
     })
 
@@ -846,7 +1082,7 @@ describe("Statement tests", () => {
 
     it("can modulo an array of numbers", () => {
       const statement = compile('$ ? (@ % 2 == 0)')
-      const actual = statement.values([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+      const actual = statement.values([0, 1, 2, 3, 4, 5, 6, 7, 8, 9].values())
       expect(Array.from(actual)).to.deep.equal([0, 2, 4, 6, 8])
     })
 

@@ -6,9 +6,21 @@ import type {Input} from "./json-path.ts"
 /**
  * Arrays are iterable, but for SQL JSONPath they are considered individual elements, unless unwrapped later by
  * a function.
- * @internal */
+ * @internal
+ */
 export function isIterableInput<T>(input: Input<T>): input is Iterable<T> {
   return typeof input !== "string" && !Array.isArray(input) && isIterable(input)
+}
+
+
+/**
+ * Returns an iterator of iterable input (see isIterableInput), and wraps other input in a singleton iterator.
+ * @internal
+ */
+export function toInputIterator(input: Input): Iterator<unknown> {
+  return isIterableInput(input)
+    ? input[Symbol.iterator]()
+    : new SingletonIterator(input)
 }
 
 

@@ -4,7 +4,7 @@ import {IteratorWithOperators} from "iterare/lib/iterate.js"
 
 import {type CodegenContext, newCodegenVisitor} from "./codegen-visitor.ts"
 import {ƒBase} from "./ƒ-base.ts"
-import {DefaultOnEmptyIterator, DefaultOnErrorIterator, isIterableInput, one, SingletonIterator} from "./iterators.ts"
+import {DefaultOnEmptyIterator, DefaultOnErrorIterator, isIterableInput, one, toInputIterator} from "./iterators.ts"
 import type {Input, NamedVariables, SqlJsonPathStatement, ValuesConfig} from "./json-path.ts"
 import {JsonPathParser} from "./parser.ts"
 import {allTokens} from "./tokens.ts"
@@ -74,30 +74,24 @@ export function createStatement(text: string): SqlJsonPathStatement {
       // iterate through the inputs one at a time and test them against fn()
       // filter() will omit the exists == false elements, and the caller needs to know this
       const existsƒ = (i: unknown) => !fn(i, variables).next().done
-      const iterator = iterate(toIterator(input))
+      const iterator = iterate(toInputIterator(input))
             .map(existsƒ)
 
       // return the shape that matches input
       return isIterableInput(input)
-        ? iterator as IterableIterator<boolean>
+        ? iterator
         : one(iterator) ?? false
     },
 
     values<T>(input: Input, config: ValuesConfig<T> = {}): IterableIterator<T> {
       const {variables} = config
       const valuesƒ = (i: unknown) => fn(i, variables)
-      const valuesIterator = iterate(toIterator(input))
+      const valuesIterator = iterate(toInputIterator(input))
         .map(valuesƒ)
         .flatten()
       return defaultsIterator(valuesIterator, config) as IterableIterator<T>
     }
   }
-}
-
-function toIterator(input: Input): Iterator<unknown> {
-  return isIterableInput(input)
-    ? input[Symbol.iterator]()
-    : new SingletonIterator(input)
 }
 
 
