@@ -1,5 +1,6 @@
 import {expect} from "chai"
 import {CachedIterable} from "indexed-iterable"
+import {isIterator} from "iterare/lib/utils.js"
 import {iterate} from "iterare"
 import * as assert from "node:assert"
 import {after, describe, it} from "node:test"
@@ -7,14 +8,14 @@ import {PGlite} from "@electric-sql/pglite"
 
 
 // better for debugging issues
-import {compile, one, type SqlJsonPathStatement} from "../src/index.ts"
+import {compile, one} from "../src/index.ts"
 import {isIterableInput} from "../src/iterators.ts"
+import type {Input} from "../src/json-path.ts"
 
 // testing from /dist to ensure the exported interface is correct
 
 /*
 import {compile, one} from "../dist/index.js"
-import type {SqlJsonPathStatement} from "../dist/index.d.ts"
 */
 
 const pg = await PGlite.create()
@@ -22,6 +23,31 @@ const pg = await PGlite.create()
 after(async () => {
   await pg.close()
 })
+
+
+async function testExistsCompareToPg(statement: string, data: Input<any>, variables?: Record<string, unknown>) {
+  if (!isIterableInput(data)) {
+    data = [data]
+  }
+  for (const datum of data) {
+    const pgActual = await pgExists(statement, datum, variables)
+    const stmt = compile(statement)
+    const actual = stmt.exists(datum, {variables})
+    expect(actual).to.equal(pgActual)
+  }
+}
+
+async function testValuesCompareToPg(statement: string, data: Input<any>, variables?: Record<string, unknown>) {
+  if (!isIterableInput(data)) {
+    data = [data]
+  }
+  for (const datum of data) {
+    const pgActual = await pgValues(statement, datum, variables)
+    const stmt = compile(statement)
+    const actual = Array.from(stmt.values(datum, {variables}))
+    expect(actual).to.deep.equal(pgActual)
+  }
+}
 
 async function pgExists(statement: string, data: any, vars?: Record<string, unknown>): Promise<boolean> {
   const result = await _pgTest("exists", statement, data, vars)
@@ -63,11 +89,7 @@ describe("Statement tests", () => {
   it("exists", async () => {
     const src = '$'
     const data = "matt"
-    const stmt: SqlJsonPathStatement = compile(src)
-    const actual = stmt.exists(data)
-    expect(actual).to.be.true
-    const pgActual = await pgExists(src, data)
-    expect(pgActual).to.equal(actual)
+    await testExistsCompareToPg(src, data)
   })
 
   describe("public compile error handling", () => {
@@ -91,42 +113,36 @@ describe("Statement tests", () => {
       const statement = compile(src)
       const actual = statement.exists(data.values())
       expect(actual).to.not.be.a("boolean")
-      const actualArray = Array.from(actual as IterableIterator<boolean>)
-      expect(actualArray).to.deep.equal([true, false, true])
-      const pgActualArray = await Promise.all(
-        data.map((element) => pgExists(src, element))
-      )
-      expect(pgActualArray).to.deep.equal(actualArray)
+      expect(isIterator(actual)).to.be.true
+      await testExistsCompareToPg(src, data.values())
     })
 
     it("returns false for a single input with no match", async () => {
       const src = '$.missing'
       const data = {name: "Ada"}
-      const statement = compile(src)
-      const actual = statement.exists(data)
-      expect(actual).to.be.false
-      const pgActual = await pgExists(src, data)
-      expect(pgActual).to.equal(actual)
+      await testExistsCompareToPg(src, data)
     })
   })
 
-  it("values", () => {
-    const stmt = compile('$.a')
-    // [].values() returns an iterator of objects
-    const actual = stmt.values([{a: 1}, {b: 2}, {a: 3}].values())
-    expect(actual.next().value).to.equal(1)
-    expect(actual.next().value).to.equal(3)
-    expect(actual.next().done).to.be.true
+  it("values", async () => {
+    const src = '$.a'
+    const data = [{a: 1}, {b: 2}, {a: 3}]
+    await testValuesCompareToPg(src, data.values())
   })
 
-  it("named variables", () => {
-    const statement = compile('$n')
-    const value = one(statement.values("", {variables: {n: "frosty"}}))
-    expect(value).to.equal("frosty")
-    expect(() => statement.exists(null, {variables: {wrong: true}})).to.throw
+  it("named variables", async () => {
+    const src = '$n'
+    const data = ""
+    const vars = {n: "frosty"}
+    await testValuesCompareToPg(src, data, vars)
   })
 
-  it("one", () => {
+  it("missing named variables throws", () => {
+    const stmt = compile('$n')
+    expect(() => stmt.exists(null, {variables: {wrong: true}})).to.throw
+  })
+
+  it("one() takes one from an iterator and advances", () => {
     const stmt = compile('$')
     const iter = stmt.values([1, 2, 3].values())
     expect(one(iter)).to.equal(1)
@@ -135,54 +151,29 @@ describe("Statement tests", () => {
     expect(iter.next().done).to.be.true
   })
 
-  it("applies function to sequence", () => {
-    const stmt = compile('$.type()')
-    const actual = stmt.values(["matt", true, 100, ["mary", "abby"], {a: 4}].values())
-    expect(one(actual)).to.equal("string")
-    expect(one(actual)).to.equal("boolean")
-    expect(one(actual)).to.equal("number")
-    expect(one(actual)).to.equal("array")
-    expect(one(actual)).to.equal("object")
-    expect(actual.next().done).to.be.true
+  it("applies function to sequence", async () => {
+
+    const src = '$.type()'
+    const data = ["matt", true, 100, ["mary", "abby"], {a: 4}]
+    await testValuesCompareToPg(src, data.values())
   })
 
   it("unwraps sequence", async () => {
     const src = '$[*]'
     const data = ["matt", true, 100, ["mary", "abby"], {a: 4}]
-    const expected = ["matt", true, 100, ["mary", "abby"], {a: 4}]
-    const stmt = compile(src)
-
-    const actual = stmt.values(data)
-    const actualArray = Array.from(actual)
-    expect(actualArray).to.deep.equal(expected)
-
-    const pgActual = await pgValues(src, data)
-    expect(pgActual).to.deep.equal(expected)
+    await testValuesCompareToPg(src, data)
   })
 
   it("strictly unwraps sequence", async () => {
     const src = 'strict $[*]'
     const data = ["matt", true, 100, ["mary", "abby"], {a: 4}]
-    const expected = ["matt", true, 100, ["mary", "abby"], {a: 4}]
-    const stmt = compile(src)
-    const actual = stmt.values(data)
-    const actualArray = Array.from(actual)
-    expect(actualArray).to.deep.equal(expected)
-
-    const pgActual = await pgValues(src, data)
-    expect(pgActual).to.deep.equal(expected)
+    await testValuesCompareToPg(src, data)
   })
 
-  it("unwraps sequence and applies type()", () => {
-    const stmt = compile('$[*].type()')
-    const actual = stmt.values(["matt", true, 100, ["mary", false], {a: 4}, undefined])
-    expect(one(actual)).to.equal("string")
-    expect(one(actual)).to.equal("boolean")
-    expect(one(actual)).to.equal("number")
-    expect(one(actual)).to.equal("array")
-    expect(one(actual)).to.deep.equal("object")
-    expect(one(actual)).to.deep.equal("undefined")
-    expect(actual.next().done).to.be.true
+  it("unwraps sequence and applies type()", async () => {
+    const src = '$[*].type()'
+    const data = ["matt", true, 100, ["mary", false], {a: 4}, undefined]
+    await testValuesCompareToPg(src, data)
   })
 
   /*

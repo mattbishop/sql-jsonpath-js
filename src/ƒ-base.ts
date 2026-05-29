@@ -91,7 +91,7 @@ export class ƒBase {
     if (Array.isArray(input)) {
       return "array"
     }
-    if (input === null) {
+    if (input === null || input === undefined) {
       return "null"
     }
     // input instanceof Date would fit here, if we used it
