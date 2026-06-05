@@ -187,80 +187,32 @@ describe("Statement tests", () => {
   it("extracts values from an array", async () => {
     const src = '$ ? (@ starts with "m")'
     const data = ["matt", "angie", "mark", "mary", "abby"]
-    const expected = ["matt", "mark", "mary"]
-
-    const pgActual = await pgValues(src, data)
-    expect(pgActual).to.deep.equal(expected)
-
-    const stmt = compile(src)
-    const actual = stmt.values(data)
-    expect(one(actual)).to.equal(expected[0])
-    expect(one(actual)).to.equal(expected[1])
-    expect(one(actual)).to.equal(expected[2])
-    expect(actual.next().done).to.be.true
+    await testValuesCompareToPg(src, data)
   })
 
   it("does not extract values from an array in strict mode", async () => {
     const src = 'strict $ ? (@ starts with "m")'
     const data = ["matt", "angie", "mark", "mary", "abby"]
-
-    const pgActual = await pgValues(src, data)
-    expect(pgActual).to.be.empty
-
-    const stmt = compile(src)
-    const actual = stmt.values(data)
-    expect(pgActual).to.be.empty
+    await testValuesCompareToPg(src, data)
   })
 
   it("unwraps sequence of arrays", async () => {
     const src = '$.things[*][*]'
     const data = {things: [["matt", true], 100, ["mary", "abby"], [{a: 4}]]}
-    const expected = ["matt", true, 100, "mary", "abby", {a: 4}]
-
-    const stmt = compile(src)
-    const actual = stmt.values(data)
-    expect(one(actual)).to.equal(expected[0])
-    expect(one(actual)).to.equal(expected[1])
-    expect(one(actual)).to.equal(expected[2])
-    expect(one(actual)).to.equal(expected[3])
-    expect(one(actual)).to.equal(expected[4])
-    expect(one(actual)).to.deep.equal(expected[5])
-    expect(actual.next().done).to.be.true
-
-    const pgActual = await pgValues(src, data)
-    expect(pgActual).to.deep.equal(expected)
+    await testValuesCompareToPg(src, data)
   })
 
   it("strictly unwraps sequence of arrays", async () => {
     const src = 'strict $.things[*][*]'
     const data = {things: [["matt", true], [1, 2], [{a: 4}]]}
-    const expected = ["matt", true, 1, 2, {a: 4}]
-    const stmt = compile(src)
-    const actual = stmt.values(data)
-    expect(one(actual)).to.equal(expected[0])
-    expect(one(actual)).to.equal(expected[1])
-    expect(one(actual)).to.equal(expected[2])
-    expect(one(actual)).to.equal(expected[3])
-    expect(one(actual)).to.deep.equal(expected[4])
-    expect(actual.next().done).to.be.true
-
-    const pgActual = await pgValues(src, data)
-    expect(pgActual).to.deep.equal(expected)
+    await testValuesCompareToPg(src, data)
   })
 
   it("searches array with an unboxed named array value on right side of comparison", async () => {
     const src = '$.players ? (@ == $names[*])'
-    const stmt = compile(src)
-    const variables = {names: ["mary", "bob", "angie"]}
     const data = {players: ["matt", "mark", "angie", "abby", "mary"]}
-    const expected = ["angie", "mary"]
-
-    const pgActual = await pgValues(src, data, variables)
-    expect(pgActual).to.deep.equal(expected)
-
-    const actual = stmt.values(data, {variables})
-    const actualArray = Array.from(actual)
-    expect(actualArray).to.deep.equal(expected)
+    const variables = {names: ["mary", "bob", "angie"]}
+    await testValuesCompareToPg(src, data, variables)
   })
 
   /*
@@ -274,24 +226,14 @@ describe("Statement tests", () => {
   it("strict searches array with an named array value on right side of comparison", async () => {
     const src = 'strict $ ? (@[*] == "angie")'
     const data = ["mary", "angie"]
-    const expected = [data] // a single array
-
-    const stmt = compile(src)
-    const pgActual = await pgValues(src, data)
-    expect(pgActual).to.deep.equal(expected)
-
-    const actual = stmt.values(data)
-    const actualArray = Array.from(actual)
-    expect(actualArray).to.deep.equal(expected)
+    await testValuesCompareToPg(src, data)
   })
 
-  it("searches array with an named array value on right side of comparison", () => {
-    const stmt = compile('$.players ? (@ == $names)')
+  it("searches array with an named array value on right side of comparison", async () => {
+    const src = '$.players ? (@ == $names)'
+    const data = {players: ["matt", "angie", "mark", "mary", "abby"]}
     const variables = {names: ["mary", "angie"]}
-    const actual = stmt.values({players: ["matt", "angie", "mark", "mary", "abby"]}, {variables})
-    expect(one(actual)).to.equal("angie")
-    expect(one(actual)).to.equal("mary")
-    expect(actual.next().done).to.be.true
+    await testValuesCompareToPg(src, data, variables)
   })
 
   it("strict does not unwrap named array, but also does not throw an error.", () => {
