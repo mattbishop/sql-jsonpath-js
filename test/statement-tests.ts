@@ -236,34 +236,31 @@ describe("Statement tests", () => {
     await testValuesCompareToPg(src, data, variables)
   })
 
-  it("strict does not unwrap named array, but also does not throw an error.", () => {
-    const stmt = compile('strict $.players ? ($names == @)')
+  it("strict does not unwrap named array, but also does not throw an error.", async () => {
+    const src = 'strict $.players ? ($names == @)'
+    const data = {players: ["matt", "angie", "mark", "mary", "abby"]}
     const variables = {names: ["mary", "angie"]}
-    const actual = stmt.values({players: ["matt", "angie", "mark", "mary", "abby"]}, {variables})
-    expect(actual.next().done).to.be.true
+    await testValuesCompareToPg(src, data, variables)
   })
 
-  it("searches array with an unwrapped named array value on left side of comparison", () => {
-    const stmt = compile('$.players ? ($names == @)')
+  it("searches array with an unwrapped named array value on left side of comparison", async () => {
+    const src = '$.players ? ($names == @)'
+    const data = {players: ["matt", "angie", "mark", "mary", "abby"]}
     const variables = {names: ["mary", "angie"]}
-    const actual = stmt.values({players: ["matt", "angie", "mark", "mary", "abby"]}, {variables})
-    expect(one(actual)).to.equal("angie")
-    expect(one(actual)).to.equal("mary")
-    expect(actual.next().done).to.be.true
+    await testValuesCompareToPg(src, data, variables)
   })
 
-  it("searches array with a specific element in a named array value", () => {
-    const stmt = compile('$.players ? ($names.first[1] == @)')
+  it("searches array with a specific element in a named array value", async () => {
+    const src = '$.players ? ($names.first[1] == @)'
+    const data = {players: ["matt", "angie", "mark", "mary", "abby"]}
     const variables = {names: {first: ["mary", "angie"]}}
-    const actual = stmt.values({players: ["matt", "angie", "mark", "mary", "abby"]}, {variables})
-    expect(one(actual)).to.equal("angie")
-    expect(actual.next().done).to.be.true
+    await testValuesCompareToPg(src, data, variables)
   })
 
-  it("can do arithmetic", () => {
-    const stmt = compile('$ ? (@ % 2 == 0)')
-    const actual = stmt.values(iterate([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]))
-    expect(Array.from(actual)).to.deep.equal([0, 2, 4, 6, 8])
+  it("can filter by arithmetic", async () => {
+    const src = '$ ? (@ % 2 == 0)'
+    const data = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].values()
+    await testValuesCompareToPg(src, data)
   })
 
 
