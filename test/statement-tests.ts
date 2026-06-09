@@ -266,106 +266,91 @@ describe("Statement tests", () => {
 
   describe("filter", () => {
     describe("lax compare", () => {
-      it("can filter comparison predicates", () => {
-        const statement = compile('$ ? (@ == 1)')
-        const actual = statement.values(1)
-        expect(one(actual)).to.equal(1)
+      it("can filter comparison predicates", async () => {
+        await testValuesCompareToPg('$ ? (@ == 1)', 1)
       })
 
-      it("can filter comparison ! predicates", () => {
-        const statement = compile('$ ? (!(@ == 1))')
-        const actual = statement.values(3)
-        expect(one(actual)).to.equal(3)
+      it("can filter comparison ! predicates", async () => {
+        await testValuesCompareToPg('$ ? (!(@ == 1))', 3)
       })
 
-      it("can filter comparison predicate iterators", () => {
-        const statement = compile('$ ? (@[*] == 1)')
-        const actual = statement.values([[1], [21, 7], [5, 1]])
-        expect(Array.from(actual)).to.deep.equal([[1], [5, 1]])
+      it("can filter comparison predicate iterators", async () => {
+        await testValuesCompareToPg('$ ? (@[*] == 1)', [[1], [21, 7], [5, 1]])
       })
 
       it("can filter multiple comparison predicates", async () => {
         const src = '$ ? (@[*] == 2 && @[*] + 1 == 3)'
         const data = [1, 2, 3]
-
-        const pgActual = await pgExists(src, data)
-        expect(pgActual).to.be.true
-
-        const statement = compile(src)
-        const actual = statement.exists(data)
-        expect(actual).to.be.true
+        await testValuesCompareToPg(src, data)
       })
 
-      it("can filter value accessor predicates", () => {
-        const statement = compile('$ ? (@.sleepy == true)')
-        const actual = statement.values([{sleepy: true}, {sleepy: false}, {sleepy: "yes"}, {not: 1}])
-        expect(Array.from(actual)).to.deep.equal([{sleepy: true}])
+      it("can filter value accessor predicates", async () => {
+        const src = '$ ? (@.sleepy == true)'
+        const data = [{sleepy: true}, {sleepy: false}, {sleepy: "yes"}, {not: 1}]
+        await testValuesCompareToPg(src, data)
       })
     })
 
     describe("filter and boolean branches", () => {
-      it("swallows filter errors and treats them as false", () => {
-        const statement = compile('$ ? (@.double() > 1)')
-        const actual = statement.values(["not-a-number", "2", 3])
-
-        expect(Array.from(actual)).to.deep.equal(["2", 3])
+      it("swallows filter errors and treats them as false", async () => {
+        const src = '$ ? (@.double() > 1)'
+        const data = ["not-a-number", "2", 3]
+        await testValuesCompareToPg(src, data)
       })
 
-      it("short-circuits OR when the first predicate is true", () => {
-        const statement = compile('$ ? (@ == 1 || @.double() > 1)')
+      it("short-circuits OR when the first predicate is true", async () => {
+        const src = '$ ? (@ == 1 || @.double() > 1)'
         // the values() array input is not being treated like a single item, it is being iterated over
-        const actual = statement.values([1, "not-a-number", "2"])
-        expect(Array.from(actual)).to.deep.equal([1, "2"])
+        const data = [1, "not-a-number", "2"].values()
+        await testValuesCompareToPg(src, data)
       })
 
-      it("short-circuits AND when the first predicate is false", () => {
-        const statement = compile('$ ? (@ == 1 && @.double() > 1)')
-        const actual = statement.values([1, "not-a-number", "2"])
-
-        expect(Array.from(actual)).to.deep.equal([])
+      it("short-circuits AND when the first predicate is false", async () => {
+        const src = '$ ? (@ == 1 && @.double() > 1)'
+        const data = [1, "not-a-number", "2"]
+        await testValuesCompareToPg(src, data)
       })
 
-      it("treats exists errors as unknown", () => {
-        const statement = compile('$ ? ((exists(@.double())) is unknown)')
-        const actual = statement.values(["not-a-number", "2"])
-
-        expect(Array.from(actual)).to.deep.equal(["not-a-number"])
+      it("treats exists errors as unknown", async () => {
+        const src = '$ ? ((exists(@.double())) is unknown)'
+        const data = ["not-a-number", "2"]
+        await testValuesCompareToPg(src, data)
       })
     })
 
     describe("strict iterator and structural branches", () => {
-      it("supports strict member access over iterable inputs", () => {
-        const statement = compile('strict $.name')
-        const actual = statement.values(new Set([
+      it("supports strict member access over iterable inputs", async () => {
+        const src = 'strict $.name'
+        const data = new Set([
           {name: "Ada"},
           {name: "Grace"}
-        ]))
-
-        expect(Array.from(actual)).to.deep.equal(["Ada", "Grace"])
+        ])
+        await testValuesCompareToPg(src, data)
       })
 
-      it("supports strict wildcard array access over iterable inputs", () => {
-        const statement = compile('strict $[*]')
-        const actual = statement.values(new Set([
+      it("supports strict wildcard array access over iterable inputs", async () => {
+        const src = 'strict $[*]'
+        const data = new Set([
           [1, 2],
           [3, 4]
-        ]))
-
-        expect(Array.from(actual)).to.deep.equal([1, 2, 3, 4])
+        ])
+        await testValuesCompareToPg(src, data)
       })
+    })
+
+    describe("default on error and empty", () => {
+      const defaultName = "no name"
 
       it("uses defaultOnError with false", () => {
         const statement = compile('strict $.name')
-        const actual = one(statement.values({}, {defaultOnError: false}))
-
-        expect(actual).to.equal(false)
+        const actual = one(statement.values({}, {defaultOnError: defaultName}))
+        expect(actual).to.equal(defaultName)
       })
 
       it("uses defaultOnEmpty with false", () => {
         const statement = compile('$.name')
-        const actual = one(statement.values({}, {defaultOnEmpty: false}))
-
-        expect(actual).to.equal(false)
+        const actual = one(statement.values({}, {defaultOnEmpty: defaultName}))
+        expect(actual).to.equal(defaultName)
       })
     })
 
