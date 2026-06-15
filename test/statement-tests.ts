@@ -25,15 +25,35 @@ after(async () => {
 })
 
 
+async function testCompareToPg(statement: string, data: Input<any>, variables?: Record<string, unknown>) {
+  await testExistsCompareToPg(statement, data, variables)
+  await testValuesCompareToPg(statement, data, variables)
+  if (Array.isArray(data)) {
+    await testExistsCompareToPg(statement, data.values(), variables)
+    await testValuesCompareToPg(statement, data.values(), variables)
+  }
+}
+
+
 async function testExistsCompareToPg(statement: string, data: Input<any>, variables?: Record<string, unknown>) {
   if (!isIterableInput(data)) {
     data = [data]
   }
+  const stmt = compile(statement)
   for (const datum of data) {
     const pgActual = await pgExists(statement, datum, variables)
-    const stmt = compile(statement)
-    const actual = stmt.exists(datum, {variables})
-    expect(actual).to.equal(pgActual)
+    let actual
+    try {
+      actual = stmt.exists(datum, {variables})
+    } catch (e) {
+      actual = e as Error
+    }
+    if (actual instanceof Error) {
+      expect(pgActual instanceof Error).to.be.true
+      console.info(`actual: ${actual.message}, pgActual: ${(pgActual as Error).message}`)
+    } else {
+      expect(actual).to.equal(pgActual)
+    }
   }
 }
 
@@ -41,18 +61,32 @@ async function testValuesCompareToPg(statement: string, data: Input<any>, variab
   if (!isIterableInput(data)) {
     data = [data]
   }
+  const stmt = compile(statement)
   for (const datum of data) {
     const pgActual = await pgValues(statement, datum, variables)
-    const stmt = compile(statement)
-    const actual = Array.from(stmt.values(datum, {variables}))
-    expect(actual).to.deep.equal(pgActual)
+    let actual
+    try {
+      actual = Array.from(stmt.values(datum, {variables}))
+    } catch (e) {
+      actual = e as Error
+    }
+    if (actual instanceof Error) {
+      expect(pgActual instanceof Error).to.be.true
+      console.info(`actual: ${actual.message}, pgActual: ${(pgActual as Error).message}`)
+    } else {
+      expect(actual).to.deep.equal(pgActual)
+    }
   }
 }
 
-async function pgExists(statement: string, data: any, vars?: Record<string, unknown>): Promise<boolean> {
-  const result = await _pgTest("exists", statement, data, vars)
-  assert.strictEqual(result.length, 1, `pgExists returned unexpected result: ${result}`)
-  return result[0] as boolean
+async function pgExists(statement: string, data: any, vars?: Record<string, unknown>): Promise<boolean | Error> {
+  try {
+    const result = await _pgTest("exists", statement, data, vars)
+    assert.strictEqual(result.length, 1, `pgExists returned unexpected result: ${result}`)
+    return result[0] as boolean
+  } catch (e) {
+    return e as Error
+  }
 }
 
 async function pgQuery(statement: string, data: any, vars?: Record<string, unknown>) {
@@ -60,13 +94,17 @@ async function pgQuery(statement: string, data: any, vars?: Record<string, unkno
 }
 
 async function pgValues(statement: string, data: any, vars?: Record<string, unknown>) {
-  if (isIterableInput(data)) {
-    const results = await Promise.all(
-      Array.from(data).map((element) => pgQuery(statement, element, vars))
-    )
-    return results.flat()
+  try {
+    if (isIterableInput(data)) {
+      const results = await Promise.all(
+        Array.from(data).map((element) => pgQuery(statement, element, vars))
+      )
+      return results.flat()
+    }
+    return await pgQuery(statement, data, vars)
+  } catch (e) {
+    return e as Error
   }
-  return pgQuery(statement, data, vars)
 }
 
 async function _pgTest(method: string, statement: string, data: any, vars: Record<string, unknown> = {}) {
@@ -114,27 +152,27 @@ describe("Statement tests", () => {
       const actual = statement.exists(data.values())
       expect(actual).to.not.be.a("boolean")
       expect(isIterator(actual)).to.be.true
-      await testExistsCompareToPg(src, data.values())
+      await testCompareToPg(src, data)
     })
 
     it("returns false for a single input with no match", async () => {
       const src = '$.missing'
       const data = {name: "Ada"}
-      await testExistsCompareToPg(src, data)
+      await testCompareToPg(src, data)
     })
   })
 
   it("values", async () => {
     const src = '$.a'
     const data = [{a: 1}, {b: 2}, {a: 3}]
-    await testValuesCompareToPg(src, data.values())
+    await testCompareToPg(src, data.values())
   })
 
   it("named variables", async () => {
     const src = '$n'
     const data = ""
     const vars = {n: "frosty"}
-    await testValuesCompareToPg(src, data, vars)
+    await testCompareToPg(src, data, vars)
   })
 
   it("missing named variables throws", () => {
@@ -152,27 +190,27 @@ describe("Statement tests", () => {
   })
 
   it("applies function to sequence", async () => {
-
     const src = '$.type()'
     const data = ["matt", true, 100, ["mary", "abby"], {a: 4}]
-    await testValuesCompareToPg(src, data.values())
+    await testCompareToPg(src, data)
   })
 
   it("unwraps sequence", async () => {
     const src = '$[*]'
     const data = ["matt", true, 100, ["mary", "abby"], {a: 4}]
-    await testValuesCompareToPg(src, data)
+    await testCompareToPg(src, data)
   })
 
   it("strictly unwraps sequence", async () => {
     const src = 'strict $[*]'
     const data = ["matt", true, 100, ["mary", "abby"], {a: 4}]
-    await testValuesCompareToPg(src, data)
+    await testCompareToPg(src, data)
   })
 
   it("unwraps sequence and applies type()", async () => {
     const src = '$[*].type()'
     const data = ["matt", true, 100, ["mary", false], {a: 4}, undefined]
+    // testing 'exists' makes no sense for this function.
     await testValuesCompareToPg(src, data)
   })
 
@@ -187,32 +225,32 @@ describe("Statement tests", () => {
   it("extracts values from an array", async () => {
     const src = '$ ? (@ starts with "m")'
     const data = ["matt", "angie", "mark", "mary", "abby"]
-    await testValuesCompareToPg(src, data)
+    await testCompareToPg(src, data)
   })
 
   it("does not extract values from an array in strict mode", async () => {
     const src = 'strict $ ? (@ starts with "m")'
     const data = ["matt", "angie", "mark", "mary", "abby"]
-    await testValuesCompareToPg(src, data)
+    await testCompareToPg(src, data)
   })
 
   it("unwraps sequence of arrays", async () => {
     const src = '$.things[*][*]'
     const data = {things: [["matt", true], 100, ["mary", "abby"], [{a: 4}]]}
-    await testValuesCompareToPg(src, data)
+    await testCompareToPg(src, data)
   })
 
   it("strictly unwraps sequence of arrays", async () => {
     const src = 'strict $.things[*][*]'
     const data = {things: [["matt", true], [1, 2], [{a: 4}]]}
-    await testValuesCompareToPg(src, data)
+    await testCompareToPg(src, data)
   })
 
   it("searches array with an unboxed named array value on right side of comparison", async () => {
     const src = '$.players ? (@ == $names[*])'
     const data = {players: ["matt", "mark", "angie", "abby", "mary"]}
     const variables = {names: ["mary", "bob", "angie"]}
-    await testValuesCompareToPg(src, data, variables)
+    await testCompareToPg(src, data, variables)
   })
 
   /*
@@ -316,6 +354,12 @@ describe("Statement tests", () => {
         const data = ["not-a-number", "2"]
         await testValuesCompareToPg(src, data)
       })
+
+      it("can filter multiple predicates with && and ||", async () => {
+        const src = '$ ? ((@.a==1 || @.b==2 || @.b==3) && @.c=="hi")'
+        const data = [{a: 1, c: "hi"}, {b: 2, c: "hi"}, {b: 3, c: "hi"}, {a: "yes"}, {a: 4, c: "hi"}]
+        await testValuesCompareToPg(src, data)
+      })
     })
 
     describe("strict iterator and structural branches", () => {
@@ -355,126 +399,115 @@ describe("Statement tests", () => {
     })
 
     describe("strict filter", () => {
-      it("filter does not unwrap arrays in strict mode, and does not throw errors", () => {
-        const statement = compile('strict $ ? (@.sleepy == true)')
-        const actual = statement.values([{sleepy: true}, {sleepy: false}, {sleepy: "yes"}, {not: 1}])
-        expect(Array.from(actual)).to.deep.equal([])
+      it("filter does not unwrap arrays in strict mode, and does not throw errors", async () => {
+        const src = 'strict $ ? (@.sleepy == true)'
+        const data = [{sleepy: true}, {sleepy: false}, {sleepy: "yes"}, {not: 1}]
+        await testValuesCompareToPg(src, data)
       })
 
-      it("can filter predicate", () => {
-        const statement = compile('strict $ ? (@ == 1)')
-        const actual = statement.values(1)
-        expect(one(actual)).to.equal(1)
+      it("can filter predicate", async () => {
+        const src = 'strict $ ? (@ == 1)'
+        await testValuesCompareToPg(src, 1)
       })
     })
 
     describe("comparison operators", () => {
-      it("supports not-equals comparison operator <>", () => {
-        const statement = compile('$ ? (@ <> 2)')
-        const actual = statement.values([1, 2, 3])
-
-        expect(Array.from(actual)).to.deep.equal([1, 3])
+      it("supports not-equals comparison operator <>", async () => {
+        const src = '$ ? (@ <> 2)'
+        const data = [1, 2, 3]
+        await testValuesCompareToPg(src, data)
       })
 
-      it("supports not-equals comparison operator !=", () => {
-        const statement = compile('$ ? (@ != 2)')
-        const actual = statement.values([1, 2, 3])
-
-        expect(Array.from(actual)).to.deep.equal([1, 3])
+      it("supports not-equals comparison operator !=", async () => {
+        const src = '$ ? (@ != 2)'
+        const data = [1, 2, 3]
+        await testValuesCompareToPg(src, data)
       })
 
-      it("supports greater-than-or-equal comparison", () => {
-        const statement = compile('$ ? (@ >= 2)')
-        const actual = statement.values([1, 2, 3])
-
-        expect(Array.from(actual)).to.deep.equal([2, 3])
+      it("supports greater-than-or-equal comparison", async () => {
+        const src = '$ ? (@ >= 2)'
+        const data = [1, 2, 3]
+        await testValuesCompareToPg(src, data)
       })
 
-      it("supports less-than comparison", () => {
-        const statement = compile('$ ? (@ < 2)')
-        const actual = statement.values([1, 2, 3])
-
-        expect(Array.from(actual)).to.deep.equal([1])
+      it("supports less-than comparison", async () => {
+        const src = '$ ? (@ < 2)'
+        const data = [1, 2, 3]
+        await testValuesCompareToPg(src, data)
       })
 
-      it("supports less-than-or-equal comparison", () => {
-        const statement = compile('$ ? (@ <= 2)')
-        const actual = statement.values([1, 2, 3])
-
-        expect(Array.from(actual)).to.deep.equal([1, 2])
+      it("supports less-than-or-equal comparison", async () => {
+        const src = '$ ? (@ <= 2)'
+        const data = [1, 2, 3]
+        await testValuesCompareToPg(src, data)
       })
 
-      it("returns no matches for incomparable values", () => {
-        const statement = compile('$ ? (@ > "2")')
-        const actual = statement.values([1, 2, 3])
-
-        expect(Array.from(actual)).to.deep.equal([])
+      it("returns no matches for incomparable values", async () => {
+        const src = '$ ? (@ > "2")'
+        const data = [1, 2, 3]
+        await testValuesCompareToPg(src, data)
       })
     })
 
-    describe("exists", () => {
-      it("can filter predicates on members", () => {
-        const statement = compile('$ ? (exists(@.z))')
-        const actual = statement.values([{z: true}, {y: false}, {a: "yes"}])
-        expect(Array.from(actual)).to.deep.equal([{z: true}])
+    describe("'exists'", () => {
+      it("can filter predicates on members", async () => {
+        const src = '$ ? (exists(@.z))'
+        const data = [{z: true}, {y: false}, {a: "yes"}]
+        await testValuesCompareToPg(src, data)
       })
 
-      it("can filter not predicates on members", () => {
-        const statement = compile('$ ? (!exists(@.z))')
-        const actual = statement.values([{z: true}, {y: false}, {a: "yes"}])
-        expect(Array.from(actual)).to.deep.equal([{y: false}, {a: "yes"}])
+      it("can filter ! predicates on members", async () => {
+        const src = '$ ? (!exists(@.z))'
+        const data = [{z: true}, {y: false}, {a: "yes"}]
+        await testValuesCompareToPg(src, data)
       })
 
-      it("can filter predicates and extract members", () => {
-        const statement = compile('$ ? (exists(@.z)).z')
-        const actual = statement.values([{z: 121.2}, {y: -99.828}, {a: "yes"}])
-        expect(Array.from(actual)).to.deep.equal([121.2])
+      it("can filter predicates and extract members", async () => {
+        const src = '$ ? (exists(@.z)).z'
+        const data = [{z: 121.2}, {y: -99.828}, {a: "yes"}]
+        await testValuesCompareToPg(src, data)
       })
 
-      it("can filter predicate iterators", () => {
-        const statement = compile('$ ? (exists(@[*].z))')
-        const actual = statement.values([[{z: true}, {y: false}], [{a: "yes"}], [{q: 6, z: 1}]])
-        expect(Array.from(actual)).to.deep.equal([[{z: true}, {y: false}], [{q: 6, z: 1}]])
+      it("can filter predicate iterators", async () => {
+        const src = '$ ? (exists(@[*].z))'
+        const data = [[{z: true}, {y: false}], [{a: "yes"}], [{q: 6, z: 1}]]
+        await testValuesCompareToPg(src, data)
       })
     })
 
     describe("'is unknown'", () => {
-      it("can filter 'is unknown' predicates", () => {
-        const statement = compile('$ ? ((@.sleepy == true) is unknown)')
-        const actual = statement.values([{sleepy: 77}, {sleepy: true}, {sleepy: false}, {sleepy: "yes"}])
-        expect(Array.from(actual)).to.deep.equal([{sleepy: 77}, {sleepy: "yes"}])
+      it("can filter 'is unknown' predicates", async () => {
+        const src = '$ ? ((@.sleepy == true) is unknown)'
+        const data = [{sleepy: 77}, {sleepy: true}, {sleepy: false}, {sleepy: "yes"}]
+        await testValuesCompareToPg(src, data)
       })
 
-      it("can filter 'is unknown' predicate iterators", () => {
-        const statement = compile('$ ? ((@[*] == true) is unknown)')
-        const actual = statement.values([[false, 100], [true], ["baby", true, {"g": 22}]])
-        expect(Array.from(actual)).to.deep.equal([[false, 100], ["baby", true, {"g": 22}]])
+      it("can filter 'is unknown' predicate iterators", async () => {
+        const src = '$ ? ((@[*] == true) is unknown)'
+        // [false, 100] is known (false)
+        // [true] is known
+        const data = [[false, 100], [true], ["baby", true, {"g": 22}]]
+        await testValuesCompareToPg(src, data)
       })
-    })
 
-    it("can filter not 'is unknown' predicate iterators", () => {
-      const statement = compile('$ ? (!(@[*] == true) is unknown)')
-      const actual = statement.values([[false, 100], [true], ["baby", true, {"g": 22}]])
-      expect(Array.from(actual)).to.deep.equal([[false, 100], [true], ["baby", true, {"g": 22}]])
-    })
-
-    it("can filter multiple predicates with && and ||", () => {
-      const statement = compile('$ ? ((@.a==1 || @.b==2 || @.b==3) && @.c=="hi")')
-      const actual = statement.values([{a: 1, c: "hi"}, {b: 2, c: "hi"}, {b: 3, c: "hi"}, {a: "yes"}, {a: 4, c: "hi"}])
-      expect(Array.from(actual)).to.deep.equal([{a: 1, c: "hi"}, {b: 2, c: "hi"}, {b: 3, c: "hi"}])
+      it("can filter ! 'is unknown' predicate iterators", async () => {
+        const src = '$ ? (!(@[*] == true) is unknown)'
+        const data = [[false, 100], [true], ["baby", true, {"g": 22}]]
+        await testValuesCompareToPg(src, data)
+      })
     })
 
     describe("starts with", () => {
-      it("can filter 'starts with' predicates", () => {
-        const statement = compile('$ ? (@ starts with "a")')
-        const actual = statement.values(["apple", "orange", "argon"])
-        expect(Array.from(actual)).to.deep.equal(["apple", "argon"])
+      it("can filter 'starts with' predicates", async () => {
+        const src = '$ ? (@ starts with "a")'
+        const data = ["apple", "orange", "argon"]
+        await testValuesCompareToPg(src, data)
       })
 
-      it("can filter iterator values", () => {
-        const statement = compile('$ ? (@[*] starts with "m")')
-        const actual = statement.values([["matt"], ["arjun", "mark", "mary"], ["abby"]])
-        expect(Array.from(actual)).to.deep.equal([["matt"], ["arjun", "mark", "mary"]])
+      it("can filter iterator values", async () => {
+        const src = '$ ? (@[*] starts with "m")'
+        const data = [["matt"], ["arjun", "mark", "mary"], ["abby"]]
+        await testValuesCompareToPg(src, data)
       })
     })
 
