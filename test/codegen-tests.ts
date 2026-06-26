@@ -413,7 +413,7 @@ describe("Codegen tests", () => {
     })
 
     it("can filter not 'is unknown' predicate iterators", () => {
-      const ctx = generateFunctionSource('$ ? (!(@[*] == true) is unknown)')
+      const ctx = generateFunctionSource('$ ? (!((@[*] == true) is unknown))')
       expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.not(ƒ.isUnknown(ƒ.compare("==",ƒ.boxStar(v),true))))')
     })
 

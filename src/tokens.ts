@@ -1,13 +1,36 @@
-import {createToken, type CustomPatternMatcherReturn, type ITokenConfig, Lexer, type TokenType} from "chevrotain"
+import {
+  createToken,
+  type CustomPatternMatcherReturn,
+  type ITokenConfig,
+  Lexer,
+  type TokenType
+} from "chevrotain"
 
 
+/*
+  <JSON path mode> ::=
+          strict | lax
+ */
 /** @internal */
-export const Mode                   = createToken({name: "Mode", pattern: /lax|strict/})
+export const Mode                   = createToken({name: "Mode", pattern: /strict|lax/})
+/*
+  <JSON path context variable> ::=
+          <dollar sign>
+ */
 /** @internal */
 export const ContextVariable        = createToken({name: "ContextVariable", pattern: "$"})
-// Named Variables match SQL standard for alias names.
+/*
+  Named Variables match SQL standard for alias names.
+
+  <JSON path named variable> ::=
+          <dollar sign> <JSON path identifier>
+ */
 /** @internal */
 export const NamedVariable          = createToken({name: "NamedVariable", pattern: /\$(?:[a-zA-Z][\w#@$]{0,126})/})
+/*
+  <JSON wildcard member accessor> ::=
+          <period> <asterisk>
+ */
 /** @internal */
 export const WildcardMember         = createToken({name: "WildcardMember", pattern: /\.\s*\*/})
 
@@ -25,6 +48,10 @@ export const TimeStampTzMethod = createRegexToken({
   start_chars_hint: ["."]
 })
 
+/*
+  <JSON item method> ::=
+          <period> <JSON method>
+ */
 /** @internal */
 export const ItemMethod = createRegexToken({
   name:             "ItemMethod",
@@ -47,12 +74,20 @@ export const Member = createRegexToken({
 
 
 // arrays
+/*
+  <JSON wildcard array accessor> ::=
+          <left bracket> <asterisk> <right bracket>
+ */
 /** @internal */
 export const WildcardArray    = createToken({name: "WildcardArray", pattern: /\[\s*\*\s*]/})
 /** @internal */
 export const LeftBracket      = createToken({name: "LeftBracket", pattern: "["})
 /** @internal */
 export const RightBracket     = createToken({name: "RightBracket", pattern: "]"})
+/*
+  <JSON last subscript> ::=
+          last
+ */
 /** @internal */
 export const Last             = createToken({name: "Last", pattern: "last"})
 // Spec calls for whitespace
@@ -62,7 +97,7 @@ export const To               = createToken({name: "To", pattern: /\sto\s/})
 
 // filter expressions
 /** @internal */
-export const FilterStart      = createToken({name: "FilterStart", pattern: /\?\s?\(/})
+export const FilterStart      = createToken({name: "FilterStart", pattern: /\?\s*\(/})
 /** @internal */
 export const FilterValue      = createToken({name: "FilterValue", pattern: "@"})
 // Spec calls for whitespace

@@ -11,6 +11,8 @@ import {allTokens} from "./tokens.ts"
 
 
 const jsonPathLexer = new Lexer(allTokens)
+// todo try this one once all the tests are functioning
+// const jsonPathLexer = new Lexer(allTokens, {ensureOptimizations: true})
 const parser = new JsonPathParser()
 const codegenVisitor = newCodegenVisitor(parser.getBaseCstVisitorConstructor())
 

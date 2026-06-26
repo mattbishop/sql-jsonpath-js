@@ -9,12 +9,12 @@
 </style>
 
 
-<link rel='stylesheet' href='https://unpkg.com/chevrotain@10.4.1/diagrams/diagrams.css'>
+<link rel='stylesheet' href='https://unpkg.com/chevrotain@12.0.0/diagrams/diagrams.css'>
 
-<script src='https://unpkg.com/chevrotain@10.4.1/diagrams/vendor/railroad-diagrams.js'></script>
-<script src='https://unpkg.com/chevrotain@10.4.1/diagrams/src/diagrams_builder.js'></script>
-<script src='https://unpkg.com/chevrotain@10.4.1/diagrams/src/diagrams_behavior.js'></script>
-<script src='https://unpkg.com/chevrotain@10.4.1/diagrams/src/main.js'></script>
+<script src='https://unpkg.com/chevrotain@12.0.0/diagrams/vendor/railroad-diagrams.js'></script>
+<script src='https://unpkg.com/chevrotain@12.0.0/diagrams/src/diagrams_builder.js'></script>
+<script src='https://unpkg.com/chevrotain@12.0.0/diagrams/src/diagrams_behavior.js'></script>
+<script src='https://unpkg.com/chevrotain@12.0.0/diagrams/src/main.js'></script>
 
 <div id="diagrams" align="center"></div>    
 
@@ -34,7 +34,7 @@
             "name": "Mode",
             "label": "Mode",
             "idx": 0,
-            "pattern": "lax|strict"
+            "pattern": "strict|lax"
           }
         ]
       },
@@ -47,31 +47,42 @@
   },
   {
     "type": "Rule",
-    "name": "wff",
+    "name": "primary",
     "orgText": "",
     "definition": [
       {
-        "type": "NonTerminal",
-        "name": "binary",
-        "idx": 0,
-        "label": "left"
-      },
-      {
-        "type": "Repetition",
+        "type": "Alternation",
         "idx": 0,
         "definition": [
           {
-            "type": "Terminal",
-            "name": "UnaryOp",
-            "label": "UnaryOp",
-            "idx": 0,
-            "pattern": "[+-]"
+            "type": "Alternative",
+            "definition": [
+              {
+                "type": "NonTerminal",
+                "name": "literal",
+                "idx": 0
+              }
+            ]
           },
           {
-            "type": "NonTerminal",
-            "name": "binary",
-            "idx": 1,
-            "label": "right"
+            "type": "Alternative",
+            "definition": [
+              {
+                "type": "NonTerminal",
+                "name": "variable",
+                "idx": 0
+              }
+            ]
+          },
+          {
+            "type": "Alternative",
+            "definition": [
+              {
+                "type": "NonTerminal",
+                "name": "scopedWff",
+                "idx": 0
+              }
+            ]
           }
         ]
       }
@@ -100,159 +111,6 @@
         "label": "RightParen",
         "idx": 0,
         "pattern": ")"
-      }
-    ]
-  },
-  {
-    "type": "Rule",
-    "name": "unary",
-    "orgText": "",
-    "definition": [
-      {
-        "type": "Alternation",
-        "idx": 0,
-        "definition": [
-          {
-            "type": "Alternative",
-            "definition": [
-              {
-                "type": "NonTerminal",
-                "name": "accessExp",
-                "idx": 0
-              }
-            ]
-          },
-          {
-            "type": "Alternative",
-            "definition": [
-              {
-                "type": "Terminal",
-                "name": "UnaryOp",
-                "label": "UnaryOp",
-                "idx": 0,
-                "pattern": "[+-]"
-              },
-              {
-                "type": "NonTerminal",
-                "name": "unary",
-                "idx": 0
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "type": "Rule",
-    "name": "binary",
-    "orgText": "",
-    "definition": [
-      {
-        "type": "NonTerminal",
-        "name": "unary",
-        "idx": 0,
-        "label": "left"
-      },
-      {
-        "type": "Repetition",
-        "idx": 0,
-        "definition": [
-          {
-            "type": "Terminal",
-            "name": "BinaryOp",
-            "label": "BinaryOp",
-            "idx": 0,
-            "pattern": "[*\\/%]"
-          },
-          {
-            "type": "NonTerminal",
-            "name": "binary",
-            "idx": 0,
-            "label": "right"
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "type": "Rule",
-    "name": "primary",
-    "orgText": "",
-    "definition": [
-      {
-        "type": "Alternation",
-        "idx": 0,
-        "definition": [
-          {
-            "type": "Alternative",
-            "definition": [
-              {
-                "type": "Terminal",
-                "name": "NamedVariable",
-                "label": "NamedVariable",
-                "idx": 0,
-                "pattern": "\\$(?:[a-zA-Z][\\w#@$]{0,255})+"
-              }
-            ]
-          },
-          {
-            "type": "Alternative",
-            "definition": [
-              {
-                "type": "Terminal",
-                "name": "ContextVariable",
-                "label": "ContextVariable",
-                "idx": 0,
-                "pattern": "$"
-              }
-            ]
-          },
-          {
-            "type": "Alternative",
-            "definition": [
-              {
-                "type": "Terminal",
-                "name": "FilterValue",
-                "label": "FilterValue",
-                "idx": 0,
-                "pattern": "@"
-              }
-            ]
-          },
-          {
-            "type": "Alternative",
-            "definition": [
-              {
-                "type": "Terminal",
-                "name": "Last",
-                "label": "Last",
-                "idx": 0,
-                "pattern": "last"
-              }
-            ]
-          },
-          {
-            "type": "Alternative",
-            "definition": [
-              {
-                "type": "NonTerminal",
-                "name": "literal",
-                "idx": 0
-              }
-            ]
-          },
-          {
-            "type": "Alternative",
-            "definition": [
-              {
-                "type": "NonTerminal",
-                "name": "scopedWff",
-                "idx": 0
-              }
-            ]
-          }
-        ]
       }
     ]
   },
@@ -318,7 +176,68 @@
   },
   {
     "type": "Rule",
-    "name": "accessExp",
+    "name": "variable",
+    "orgText": "",
+    "definition": [
+      {
+        "type": "Alternation",
+        "idx": 0,
+        "definition": [
+          {
+            "type": "Alternative",
+            "definition": [
+              {
+                "type": "Terminal",
+                "name": "ContextVariable",
+                "label": "ContextVariable",
+                "idx": 0,
+                "pattern": "$"
+              }
+            ]
+          },
+          {
+            "type": "Alternative",
+            "definition": [
+              {
+                "type": "Terminal",
+                "name": "NamedVariable",
+                "label": "NamedVariable",
+                "idx": 0,
+                "pattern": "\\$(?:[a-zA-Z][\\w#@$]{0,126})"
+              }
+            ]
+          },
+          {
+            "type": "Alternative",
+            "definition": [
+              {
+                "type": "Terminal",
+                "name": "FilterValue",
+                "label": "FilterValue",
+                "idx": 0,
+                "pattern": "@"
+              }
+            ]
+          },
+          {
+            "type": "Alternative",
+            "definition": [
+              {
+                "type": "Terminal",
+                "name": "Last",
+                "label": "Last",
+                "idx": 0,
+                "pattern": "last"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "Rule",
+    "name": "accessorExp",
     "orgText": "",
     "definition": [
       {
@@ -407,20 +326,8 @@
             "type": "Alternative",
             "definition": [
               {
-                "type": "Terminal",
-                "name": "ItemMethod",
-                "label": "ItemMethod",
-                "idx": 0
-              }
-            ]
-          },
-          {
-            "type": "Alternative",
-            "definition": [
-              {
-                "type": "Terminal",
-                "name": "DatetimeMethod",
-                "label": "DatetimeMethod",
+                "type": "NonTerminal",
+                "name": "method",
                 "idx": 0
               }
             ]
@@ -508,11 +415,11 @@
         "name": "FilterStart",
         "label": "FilterStart",
         "idx": 0,
-        "pattern": "\\?\\s?\\("
+        "pattern": "\\?\\s*\\("
       },
       {
         "type": "NonTerminal",
-        "name": "pathPred",
+        "name": "predicate",
         "idx": 0
       },
       {
@@ -522,6 +429,189 @@
         "idx": 0,
         "terminalLabel": "FilterEnd",
         "pattern": ")"
+      }
+    ]
+  },
+  {
+    "type": "Rule",
+    "name": "method",
+    "orgText": "",
+    "definition": [
+      {
+        "type": "Alternation",
+        "idx": 0,
+        "definition": [
+          {
+            "type": "Alternative",
+            "definition": [
+              {
+                "type": "Terminal",
+                "name": "ItemMethod",
+                "label": "ItemMethod",
+                "idx": 0
+              }
+            ]
+          },
+          {
+            "type": "Alternative",
+            "definition": [
+              {
+                "type": "Terminal",
+                "name": "DatetimeMethod",
+                "label": "DatetimeMethod",
+                "idx": 0
+              }
+            ]
+          },
+          {
+            "type": "Alternative",
+            "definition": [
+              {
+                "type": "Terminal",
+                "name": "TimeStampTzMethod",
+                "label": "TimeStampTzMethod",
+                "idx": 0
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "Rule",
+    "name": "unary",
+    "orgText": "",
+    "definition": [
+      {
+        "type": "Alternation",
+        "idx": 0,
+        "definition": [
+          {
+            "type": "Alternative",
+            "definition": [
+              {
+                "type": "NonTerminal",
+                "name": "accessorExp",
+                "idx": 0
+              }
+            ]
+          },
+          {
+            "type": "Alternative",
+            "definition": [
+              {
+                "type": "Terminal",
+                "name": "UnaryOp",
+                "label": "UnaryOp",
+                "idx": 0,
+                "pattern": "[+-]"
+              },
+              {
+                "type": "NonTerminal",
+                "name": "unary",
+                "idx": 0
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "Rule",
+    "name": "mult",
+    "orgText": "",
+    "definition": [
+      {
+        "type": "NonTerminal",
+        "name": "unary",
+        "idx": 0,
+        "label": "left"
+      },
+      {
+        "type": "Repetition",
+        "idx": 0,
+        "definition": [
+          {
+            "type": "Terminal",
+            "name": "BinaryOp",
+            "label": "BinaryOp",
+            "idx": 0,
+            "pattern": "[*\\/%]"
+          },
+          {
+            "type": "NonTerminal",
+            "name": "mult",
+            "idx": 0,
+            "label": "right"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "Rule",
+    "name": "wff",
+    "orgText": "",
+    "definition": [
+      {
+        "type": "NonTerminal",
+        "name": "mult",
+        "idx": 0,
+        "label": "left"
+      },
+      {
+        "type": "Repetition",
+        "idx": 0,
+        "definition": [
+          {
+            "type": "Terminal",
+            "name": "UnaryOp",
+            "label": "UnaryOp",
+            "idx": 0,
+            "pattern": "[+-]"
+          },
+          {
+            "type": "NonTerminal",
+            "name": "mult",
+            "idx": 1,
+            "label": "right"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "Rule",
+    "name": "predPrimary",
+    "orgText": "",
+    "definition": [
+      {
+        "type": "Alternation",
+        "idx": 0,
+        "definition": [
+          {
+            "type": "Alternative",
+            "definition": [
+              {
+                "type": "NonTerminal",
+                "name": "nonDelPred",
+                "idx": 0
+              }
+            ]
+          },
+          {
+            "type": "Alternative",
+            "definition": [
+              {
+                "type": "NonTerminal",
+                "name": "delPred",
+                "idx": 0
+              }
+            ]
+          }
+        ]
       }
     ]
   },
@@ -560,7 +650,33 @@
   },
   {
     "type": "Rule",
-    "name": "pred",
+    "name": "scopedPred",
+    "orgText": "",
+    "definition": [
+      {
+        "type": "Terminal",
+        "name": "LeftParen",
+        "label": "LeftParen",
+        "idx": 0,
+        "pattern": "("
+      },
+      {
+        "type": "NonTerminal",
+        "name": "predicate",
+        "idx": 0
+      },
+      {
+        "type": "Terminal",
+        "name": "RightParen",
+        "label": "RightParen",
+        "idx": 0,
+        "pattern": ")"
+      }
+    ]
+  },
+  {
+    "type": "Rule",
+    "name": "nonDelPred",
     "orgText": "",
     "definition": [
       {
@@ -572,7 +688,7 @@
             "definition": [
               {
                 "type": "NonTerminal",
-                "name": "delPred",
+                "name": "isUnknown",
                 "idx": 0
               }
             ]
@@ -594,6 +710,16 @@
                     "definition": [
                       {
                         "type": "NonTerminal",
+                        "name": "comparison",
+                        "idx": 0
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Alternative",
+                    "definition": [
+                      {
+                        "type": "NonTerminal",
                         "name": "likeRegex",
                         "idx": 0
                       }
@@ -608,163 +734,10 @@
                         "idx": 0
                       }
                     ]
-                  },
-                  {
-                    "type": "Alternative",
-                    "definition": [
-                      {
-                        "type": "NonTerminal",
-                        "name": "comparison",
-                        "idx": 0
-                      }
-                    ]
                   }
                 ]
               }
             ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "type": "Rule",
-    "name": "scopedPred",
-    "orgText": "",
-    "definition": [
-      {
-        "type": "Terminal",
-        "name": "LeftParen",
-        "label": "LeftParen",
-        "idx": 0,
-        "pattern": "("
-      },
-      {
-        "type": "NonTerminal",
-        "name": "pathPred",
-        "idx": 0
-      },
-      {
-        "type": "Terminal",
-        "name": "RightParen",
-        "label": "RightParen",
-        "idx": 0,
-        "pattern": ")"
-      },
-      {
-        "type": "Option",
-        "idx": 0,
-        "definition": [
-          {
-            "type": "Terminal",
-            "name": "IsUnknown",
-            "label": "IsUnknown",
-            "idx": 0,
-            "pattern": "\\sis\\s+unknown"
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "type": "Rule",
-    "name": "neg",
-    "orgText": "",
-    "definition": [
-      {
-        "type": "Alternation",
-        "idx": 0,
-        "definition": [
-          {
-            "type": "Alternative",
-            "definition": [
-              {
-                "type": "NonTerminal",
-                "name": "pred",
-                "idx": 0
-              }
-            ]
-          },
-          {
-            "type": "Alternative",
-            "definition": [
-              {
-                "type": "Terminal",
-                "name": "NotOp",
-                "label": "NotOp",
-                "idx": 0,
-                "pattern": "!"
-              },
-              {
-                "type": "NonTerminal",
-                "name": "delPred",
-                "idx": 0
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "type": "Rule",
-    "name": "boolConj",
-    "orgText": "",
-    "definition": [
-      {
-        "type": "NonTerminal",
-        "name": "neg",
-        "idx": 0,
-        "label": "left"
-      },
-      {
-        "type": "Repetition",
-        "idx": 0,
-        "definition": [
-          {
-            "type": "Terminal",
-            "name": "AndOp",
-            "label": "AndOp",
-            "idx": 0,
-            "pattern": "&&"
-          },
-          {
-            "type": "NonTerminal",
-            "name": "neg",
-            "idx": 1,
-            "label": "right"
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "type": "Rule",
-    "name": "pathPred",
-    "orgText": "",
-    "definition": [
-      {
-        "type": "NonTerminal",
-        "name": "boolConj",
-        "idx": 0,
-        "label": "left"
-      },
-      {
-        "type": "Repetition",
-        "idx": 0,
-        "definition": [
-          {
-            "type": "Terminal",
-            "name": "OrOp",
-            "label": "OrOp",
-            "idx": 0,
-            "pattern": "||"
-          },
-          {
-            "type": "NonTerminal",
-            "name": "boolConj",
-            "idx": 1,
-            "label": "right"
           }
         ]
       }
@@ -785,25 +758,6 @@
       {
         "type": "NonTerminal",
         "name": "scopedWff",
-        "idx": 0
-      }
-    ]
-  },
-  {
-    "type": "Rule",
-    "name": "startsWith",
-    "orgText": "",
-    "definition": [
-      {
-        "type": "Terminal",
-        "name": "StartsWith",
-        "label": "StartsWith",
-        "idx": 0,
-        "pattern": "\\sstarts\\s+with"
-      },
-      {
-        "type": "NonTerminal",
-        "name": "wff",
         "idx": 0
       }
     ]
@@ -863,6 +817,173 @@
             "label": "String",
             "idx": 1,
             "terminalLabel": "FlagValue"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "Rule",
+    "name": "startsWith",
+    "orgText": "",
+    "definition": [
+      {
+        "type": "Terminal",
+        "name": "StartsWith",
+        "label": "StartsWith",
+        "idx": 0,
+        "pattern": "\\sstarts\\s+with"
+      },
+      {
+        "type": "Alternation",
+        "idx": 0,
+        "definition": [
+          {
+            "type": "Alternative",
+            "definition": [
+              {
+                "type": "Terminal",
+                "name": "String",
+                "label": "String",
+                "idx": 0,
+                "terminalLabel": "Initial"
+              }
+            ]
+          },
+          {
+            "type": "Alternative",
+            "definition": [
+              {
+                "type": "Terminal",
+                "name": "NamedVariable",
+                "label": "NamedVariable",
+                "idx": 0,
+                "pattern": "\\$(?:[a-zA-Z][\\w#@$]{0,126})"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "Rule",
+    "name": "isUnknown",
+    "orgText": "",
+    "definition": [
+      {
+        "type": "NonTerminal",
+        "name": "scopedPred",
+        "idx": 0
+      },
+      {
+        "type": "Terminal",
+        "name": "IsUnknown",
+        "label": "IsUnknown",
+        "idx": 0,
+        "pattern": "\\sis\\s+unknown"
+      }
+    ]
+  },
+  {
+    "type": "Rule",
+    "name": "neg",
+    "orgText": "",
+    "definition": [
+      {
+        "type": "Alternation",
+        "idx": 0,
+        "definition": [
+          {
+            "type": "Alternative",
+            "definition": [
+              {
+                "type": "NonTerminal",
+                "name": "predPrimary",
+                "idx": 0
+              }
+            ]
+          },
+          {
+            "type": "Alternative",
+            "definition": [
+              {
+                "type": "Terminal",
+                "name": "NotOp",
+                "label": "NotOp",
+                "idx": 0,
+                "pattern": "!"
+              },
+              {
+                "type": "NonTerminal",
+                "name": "delPred",
+                "idx": 0
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "Rule",
+    "name": "conj",
+    "orgText": "",
+    "definition": [
+      {
+        "type": "NonTerminal",
+        "name": "neg",
+        "idx": 0,
+        "label": "left"
+      },
+      {
+        "type": "Repetition",
+        "idx": 0,
+        "definition": [
+          {
+            "type": "Terminal",
+            "name": "AndOp",
+            "label": "AndOp",
+            "idx": 0,
+            "pattern": "&&"
+          },
+          {
+            "type": "NonTerminal",
+            "name": "neg",
+            "idx": 1,
+            "label": "right"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "Rule",
+    "name": "predicate",
+    "orgText": "",
+    "definition": [
+      {
+        "type": "NonTerminal",
+        "name": "conj",
+        "idx": 0,
+        "label": "left"
+      },
+      {
+        "type": "Repetition",
+        "idx": 0,
+        "definition": [
+          {
+            "type": "Terminal",
+            "name": "OrOp",
+            "label": "OrOp",
+            "idx": 0,
+            "pattern": "||"
+          },
+          {
+            "type": "NonTerminal",
+            "name": "conj",
+            "idx": 1,
+            "label": "right"
           }
         ]
       }

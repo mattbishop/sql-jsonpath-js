@@ -1,6 +1,7 @@
 import fs from 'fs'
-import chevrotain from 'chevrotain'
-import {JsonPathParser} from '../dist/parser.js'
+import * as chevrotain from 'chevrotain'
+
+import { JsonPathParser } from '../dist/parser.js'
 
 
 const parserInstance = new JsonPathParser()

@@ -1,5 +1,4 @@
-import type {CstNode, ICstVisitor, IToken} from "chevrotain";
-
+import type { CstNode, ICstVisitor, IToken } from "chevrotain";
 
 export interface StmtCstNode extends CstNode {
   name: "stmt";
@@ -11,15 +10,15 @@ export type StmtCstChildren = {
   wff: WffCstNode[];
 };
 
-export interface WffCstNode extends CstNode {
-  name: "wff";
-  children: WffCstChildren;
+export interface PrimaryCstNode extends CstNode {
+  name: "primary";
+  children: PrimaryCstChildren;
 }
 
-export type WffCstChildren = {
-  left: BinaryCstNode[];
-  UnaryOp?: IToken[];
-  right?: BinaryCstNode[];
+export type PrimaryCstChildren = {
+  literal?: LiteralCstNode[];
+  variable?: VariableCstNode[];
+  scopedWff?: ScopedWffCstNode[];
 };
 
 export interface ScopedWffCstNode extends CstNode {
@@ -31,42 +30,6 @@ export type ScopedWffCstChildren = {
   LeftParen: IToken[];
   wff: WffCstNode[];
   RightParen: IToken[];
-};
-
-export interface UnaryCstNode extends CstNode {
-  name: "unary";
-  children: UnaryCstChildren;
-}
-
-export type UnaryCstChildren = {
-  accessExp?: AccessExpCstNode[];
-  UnaryOp?: IToken[];
-  unary?: UnaryCstNode[];
-};
-
-export interface BinaryCstNode extends CstNode {
-  name: "binary";
-  children: BinaryCstChildren;
-}
-
-export type BinaryCstChildren = {
-  left: UnaryCstNode[];
-  BinaryOp?: IToken[];
-  right?: BinaryCstNode[];
-};
-
-export interface PrimaryCstNode extends CstNode {
-  name: "primary";
-  children: PrimaryCstChildren;
-}
-
-export type PrimaryCstChildren = {
-  NamedVariable?: IToken[];
-  ContextVariable?: IToken[];
-  FilterValue?: IToken[];
-  Last?: IToken[];
-  literal?: LiteralCstNode[];
-  scopedWff?: ScopedWffCstNode[];
 };
 
 export interface LiteralCstNode extends CstNode {
@@ -81,12 +44,24 @@ export type LiteralCstChildren = {
   Null?: IToken[];
 };
 
-export interface AccessExpCstNode extends CstNode {
-  name: "accessExp";
-  children: AccessExpCstChildren;
+export interface VariableCstNode extends CstNode {
+  name: "variable";
+  children: VariableCstChildren;
 }
 
-export type AccessExpCstChildren = {
+export type VariableCstChildren = {
+  ContextVariable?: IToken[];
+  NamedVariable?: IToken[];
+  FilterValue?: IToken[];
+  Last?: IToken[];
+};
+
+export interface AccessorExpCstNode extends CstNode {
+  name: "accessorExp";
+  children: AccessorExpCstChildren;
+}
+
+export type AccessorExpCstChildren = {
   primary: PrimaryCstNode[];
   accessor?: AccessorCstNode[];
 };
@@ -102,9 +77,7 @@ export type AccessorCstChildren = {
   array?: ArrayCstNode[];
   WildcardArray?: IToken[];
   filter?: FilterCstNode[];
-  ItemMethod?: IToken[];
-  DatetimeMethod?: IToken[];
-  TimeStampTzMethod?: IToken[];
+  method?: MethodCstNode[];
 };
 
 export interface ArrayCstNode extends CstNode {
@@ -136,8 +109,62 @@ export interface FilterCstNode extends CstNode {
 
 export type FilterCstChildren = {
   FilterStart: IToken[];
-  pathPred: PathPredCstNode[];
+  predicate: PredicateCstNode[];
   FilterEnd: IToken[];
+};
+
+export interface MethodCstNode extends CstNode {
+  name: "method";
+  children: MethodCstChildren;
+}
+
+export type MethodCstChildren = {
+  ItemMethod?: IToken[];
+  DatetimeMethod?: IToken[];
+  TimeStampTzMethod?: IToken[];
+};
+
+export interface UnaryCstNode extends CstNode {
+  name: "unary";
+  children: UnaryCstChildren;
+}
+
+export type UnaryCstChildren = {
+  accessorExp?: AccessorExpCstNode[];
+  UnaryOp?: IToken[];
+  unary?: UnaryCstNode[];
+};
+
+export interface MultCstNode extends CstNode {
+  name: "mult";
+  children: MultCstChildren;
+}
+
+export type MultCstChildren = {
+  left: UnaryCstNode[];
+  BinaryOp?: IToken[];
+  right?: MultCstNode[];
+};
+
+export interface WffCstNode extends CstNode {
+  name: "wff";
+  children: WffCstChildren;
+}
+
+export type WffCstChildren = {
+  left: MultCstNode[];
+  UnaryOp?: IToken[];
+  right?: MultCstNode[];
+};
+
+export interface PredPrimaryCstNode extends CstNode {
+  name: "predPrimary";
+  children: PredPrimaryCstChildren;
+}
+
+export type PredPrimaryCstChildren = {
+  nonDelPred?: NonDelPredCstNode[];
+  delPred?: DelPredCstNode[];
 };
 
 export interface DelPredCstNode extends CstNode {
@@ -150,19 +177,6 @@ export type DelPredCstChildren = {
   scopedPred?: ScopedPredCstNode[];
 };
 
-export interface PredCstNode extends CstNode {
-  name: "pred";
-  children: PredCstChildren;
-}
-
-export type PredCstChildren = {
-  delPred?: DelPredCstNode[];
-  wff?: WffCstNode[];
-  likeRegex?: LikeRegexCstNode[];
-  startsWith?: StartsWithCstNode[];
-  comparison?: ComparisonCstNode[];
-};
-
 export interface ScopedPredCstNode extends CstNode {
   name: "scopedPred";
   children: ScopedPredCstChildren;
@@ -170,42 +184,21 @@ export interface ScopedPredCstNode extends CstNode {
 
 export type ScopedPredCstChildren = {
   LeftParen: IToken[];
-  pathPred: PathPredCstNode[];
+  predicate: PredicateCstNode[];
   RightParen: IToken[];
-  IsUnknown?: IToken[];
 };
 
-export interface NegCstNode extends CstNode {
-  name: "neg";
-  children: NegCstChildren;
+export interface NonDelPredCstNode extends CstNode {
+  name: "nonDelPred";
+  children: NonDelPredCstChildren;
 }
 
-export type NegCstChildren = {
-  pred?: PredCstNode[];
-  NotOp?: IToken[];
-  delPred?: DelPredCstNode[];
-};
-
-export interface BoolConjCstNode extends CstNode {
-  name: "boolConj";
-  children: BoolConjCstChildren;
-}
-
-export type BoolConjCstChildren = {
-  left: NegCstNode[];
-  AndOp?: IToken[];
-  right?: NegCstNode[];
-};
-
-export interface PathPredCstNode extends CstNode {
-  name: "pathPred";
-  children: PathPredCstChildren;
-}
-
-export type PathPredCstChildren = {
-  left: BoolConjCstNode[];
-  OrOp?: IToken[];
-  right?: BoolConjCstNode[];
+export type NonDelPredCstChildren = {
+  isUnknown?: IsUnknownCstNode[];
+  wff?: WffCstNode[];
+  comparison?: ComparisonCstNode[];
+  likeRegex?: LikeRegexCstNode[];
+  startsWith?: StartsWithCstNode[];
 };
 
 export interface ExistsCstNode extends CstNode {
@@ -216,16 +209,6 @@ export interface ExistsCstNode extends CstNode {
 export type ExistsCstChildren = {
   Exists: IToken[];
   scopedWff: ScopedWffCstNode[];
-};
-
-export interface StartsWithCstNode extends CstNode {
-  name: "startsWith";
-  children: StartsWithCstChildren;
-}
-
-export type StartsWithCstChildren = {
-  StartsWith: IToken[];
-  wff: WffCstNode[];
 };
 
 export interface ComparisonCstNode extends CstNode {
@@ -250,27 +233,85 @@ export type LikeRegexCstChildren = {
   FlagValue?: IToken[];
 };
 
+export interface StartsWithCstNode extends CstNode {
+  name: "startsWith";
+  children: StartsWithCstChildren;
+}
+
+export type StartsWithCstChildren = {
+  StartsWith: IToken[];
+  Initial?: IToken[];
+  NamedVariable?: IToken[];
+};
+
+export interface IsUnknownCstNode extends CstNode {
+  name: "isUnknown";
+  children: IsUnknownCstChildren;
+}
+
+export type IsUnknownCstChildren = {
+  scopedPred: ScopedPredCstNode[];
+  IsUnknown: IToken[];
+};
+
+export interface NegCstNode extends CstNode {
+  name: "neg";
+  children: NegCstChildren;
+}
+
+export type NegCstChildren = {
+  predPrimary?: PredPrimaryCstNode[];
+  NotOp?: IToken[];
+  delPred?: DelPredCstNode[];
+};
+
+export interface ConjCstNode extends CstNode {
+  name: "conj";
+  children: ConjCstChildren;
+}
+
+export type ConjCstChildren = {
+  left: NegCstNode[];
+  AndOp?: IToken[];
+  right?: NegCstNode[];
+};
+
+export interface PredicateCstNode extends CstNode {
+  name: "predicate";
+  children: PredicateCstChildren;
+}
+
+export type PredicateCstChildren = {
+  left: ConjCstNode[];
+  OrOp?: IToken[];
+  right?: ConjCstNode[];
+};
+
 export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   stmt(children: StmtCstChildren, param?: IN): OUT;
-  wff(children: WffCstChildren, param?: IN): OUT;
-  scopedWff(children: ScopedWffCstChildren, param?: IN): OUT;
-  unary(children: UnaryCstChildren, param?: IN): OUT;
-  binary(children: BinaryCstChildren, param?: IN): OUT;
   primary(children: PrimaryCstChildren, param?: IN): OUT;
+  scopedWff(children: ScopedWffCstChildren, param?: IN): OUT;
   literal(children: LiteralCstChildren, param?: IN): OUT;
-  accessExp(children: AccessExpCstChildren, param?: IN): OUT;
+  variable(children: VariableCstChildren, param?: IN): OUT;
+  accessorExp(children: AccessorExpCstChildren, param?: IN): OUT;
   accessor(children: AccessorCstChildren, param?: IN): OUT;
   array(children: ArrayCstChildren, param?: IN): OUT;
   subscript(children: SubscriptCstChildren, param?: IN): OUT;
   filter(children: FilterCstChildren, param?: IN): OUT;
+  method(children: MethodCstChildren, param?: IN): OUT;
+  unary(children: UnaryCstChildren, param?: IN): OUT;
+  mult(children: MultCstChildren, param?: IN): OUT;
+  wff(children: WffCstChildren, param?: IN): OUT;
+  predPrimary(children: PredPrimaryCstChildren, param?: IN): OUT;
   delPred(children: DelPredCstChildren, param?: IN): OUT;
-  pred(children: PredCstChildren, param?: IN): OUT;
   scopedPred(children: ScopedPredCstChildren, param?: IN): OUT;
-  neg(children: NegCstChildren, param?: IN): OUT;
-  boolConj(children: BoolConjCstChildren, param?: IN): OUT;
-  pathPred(children: PathPredCstChildren, param?: IN): OUT;
+  nonDelPred(children: NonDelPredCstChildren, param?: IN): OUT;
   exists(children: ExistsCstChildren, param?: IN): OUT;
-  startsWith(children: StartsWithCstChildren, param?: IN): OUT;
   comparison(children: ComparisonCstChildren, param?: IN): OUT;
   likeRegex(children: LikeRegexCstChildren, param?: IN): OUT;
+  startsWith(children: StartsWithCstChildren, param?: IN): OUT;
+  isUnknown(children: IsUnknownCstChildren, param?: IN): OUT;
+  neg(children: NegCstChildren, param?: IN): OUT;
+  conj(children: ConjCstChildren, param?: IN): OUT;
+  predicate(children: PredicateCstChildren, param?: IN): OUT;
 }

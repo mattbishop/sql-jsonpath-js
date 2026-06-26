@@ -2,20 +2,23 @@ import type {CstNode, ICstVisitor, IToken} from "chevrotain"
 import safeRegex from "safe-regex2"
 
 import type {
-  AccessExpCstChildren,
+  AccessorExpCstChildren,
   AccessorCstChildren,
   ArrayCstChildren,
-  BinaryCstChildren,
-  BoolConjCstChildren,
+  ConjCstChildren,
   ComparisonCstChildren,
   DelPredCstChildren,
   ExistsCstChildren,
   FilterCstChildren,
+  IsUnknownCstChildren,
   LikeRegexCstChildren,
   LiteralCstChildren,
+  MethodCstChildren,
+  MultCstChildren,
   NegCstChildren,
-  PathPredCstChildren,
-  PredCstChildren,
+  NonDelPredCstChildren,
+  PredicateCstChildren,
+  PredPrimaryCstChildren,
   PrimaryCstChildren,
   ScopedPredCstChildren,
   ScopedWffCstChildren,
@@ -23,6 +26,7 @@ import type {
   StmtCstChildren,
   SubscriptCstChildren,
   UnaryCstChildren,
+  VariableCstChildren,
   WffCstChildren
 } from "./sql_jsonpath_cst.ts"
 import {buildTemporalParser, CLDR} from "./datetime-parser.ts"
@@ -137,17 +141,17 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
     }
 
 
-    binary(node: BinaryCstChildren, ctx: CodegenContext): CodegenContext {
+    mult(node: MultCstChildren, ctx: CodegenContext): CodegenContext {
       const {left, BinaryOp, right} = node
       return this.handleArithmeticOps(left, BinaryOp, right, ctx)
     }
 
 
     unary(node: UnaryCstChildren, ctx: CodegenContext): CodegenContext {
-      const {accessExp, UnaryOp, unary} = node
-      ctx = this.maybeVisit(accessExp, ctx)
+      const {accessorExp, UnaryOp, unary} = node
+      ctx = this.maybeVisit(accessorExp, ctx)
       if (unary) {
-        const {source: origSource} = ctx
+        const {source: left} = ctx
         const op = maybeImage(UnaryOp)
         ctx = this.visit(unary, {...ctx, source: ""})
         let right = maybeNum(ctx.source)
@@ -155,13 +159,13 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
         if (!right.startsWith("ƒ")) {
           right = `(${right})`
         }
-        ctx = {...ctx, source: `${origSource}${op}${right}`}
+        ctx = {...ctx, source: `${left}${op}${right}`}
       }
       return ctx
     }
 
 
-    accessExp(node: AccessExpCstChildren, ctx: CodegenContext): CodegenContext {
+    accessorExp(node: AccessorExpCstChildren, ctx: CodegenContext): CodegenContext {
       const {primary, accessor} = node
       const {source: origSource} = ctx
       ctx = this.visit(primary, {...ctx, source: ""})
@@ -173,20 +177,11 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
 
 
     primary(node: PrimaryCstChildren, ctx: CodegenContext): CodegenContext {
-      const {scopedWff, literal, ContextVariable, FilterValue, Last, NamedVariable} = node
+      const {scopedWff, literal, variable} = node
       // will be just one of these so the order doesn't really matter
       ctx = this.maybeVisit(scopedWff, ctx)
       ctx = this.maybeVisit(literal, ctx)
-      ctx = maybeAppend(ContextVariable, ctx)
-      if (FilterValue) {
-        ctx = {...ctx, source: `${ctx.source}v`}
-      } else if (NamedVariable) {
-        const name = NamedVariable[0].image.substring(1)
-        ctx = {...ctx, source: `$$("${name}")`}
-      } else if (Last) {
-        ctx = {...ctx, source: `${ctx.source}ƒ.last`}
-      }
-      return ctx
+      return this.maybeVisit(variable, ctx)
     }
 
 
@@ -206,20 +201,30 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
     }
 
 
+    variable(node: VariableCstChildren, ctx: CodegenContext): CodegenContext {
+      const {ContextVariable, NamedVariable, FilterValue, Last} = node
+      ctx = maybeAppend(ContextVariable, ctx)
+      let source = ctx.source
+      if (NamedVariable) {
+        const name = NamedVariable[0].image.substring(1)
+        source = `$$("${name}")`
+      } else if (FilterValue) {
+        source = `${ctx.source}v`
+      } else if (Last) {
+        source = `${ctx.source}ƒ.last`
+      }
+      return {...ctx, source}
+    }
+
+
     accessor(node: AccessorCstChildren, ctx: CodegenContext): CodegenContext {
-      const {array, filter, DatetimeMethod, TimeStampTzMethod, ItemMethod, Member, WildcardArray, WildcardMember} = node
+      const {array, filter, method, Member, WildcardArray, WildcardMember} = node
       ctx = this.maybeVisit(array, ctx)
       ctx = this.maybeVisit(filter, ctx)
+      ctx = this.maybeVisit(method, ctx)
       const {source: primary} = ctx
-      let source
-      if (ItemMethod) {
-        const methodName = ItemMethod[0].payload[0]
-        const attrs = maybeParen(primary)
-        if (methodName === "date") {
-          ctx.scope.set(CLDR, buildTemporalParser())
-        }
-        source = `ƒ.${methodName}${attrs}`
-      } else if (Member) {
+      let source = primary
+      if (Member) {
         const payloads = Member[0].payload
         const member = payloads[0] ?? payloads[1]
         source = `ƒ.member(${primary},"${member}")`
@@ -229,6 +234,22 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       } else if (WildcardArray) {
         const attrs = maybeParen(primary)
         source = `ƒ.boxStar${attrs}`
+      }
+      return {...ctx, source}
+    }
+
+
+    method(node: MethodCstChildren, ctx: CodegenContext): CodegenContext {
+      const {ItemMethod, DatetimeMethod, TimeStampTzMethod} = node
+      const {source: primary} = ctx
+      let source = primary
+      if (ItemMethod) {
+        const methodName = ItemMethod[0].payload[0]
+        const attrs = maybeParen(primary)
+        if (methodName === "date") {
+          ctx.scope.set(CLDR, buildTemporalParser())
+        }
+        source = `ƒ.${methodName}${attrs}`
       } else if (DatetimeMethod) {
         const template = DatetimeMethod[0].payload[1]
         let templateParam = ""
@@ -250,10 +271,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
           : ""
         source = `ƒ.${methodName}(${primary}${precisionStr})`
       }
-      if (source) {
-        ctx = {...ctx, source}
-      }
-      return ctx
+      return {...ctx, source}
     }
 
 
@@ -278,9 +296,9 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
 
 
     filter(node: FilterCstChildren, ctx: CodegenContext): CodegenContext {
-      const {pathPred} = node
+      const {predicate} = node
       const {source: origSource} = ctx
-      ctx = this.visit(pathPred, {...ctx, source: ""})
+      ctx = this.visit(predicate, {...ctx, source: ""})
       return {...ctx, source: `ƒ.filter(${origSource},v=>${ctx.source})`}
     }
 
@@ -300,21 +318,21 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
     }
 
 
-    pathPred(node: PathPredCstChildren, ctx: CodegenContext): CodegenContext {
+    predicate(node: PredicateCstChildren, ctx: CodegenContext): CodegenContext {
       const {left, right} = node
       return this.handleLogicOp(left, "or", right, ctx)
     }
 
 
-    boolConj(node: BoolConjCstChildren, ctx: CodegenContext): CodegenContext {
+    conj(node: ConjCstChildren, ctx: CodegenContext): CodegenContext {
       const {left, right} = node
       return this.handleLogicOp(left, "and", right, ctx)
     }
 
 
     neg(node: NegCstChildren, ctx: CodegenContext): CodegenContext {
-      const {pred, delPred} = node
-      ctx = this.maybeVisit(pred, ctx)
+      const {predPrimary, delPred} = node
+      ctx = this.maybeVisit(predPrimary, ctx)
       if (delPred) {
         ctx = this.visit(delPred, ctx)
         const parenPred = maybeParen(ctx.source)
@@ -324,13 +342,10 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
     }
 
 
-    pred(node: PredCstChildren, ctx: CodegenContext): CodegenContext {
-      const {delPred, wff, likeRegex, startsWith, comparison} = node
+    predPrimary(node: PredPrimaryCstChildren, ctx: CodegenContext): CodegenContext {
+      const {delPred, nonDelPred} = node
       ctx = this.maybeVisit(delPred, ctx)
-      ctx = this.maybeVisit(wff, ctx)
-      ctx = this.maybeVisit(likeRegex, ctx)
-      ctx = this.maybeVisit(startsWith, ctx)
-      return this.maybeVisit(comparison, ctx)
+      return this.maybeVisit(nonDelPred, ctx)
     }
 
 
@@ -341,16 +356,33 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
     }
 
 
+    nonDelPred(node: NonDelPredCstChildren, ctx: CodegenContext): CodegenContext {
+      const {wff, likeRegex, startsWith, comparison, isUnknown} = node
+      ctx = this.maybeVisit(wff, ctx)
+      ctx = this.maybeVisit(likeRegex, ctx)
+      ctx = this.maybeVisit(startsWith, ctx)
+      ctx = this.maybeVisit(comparison, ctx)
+      return this.maybeVisit(isUnknown, ctx)
+    }
+
+
     scopedPred(node: ScopedPredCstChildren, ctx: CodegenContext): CodegenContext {
-      const {pathPred, IsUnknown} = node
-      ctx = this.visit(pathPred, ctx)
-      const unknown = IsUnknown ? "ƒ.isUnknown" : ""
+      const {predicate} = node
+      ctx = this.visit(predicate, ctx)
       const parenPred = maybeParen(ctx.source)
-      return {...ctx, source: `${unknown}${parenPred}`}
+      return {...ctx, source: parenPred}
+    }
+
+
+    isUnknown(node: IsUnknownCstChildren, ctx: CodegenContext): CodegenContext {
+      const {scopedPred} = node
+      ctx = this.visit(scopedPred, ctx)
+      return {...ctx, source: `ƒ.isUnknown${ctx.source}`}
     }
 
 
     likeRegex(node: LikeRegexCstChildren, ctx: CodegenContext): CodegenContext {
+      // todo destructure this
       const {Pattern, FlagValue} = node
       const regex = Pattern[0].image
         .slice(1, -1)
@@ -387,10 +419,15 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
 
 
     startsWith(node: StartsWithCstChildren, ctx: CodegenContext): CodegenContext {
-      const {wff} = node
-      const {source: origSource} = ctx
-      ctx = this.visit(wff, {...ctx, source: ""})
-      return {...ctx, source: `ƒ.startsWith(${origSource},${ctx.source})`}
+      const {NamedVariable, Initial} = node
+      let arg
+      if (NamedVariable) {
+        const name = NamedVariable[0].image.substring(1)
+        arg = `$$("${name}")`
+      } else if (Initial) {
+        arg = Initial[0].image
+      }
+      return {...ctx, source: `ƒ.startsWith(${ctx.source},${arg})`}
     }
 
 
