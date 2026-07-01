@@ -10,7 +10,6 @@ import type {
   DelPredCstChildren,
   ExistsCstChildren,
   FilterCstChildren,
-  IsUnknownCstChildren,
   LikeRegexCstChildren,
   LiteralCstChildren,
   MethodCstChildren,
@@ -357,27 +356,22 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
 
 
     nonDelPred(node: NonDelPredCstChildren, ctx: CodegenContext): CodegenContext {
-      const {wff, likeRegex, startsWith, comparison, isUnknown} = node
+      const {wff, likeRegex, startsWith, comparison} = node
       ctx = this.maybeVisit(wff, ctx)
       ctx = this.maybeVisit(likeRegex, ctx)
       ctx = this.maybeVisit(startsWith, ctx)
-      ctx = this.maybeVisit(comparison, ctx)
-      return this.maybeVisit(isUnknown, ctx)
+      return this.maybeVisit(comparison, ctx)
     }
 
 
     scopedPred(node: ScopedPredCstChildren, ctx: CodegenContext): CodegenContext {
-      const {predicate} = node
+      const {predicate, IsUnknown} = node
       ctx = this.visit(predicate, ctx)
-      const parenPred = maybeParen(ctx.source)
-      return {...ctx, source: parenPred}
-    }
-
-
-    isUnknown(node: IsUnknownCstChildren, ctx: CodegenContext): CodegenContext {
-      const {scopedPred} = node
-      ctx = this.visit(scopedPred, ctx)
-      return {...ctx, source: `ƒ.isUnknown${ctx.source}`}
+      let source = maybeParen(ctx.source)
+      if (IsUnknown) {
+        source = `ƒ.isUnknown${source}`
+      }
+      return {...ctx, source}
     }
 
 

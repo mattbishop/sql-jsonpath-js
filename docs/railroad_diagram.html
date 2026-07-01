@@ -596,7 +596,7 @@
             "definition": [
               {
                 "type": "NonTerminal",
-                "name": "nonDelPred",
+                "name": "delPred",
                 "idx": 0
               }
             ]
@@ -606,7 +606,7 @@
             "definition": [
               {
                 "type": "NonTerminal",
-                "name": "delPred",
+                "name": "nonDelPred",
                 "idx": 0
               }
             ]
@@ -671,6 +671,19 @@
         "label": "RightParen",
         "idx": 0,
         "pattern": ")"
+      },
+      {
+        "type": "Option",
+        "idx": 0,
+        "definition": [
+          {
+            "type": "Terminal",
+            "name": "IsUnknown",
+            "label": "IsUnknown",
+            "idx": 0,
+            "pattern": "\\sis\\s+unknown"
+          }
+        ]
       }
     ]
   },
@@ -680,6 +693,11 @@
     "orgText": "",
     "definition": [
       {
+        "type": "NonTerminal",
+        "name": "wff",
+        "idx": 0
+      },
+      {
         "type": "Alternation",
         "idx": 0,
         "definition": [
@@ -688,7 +706,7 @@
             "definition": [
               {
                 "type": "NonTerminal",
-                "name": "isUnknown",
+                "name": "comparison",
                 "idx": 0
               }
             ]
@@ -698,44 +716,18 @@
             "definition": [
               {
                 "type": "NonTerminal",
-                "name": "wff",
+                "name": "likeRegex",
                 "idx": 0
-              },
+              }
+            ]
+          },
+          {
+            "type": "Alternative",
+            "definition": [
               {
-                "type": "Alternation",
-                "idx": 1,
-                "definition": [
-                  {
-                    "type": "Alternative",
-                    "definition": [
-                      {
-                        "type": "NonTerminal",
-                        "name": "comparison",
-                        "idx": 0
-                      }
-                    ]
-                  },
-                  {
-                    "type": "Alternative",
-                    "definition": [
-                      {
-                        "type": "NonTerminal",
-                        "name": "likeRegex",
-                        "idx": 0
-                      }
-                    ]
-                  },
-                  {
-                    "type": "Alternative",
-                    "definition": [
-                      {
-                        "type": "NonTerminal",
-                        "name": "startsWith",
-                        "idx": 0
-                      }
-                    ]
-                  }
-                ]
+                "type": "NonTerminal",
+                "name": "startsWith",
+                "idx": 0
               }
             ]
           }
@@ -863,25 +855,6 @@
             ]
           }
         ]
-      }
-    ]
-  },
-  {
-    "type": "Rule",
-    "name": "isUnknown",
-    "orgText": "",
-    "definition": [
-      {
-        "type": "NonTerminal",
-        "name": "scopedPred",
-        "idx": 0
-      },
-      {
-        "type": "Terminal",
-        "name": "IsUnknown",
-        "label": "IsUnknown",
-        "idx": 0,
-        "pattern": "\\sis\\s+unknown"
       }
     ]
   },

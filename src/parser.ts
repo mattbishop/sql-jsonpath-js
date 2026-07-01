@@ -1,4 +1,4 @@
-import {CstParser} from "chevrotain"
+import {CstParser, EOF} from "chevrotain"
 
 import {
   allTokens,
@@ -285,10 +285,9 @@ export class JsonPathParser extends CstParser {
    */
   predicatePrimary = this.RULE("predPrimary", () => {
     this.OR([
-      // IGNORE_AMBIGUITIES because we are in a filter expression, but might not be ok in the end.
       // consider GATE
-      { ALT: () => this.SUBRULE(this.nonDelimitedPredicate), IGNORE_AMBIGUITIES: true },
-      { ALT: () => this.SUBRULE(this.delimitedPredicate), IGNORE_AMBIGUITIES: true }
+      { ALT: () => this.SUBRULE(this.delimitedPredicate) },
+      { ALT: () => this.SUBRULE(this.nonDelimitedPredicate), IGNORE_AMBIGUITIES: true }
     ])
   })
 
@@ -308,11 +307,18 @@ export class JsonPathParser extends CstParser {
 
   /*
     scoped predicate = <left paren> <JSON path predicate> <right paren>
+
+    Put handling here to avoid ambiguities in nonDelimitedPredicate.
+    <JSON unknown predicate> ::=
+          <left paren> <JSON path predicate> <right paren> is unknown
    */
   scopedPredicate = this.RULE("scopedPred", () => {
     this.CONSUME(LeftParen)
     this.SUBRULE(this.predicate)
     this.CONSUME(RightParen)
+    this.OPTION(() => {
+      this.CONSUME(IsUnknown)
+    })
   })
 
 
@@ -324,7 +330,7 @@ export class JsonPathParser extends CstParser {
           | <JSON unknown predicate>
    */
   nonDelimitedPredicate = this.RULE("nonDelPred", () => {
-/*  this OR matches the BNF exactly, but breaks Chevrotain Ambiguous Alternatives rule of 3 deep.
+/*  this OR matches the BNF exactly, but breaks Chevrotain Ambiguous Alternatives rules.
     this.OR([
       { ALT: () => this.SUBRULE(this.comparison) },
       { ALT: () => this.SUBRULE(this.likeRegex) },
@@ -334,20 +340,12 @@ export class JsonPathParser extends CstParser {
 
     factored out shared wff SUBRULE from three of the matches
 */
-    this.OR( {IGNORE_AMBIGUITIES: true, DEF: [
-        // at this point, scopedPred is already identified, but it's actually a wff
-        // The GATE should look ahead for IsUnknown?
-      { ALT: () => this.SUBRULE(this.isUnknown) },
-      { ALT: () => {
-        this.SUBRULE(this.wff)
-        this.OR1([
-            { ALT: () => this.SUBRULE(this.comparison) },
-            { ALT: () => this.SUBRULE(this.likeRegex) },
-            { ALT: () => this.SUBRULE(this.startsWith) }
-          ])
-        }
-      }
-    ]})
+    this.SUBRULE(this.wff)
+    this.OR([
+      { ALT: () => this.SUBRULE(this.comparison) },
+      { ALT: () => this.SUBRULE(this.likeRegex) },
+      { ALT: () => this.SUBRULE(this.startsWith) }
+    ])
   })
 
 
@@ -365,7 +363,7 @@ export class JsonPathParser extends CstParser {
   <JSON comparison predicate> ::=
           <JSON path wff> <JSON comp op> <JSON path wff>
 
-  // todo what does this mean?
+  // todo how do I test this?
   NOTE 489 — Comparison operators are not left associative, unlike ECMAScript Language Specification 5.1 Edition.
  */
   comparison = this.RULE("comparison", () => {
@@ -413,16 +411,6 @@ export class JsonPathParser extends CstParser {
       { ALT: () => this.CONSUME(StringLiteral, { LABEL: "Initial" }) },
       { ALT: () => this.CONSUME(NamedVariable) }
     ])
-  })
-
-
-  /*
-    <JSON unknown predicate> ::=
-          <left paren> <JSON path predicate> <right paren> is unknown
-   */
-  isUnknown = this.RULE("isUnknown", () => {
-    this.SUBRULE(this.scopedPredicate)
-    this.CONSUME(IsUnknown)
   })
 
 

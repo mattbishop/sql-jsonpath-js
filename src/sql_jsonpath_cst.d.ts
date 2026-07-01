@@ -163,8 +163,8 @@ export interface PredPrimaryCstNode extends CstNode {
 }
 
 export type PredPrimaryCstChildren = {
-  nonDelPred?: NonDelPredCstNode[];
   delPred?: DelPredCstNode[];
+  nonDelPred?: NonDelPredCstNode[];
 };
 
 export interface DelPredCstNode extends CstNode {
@@ -186,6 +186,7 @@ export type ScopedPredCstChildren = {
   LeftParen: IToken[];
   predicate: PredicateCstNode[];
   RightParen: IToken[];
+  IsUnknown?: IToken[];
 };
 
 export interface NonDelPredCstNode extends CstNode {
@@ -194,8 +195,7 @@ export interface NonDelPredCstNode extends CstNode {
 }
 
 export type NonDelPredCstChildren = {
-  isUnknown?: IsUnknownCstNode[];
-  wff?: WffCstNode[];
+  wff: WffCstNode[];
   comparison?: ComparisonCstNode[];
   likeRegex?: LikeRegexCstNode[];
   startsWith?: StartsWithCstNode[];
@@ -242,16 +242,6 @@ export type StartsWithCstChildren = {
   StartsWith: IToken[];
   Initial?: IToken[];
   NamedVariable?: IToken[];
-};
-
-export interface IsUnknownCstNode extends CstNode {
-  name: "isUnknown";
-  children: IsUnknownCstChildren;
-}
-
-export type IsUnknownCstChildren = {
-  scopedPred: ScopedPredCstNode[];
-  IsUnknown: IToken[];
 };
 
 export interface NegCstNode extends CstNode {
@@ -310,7 +300,6 @@ export interface ICstNodeVisitor<IN, OUT> extends ICstVisitor<IN, OUT> {
   comparison(children: ComparisonCstChildren, param?: IN): OUT;
   likeRegex(children: LikeRegexCstChildren, param?: IN): OUT;
   startsWith(children: StartsWithCstChildren, param?: IN): OUT;
-  isUnknown(children: IsUnknownCstChildren, param?: IN): OUT;
   neg(children: NegCstChildren, param?: IN): OUT;
   conj(children: ConjCstChildren, param?: IN): OUT;
   predicate(children: PredicateCstChildren, param?: IN): OUT;

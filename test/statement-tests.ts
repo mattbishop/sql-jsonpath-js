@@ -491,7 +491,7 @@ describe("Statement tests", () => {
       })
 
       it("can filter ! 'is unknown' predicate iterators", async () => {
-        const src = '$ ? (!(@[*] == true) is unknown)'
+        const src = '$ ? ((!(@[*] == true)) is unknown)'
         const data = [[false, 100], [true], ["baby", true, {"g": 22}]]
         await testValuesCompareToPg(src, data)
       })
