@@ -40,10 +40,9 @@ export type CodegenContext = {
 
 
 function maybeAppend(token: IToken[] | undefined, ctx: CodegenContext): CodegenContext {
-  if (token) {
-    ctx = {...ctx, source: `${ctx.source}${token[0].image}`}
-  }
-  return ctx
+  return token
+    ? {...ctx, source: `${ctx.source}${token[0].image}`}
+    : ctx
 }
 
 
@@ -81,12 +80,17 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
     }
 
 
-    visit(cstNode: CstNode | CstNode[], ctx: CodegenContext): CodegenContext {
-      if (ctx) {
-        // make the context immutable so visitors don't edit it but send back new ones
-        ctx = Object.freeze(ctx)
+    visitNoSource(cstNode: CstNode | CstNode[], ctx: CodegenContext) {
+      return this.visit(cstNode, ctx, false)
+    }
+
+
+    visit(cstNode: CstNode | CstNode[], ctx: CodegenContext, keepSource: boolean = true): CodegenContext {
+      if (!keepSource) {
+        ctx = {...ctx, source: ""}
       }
-      const result = super.visit(cstNode, ctx)
+      // make the context immutable so visitors don't edit it but send back new ones
+      const result = super.visit(cstNode, Object.freeze(ctx))
       return Object.freeze(result)
     }
 
@@ -106,7 +110,6 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
         source: "",
         scope:  new Map()
       }
-
       ctx = this.visit(wff, ctx)
       return {...ctx, source: `return ${ctx.source}`}
     }
@@ -117,13 +120,13 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
                         right:    CstNode[] | undefined,
                         ctx:      CodegenContext): CodegenContext {
       const {source: origSource} = ctx
-      ctx = this.visit(left, {...ctx, source: ""})
+      ctx = this.visitNoSource(left, ctx)
       if (right && opToken) {
         const {source: leftSource} = ctx
         const leftNum = maybeNum(leftSource)
         const source = right
           .reduce((acc, r, i) => {
-            const {source: rightSource} = this.visit(r, {...ctx, source: ""})
+            const {source: rightSource} = this.visitNoSource(r, ctx)
             const rightNum = maybeNum(rightSource)
             const op = opToken[i].image
             return `${acc}${op}${rightNum}`
@@ -152,7 +155,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       if (unary) {
         const {source: left} = ctx
         const op = maybeImage(UnaryOp)
-        ctx = this.visit(unary, {...ctx, source: ""})
+        ctx = this.visitNoSource(unary, ctx)
         let right = maybeNum(ctx.source)
         // might be ƒ.num() because ---2 doesn't work in JS
         if (!right.startsWith("ƒ")) {
@@ -167,7 +170,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
     accessorExp(node: AccessorExpCstChildren, ctx: CodegenContext): CodegenContext {
       const {primary, accessor} = node
       const {source: origSource} = ctx
-      ctx = this.visit(primary, {...ctx, source: ""})
+      ctx = this.visitNoSource(primary, ctx)
       if (accessor) {
         ctx = accessor.reduce((acc, a) => this.visit(a, acc), ctx)
       }
@@ -224,8 +227,8 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       const {source: primary} = ctx
       let source = primary
       if (Member) {
-        const payloads = Member[0].payload
-        const member = payloads[0] ?? payloads[1]
+        const [{payload: [identifier, quoted]}] = Member
+        const member = identifier ?? quoted
         source = `ƒ.member(${primary},"${member}")`
       } else if (WildcardMember) {
         const attrs = maybeParen(primary)
@@ -243,14 +246,14 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       const {source: primary} = ctx
       let source = primary
       if (ItemMethod) {
-        const methodName = ItemMethod[0].payload[0]
+        const [{payload: [methodName]}] = ItemMethod
         const attrs = maybeParen(primary)
         if (methodName === "date") {
           ctx.scope.set(CLDR, buildTemporalParser())
         }
         source = `ƒ.${methodName}${attrs}`
       } else if (DatetimeMethod) {
-        const template = DatetimeMethod[0].payload[1]
+        const [{payload: [, template]}] = DatetimeMethod
         let templateParam = ""
         const parser = buildTemporalParser(template)
         if (template === undefined) {
@@ -263,8 +266,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       } else if (TimeStampTzMethod) {
         ctx.scope.set(CLDR, buildTemporalParser())
         // page 735 of the 2023 spec
-        const methodName = TimeStampTzMethod[0].payload[0]
-        const precision = TimeStampTzMethod[0].payload[1]
+        const [{payload: [methodName, precision]}] = TimeStampTzMethod
         const precisionStr = precision !== undefined
           ? `,${precision}`
           : ""
@@ -278,16 +280,16 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       const {subscript} = node
       const {source: primary} = ctx
       const subscripts = subscript
-        .map((s) => this.visit(s, {...ctx, source: ""}).source)
+        .map((s) => this.visitNoSource(s, ctx).source)
       return {...ctx, source: `ƒ.array(${primary},[${subscripts}])`}
     }
 
 
     subscript(node: SubscriptCstChildren, ctx: CodegenContext): CodegenContext {
-      const {To, wff} = node
-      const wff0 = this.visit(wff[0], {...ctx, source: ""})
+      const {To, wff: [from, to]} = node
+      const wff0 = this.visitNoSource(from, ctx)
       if (To) {
-        const wff1 = this.visit(wff[1], {...ctx, source: ""})
+        const wff1 = this.visitNoSource(to, ctx)
         return {...ctx, source: `ƒ.range(${wff0.source},${wff1.source})`}
       }
       return wff0
@@ -297,7 +299,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
     filter(node: FilterCstChildren, ctx: CodegenContext): CodegenContext {
       const {predicate} = node
       const {source: origSource} = ctx
-      ctx = this.visit(predicate, {...ctx, source: ""})
+      ctx = this.visitNoSource(predicate, ctx)
       return {...ctx, source: `ƒ.filter(${origSource},v=>${ctx.source})`}
     }
 
@@ -307,10 +309,10 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
                   right:    CstNode[] | undefined,
                   ctx:      CodegenContext): CodegenContext {
       const {source: origSource} = ctx
-      ctx = this.visit(left, {...ctx, source: ""})
+      ctx = this.visitNoSource(left, ctx)
       if (right) {
         const rights = right
-          .map((r) => this.visit(r, {...ctx, source: ""}).source)
+          .map((r) => this.visitNoSource(r, ctx).source)
         ctx = {...ctx, source: `ƒ.${opƒ}([${ctx.source},${[rights]}])`}
       }
       return {...ctx, source: `${origSource}${ctx.source}`}
@@ -376,9 +378,8 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
 
 
     likeRegex(node: LikeRegexCstChildren, ctx: CodegenContext): CodegenContext {
-      // todo destructure this
-      const {Pattern, FlagValue} = node
-      const regex = Pattern[0].image
+      const {Pattern: [{image: pattern}], FlagValue} = node
+      const regex = pattern
         .slice(1, -1)
         .replace("\\\\", "\\")
       if (!safeRegex(regex)) {
@@ -405,7 +406,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
           However, JS has more Javascript flags. Much more useful, so just pass them in. I could create a 'spec' mode
           that only accepts i, s, and m, but let's see if anyone asks for that.
          */
-        const flags = FlagValue[0].image.slice(1, -1)
+        const flags = maybeImage(FlagValue).slice(1, -1)
         fnSource += flags
       }
       return {...ctx, source: `ƒ.match(${fnSource})`}
@@ -416,10 +417,10 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       const {NamedVariable, Initial} = node
       let arg
       if (NamedVariable) {
-        const name = NamedVariable[0].image.substring(1)
+        const name = maybeImage(NamedVariable).substring(1)
         arg = `$$("${name}")`
       } else if (Initial) {
-        arg = Initial[0].image
+        arg = maybeImage(Initial)
       }
       return {...ctx, source: `ƒ.startsWith(${ctx.source},${arg})`}
     }
@@ -434,7 +435,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
 
     comparison(node: ComparisonCstChildren, ctx: CodegenContext): CodegenContext {
       const {CompOp: [{image: compOp}], wff} = node
-      const rightCtx = this.visit(wff, {...ctx, source: ""})
+      const rightCtx = this.visitNoSource(wff, ctx)
       return {...ctx, source: `ƒ.compare("${compOp}",${ctx.source},${rightCtx.source})`}
     }
   }
