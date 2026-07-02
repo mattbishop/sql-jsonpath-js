@@ -121,7 +121,7 @@ async function _pgTest(method: string, statement: string, data: any, vars: Recor
 
   return result.rows.map(({value}) => value)
 }
-const url = new URL("http://somewhere")
+
 
 describe("Statement tests", () => {
   it("exists", async () => {
@@ -1324,8 +1324,8 @@ describe("Statement tests", () => {
       expect(Array.from(actual)).to.deep.equal([135])
 
       stmt = compile('$.track.segments[*] ? (@.HR > 130)."start time".datetime()')
-      actual = one(stmt.values(data))
-      expect(actual.toString()).to.equal("2018-10-14T10:39:21")
+      actual = stmt.values(data)
+      expect(one(actual)?.toString()).to.equal("2018-10-14T10:39:21")
 
       stmt = compile('$.track.segments[*] ? (@.location[1] < 13.4).HR ? (@ > 130)')
       actual = stmt.values(data)
