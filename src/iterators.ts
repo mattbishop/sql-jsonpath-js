@@ -28,6 +28,47 @@ export function toInputIterator(input: Input): Iterator<unknown> {
 export const EMPTY_ITERATOR = [][Symbol.iterator]()
 
 
+/**
+ * Wraps a single-pass iterable so it can be iterated multiple times.
+ *
+ * Values are cached lazily as they are read from the source iterator.
+ * Later iterations replay cached values first, then continue reading
+ * from the shared source iterator if it has not been exhausted.
+ *
+ * @internal
+ */
+export class ReplayableIterable<T> implements Iterable<T> {
+  private readonly cache: T[] = []
+  private readonly iterator: Iterator<T>
+  private done = false
+
+  constructor(iterable: Iterable<T>) {
+    this.iterator = iterable[Symbol.iterator]()
+  }
+
+  *[Symbol.iterator](): Iterator<T> {
+    let index = 0
+
+    while (index < this.cache.length) {
+      yield this.cache[index++]
+    }
+
+    while (!this.done) {
+      const next = this.iterator.next()
+
+      if (next.done) {
+        this.done = true
+        return
+      }
+
+      this.cache.push(next.value)
+      yield next.value
+      index++
+    }
+  }
+}
+
+
 /** @internal */
 export class SingletonIterator<T> implements Iterator<T> {
   constructor(private readonly value: T) { }

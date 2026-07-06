@@ -1,5 +1,4 @@
 import {expect} from "chai"
-import {CachedIterable} from "indexed-iterable"
 import {isIterator} from "iterare/lib/utils.js"
 import {iterate} from "iterare"
 import * as assert from "node:assert"
@@ -9,7 +8,7 @@ import {PGlite} from "@electric-sql/pglite"
 
 // better for debugging issues
 import {compile, one} from "../src/index.ts"
-import {isIterableInput} from "../src/iterators.ts"
+import {isIterableInput, ReplayableIterable} from "../src/iterators.ts"
 import type {Input} from "../src/json-path.ts"
 
 // testing from /dist to ensure the exported interface is correct
@@ -483,16 +482,14 @@ describe("Statement tests", () => {
       })
 
       it("can filter 'is unknown' predicate iterators", async () => {
-        const src = '$ ? ((@[*] == true) is unknown)'
-        // [false, 100] is known (false)
-        // [true] is known
-        const data = [[false, 100], [true], ["baby", true, {"g": 22}]]
+        const src = '$ ? ((true == @[*]) is unknown)'
+        const data = [[false, 100], [false, true], ["baby", true, {"g": 22}]]
         await testValuesCompareToPg(src, data)
       })
 
       it("can filter ! 'is unknown' predicate iterators", async () => {
         const src = '$ ? ((!(@[*] == true)) is unknown)'
-        const data = [[false, 100], [true], ["baby", true, {"g": 22}]]
+        const data = [[false, 100], [true, false], ["baby", true, {"g": 22}]]
         await testValuesCompareToPg(src, data)
       })
     })
@@ -1116,7 +1113,7 @@ describe("Statement tests", () => {
       phones: []
     }]
 
-    const dataIterator = new CachedIterable(data)
+    const dataIterator = new ReplayableIterable(data)
 
     it("coalesce phones arrays", () => {
       const stmt = compile('$.phones."phone#"')

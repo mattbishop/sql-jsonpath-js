@@ -6,6 +6,7 @@ import {
   DefaultOnErrorIterator,
   isIterableInput,
   one,
+  ReplayableIterable,
   SingletonIterator
 } from "../src/iterators.ts"
 
@@ -25,6 +26,76 @@ describe("iterators", () => {
 
     it("does not treat plain objects as iterable input", () => {
       expect(isIterableInput({a: 1})).to.be.false
+    })
+  })
+
+  describe("ReplayableIterable", () => {
+    it("replays values from a single-pass iterable", () => {
+      const data = [1, 2, 3]
+      const actual = new ReplayableIterable(data.values())
+
+      expect(Array.from(actual)).to.deep.equal([1, 2, 3])
+      expect(Array.from(actual)).to.deep.equal([1, 2, 3])
+      expect(Array.from(actual)).to.deep.equal([1, 2, 3])
+    })
+
+    it("caches lazily while an iterator is partially consumed", () => {
+      let reads = 0
+
+      function* source(): Generator<number> {
+        reads++
+        yield 1
+        reads++
+        yield 2
+        reads++
+        yield 3
+      }
+
+      const iterable = new ReplayableIterable(source())
+      const firstIterator = iterable[Symbol.iterator]()
+
+      expect(firstIterator.next()).to.deep.equal({
+        done: false,
+        value: 1
+      })
+      expect(reads).to.equal(1)
+
+      expect(Array.from(iterable)).to.deep.equal([1, 2, 3])
+      expect(reads).to.equal(3)
+
+      expect(Array.from(iterable)).to.deep.equal([1, 2, 3])
+      expect(reads).to.equal(3)
+    })
+
+    it("allows overlapping iterators to share the same cache", () => {
+      const data = ["a", "b", "c"]
+      const iterable = new ReplayableIterable(data)
+      const firstIterator = iterable[Symbol.iterator]()
+      const secondIterator = iterable[Symbol.iterator]()
+
+      expect(firstIterator.next()).to.deep.equal({
+        done: false,
+        value: "a"
+      })
+
+      expect(secondIterator.next()).to.deep.equal({
+        done: false,
+        value: "a"
+      })
+
+      expect(firstIterator.next()).to.deep.equal({
+        done: false,
+        value: "b"
+      })
+
+      expect(secondIterator.next()).to.deep.equal({
+        done: false,
+        value: "b"
+      })
+
+      expect(Array.from(firstIterator)).to.deep.equal(["c"])
+      expect(Array.from(secondIterator)).to.deep.equal(["c"])
+      expect(Array.from(iterable)).to.deep.equal(["a", "b", "c"])
     })
   })
 

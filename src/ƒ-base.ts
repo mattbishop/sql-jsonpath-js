@@ -1,12 +1,10 @@
-import {CachedIterable} from "indexed-iterable"
 import {iterate} from "iterare"
 import {IteratorWithOperators} from "iterare/lib/iterate.js"
-import {isIterable} from "iterare/lib/utils.js"
 import {Temporal} from "@js-temporal/polyfill"
 
 import {CLDR} from "./datetime-parser.ts"
 import {type KeyValue, ZonedTime} from "./json-path.ts"
-import {EMPTY_ITERATOR, isIterableInput} from "./iterators.ts"
+import {EMPTY_ITERATOR, isIterableInput, ReplayableIterable} from "./iterators.ts"
 
 
 enum Pred {
@@ -721,7 +719,7 @@ export class ƒBase {
     return temporal.toString()
   }
 
-  compare(compOp: string, left: unknown, right: unknown): SingleOrIterator<Pred> {
+  compare(compOp: string, left: unknown, right: unknown): Pred {
     if (!this.lax) {
       if (Array.isArray(left)) {
         throw new Error("In 'strict' mode! left side of comparison cannot be an array.")
@@ -730,31 +728,23 @@ export class ƒBase {
         throw new Error("In 'strict' mode! right side of comparison cannot be an array.")
       }
     }
-
-    let rightCompare
-    if (isIterable(right)) {
-      const resettableRight = new CachedIterable(right)
-      rightCompare = (l: any) => {
-        let retVal = Pred.UNKNOWN
-        // seek the first TRUE
-        for (const r of resettableRight) {
-          retVal = ƒBase._compare(compOp, l, r)
-          if (retVal == Pred.TRUE) {
-            break
-          }
+    const leftValues = ƒBase._toSeq(left)
+    const rightValues = new ReplayableIterable(ƒBase._toSeq(right))
+    let hasUnknown = false
+    for (const l of leftValues) {
+      for (const r of rightValues) {
+        const result = ƒBase._compare(compOp, l, r)
+        if (result === Pred.TRUE) {
+          return Pred.TRUE
         }
-        return retVal
+        if (result === Pred.UNKNOWN) {
+          hasUnknown = true
+        }
       }
-    } else {
-      rightCompare = (l: any) => ƒBase._compare(compOp, l, right)
     }
-
-    left = Array.isArray(left)
-      ? iterate(left)
-      : left
-
-    // works through all the left and compares to all the right
-    return ƒBase._autoMap(left, rightCompare)
+    return hasUnknown
+      ? Pred.UNKNOWN
+      : Pred.FALSE
   }
 
   not(input: any): Pred {
