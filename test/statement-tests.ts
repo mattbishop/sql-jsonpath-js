@@ -446,6 +446,24 @@ describe("Statement tests", () => {
         const data = [1, 2, 3]
         await testValuesCompareToPg(src, data)
       })
+
+      it("treats null != true as known true", async () => {
+        const src = '$ ? (@ != true)'
+        const data = null
+        await testValuesCompareToPg(src, data)
+      })
+
+      it("treats null <> true as known true", async () => {
+        const src = '$ ? (@ <> true)'
+        const data = null
+        await testValuesCompareToPg(src, data)
+      })
+
+      it("treats null equality against null as known true", async () => {
+        const src = '$ ? (@ == null)'
+        const data = [null, true, 100, "null"]
+        await testValuesCompareToPg(src, data)
+      })
     })
 
     describe("'exists'", () => {
@@ -475,6 +493,24 @@ describe("Statement tests", () => {
     })
 
     describe("'is unknown'", () => {
+      it("treats null == true as known false", async () => {
+        const src = '$ ? ((@ == true) is unknown)'
+        const data = null
+        await testValuesCompareToPg(src, data)
+      })
+
+      it("treats null inequality against null as known false", async () => {
+        const src = '$ ? ((@ != null) is unknown)'
+        const data = [null, true, 100, "null"]
+        await testValuesCompareToPg(src, data)
+      })
+
+      it("treats null comparisons in arrays as known for equality", async () => {
+        const src = '$ ? ((@[*] == true) is unknown)'
+        const data = [[100, null], [false, null], [true, null]]
+        await testValuesCompareToPg(src, data)
+      })
+
       it("can filter 'is unknown' predicates", async () => {
         const src = '$ ? ((@.sleepy == true) is unknown)'
         const data = [{sleepy: 77}, {sleepy: true}, {sleepy: false}, {sleepy: "yes"}]
@@ -491,6 +527,50 @@ describe("Statement tests", () => {
         const src = '$ ? ((!(@[*] == true)) is unknown)'
         const data = [[false, 100], [true, false], ["baby", true, {"g": 22}]]
         await testValuesCompareToPg(src, data)
+      })
+
+      describe("three-valued boolean logic", () => {
+        it("treats UNKNOWN && TRUE as unknown", async () => {
+          const src = '$ ? (((@ == "x") && (@ > 1)) is unknown)'
+          const data = ["x", 2, true]
+          await testValuesCompareToPg(src, data)
+        })
+
+        it("treats UNKNOWN && FALSE as false", async () => {
+          const src = '$ ? (((@ == "x") && (@ == 1)) is unknown)'
+          const data = ["x", 1, true]
+          await testValuesCompareToPg(src, data)
+        })
+
+        it("treats UNKNOWN || FALSE as unknown", async () => {
+          const src = '$ ? (((@ == "x") || (@ == 1)) is unknown)'
+          const data = ["x", 1, true]
+          await testValuesCompareToPg(src, data)
+        })
+
+        it("treats UNKNOWN || TRUE as true", async () => {
+          const src = '$ ? (((@ == "x") || (@ > 1)) is unknown)'
+          const data = ["x", 2, true]
+          await testValuesCompareToPg(src, data)
+        })
+
+        it("treats NOT UNKNOWN as unknown", async () => {
+          const src = '$ ? ((!(@ == "x")) is unknown)'
+          const data = ["x", 1, true]
+          await testValuesCompareToPg(src, data)
+        })
+
+        it("keeps comparison UNKNOWN when a sequence has false and unknown results", async () => {
+          const src = '$ ? ((@[*] == true) is unknown)'
+          const data = [[false, 100], [false, "no"], [false, null]]
+          await testValuesCompareToPg(src, data)
+        })
+
+        it("short-circuits comparison TRUE before later unknown results", async () => {
+          const src = '$ ? ((@[*] == true) is unknown)'
+          const data = [[true, 100], [false, true, {"g": 22}], [true, "no"]]
+          await testValuesCompareToPg(src, data)
+        })
       })
     })
 

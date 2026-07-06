@@ -659,6 +659,11 @@ export class ƒBase {
     let typeLeft = ƒBase._type(left)
     let typeRight = ƒBase._type(right)
 
+    const nullComp = ƒBase._compareMaybeNull(compOp, typeLeft, typeRight)
+    if (nullComp) {
+      return nullComp
+    }
+
     if (this._areTemporalComparable(typeLeft, typeRight)) {
       left = ƒBase._toTemporalComparable(left)
       right = ƒBase._toTemporalComparable(right)
@@ -685,6 +690,27 @@ export class ƒBase {
     }
     return Pred.UNKNOWN
   }
+
+  /*
+    null / not_null comparison rules
+    null == not_null  -> FALSE
+    null != not_null  -> TRUE
+    null <> not_null  -> TRUE
+   */
+  private static _compareMaybeNull(compOp: string, typeLeft: string, typeRight: string): Pred | undefined {
+    if (typeLeft === "null" || typeRight === "null") {
+      switch (compOp) {
+        case "==" :
+          return ƒBase._toPred(typeLeft === typeRight)
+        case "<>" :
+        case "!=" :
+          return ƒBase._toPred(typeLeft !== typeRight)
+        default:
+          return Pred.UNKNOWN
+      }
+    }
+  }
+
 
   /*
       COMPARABLE:
@@ -747,30 +773,46 @@ export class ƒBase {
       : Pred.FALSE
   }
 
+
   not(input: any): Pred {
     return input === Pred.TRUE
       ? Pred.FALSE
-      // UNKNOWN -> TRUE
-      : Pred.TRUE
+      : input === Pred.FALSE
+        ? Pred.TRUE
+        : Pred.UNKNOWN
+  }
+
+  /**
+   * Walk through an array of Preds and look for a specific value. Handles UNKNOWN rules.
+   * @param preds array of preds to examine
+   * @param seek  sought-after pred value
+   * @param defaultPred return this if none found, or UNKNOWN if found
+   */
+  private static _seekPred(preds:       SingleOrIterator<Pred>[],
+                           seek:        Pred,
+                           defaultPred: Pred): Pred {
+    let hasUnknown = false
+    for (const pred of preds) {
+      const value = ƒBase._next(pred)
+      if (value === seek) {
+        return seek
+      }
+      if (value === Pred.UNKNOWN) {
+        hasUnknown = true
+      }
+    }
+    return hasUnknown
+      ? Pred.UNKNOWN
+      : defaultPred
   }
 
   and(preds: SingleOrIterator<Pred>[]): Pred {
-    for (const pred of preds) {
-      if (!(ƒBase._next(pred) === Pred.TRUE)) {
-        return Pred.FALSE
-      }
-    }
-    return Pred.TRUE
+    return ƒBase._seekPred(preds, Pred.FALSE, Pred.TRUE)
   }
 
 
   or(preds: Pred[]): Pred {
-    for (const pred of preds) {
-      if (ƒBase._next(pred) === Pred.TRUE) {
-        return Pred.TRUE
-      }
-    }
-    return Pred.FALSE
+    return ƒBase._seekPred(preds, Pred.TRUE, Pred.FALSE)
   }
 
 
@@ -793,21 +835,6 @@ export class ƒBase {
   }
 
 
-  /*
-    Given: [
-      { species: "cat" },
-      { species: "dog" },
-      { species: "bird" },
-      { species: 2 }
-    ]
-
-      $ ? (((@.species == "cat") || (@.species == "dog")) is unknown)
-
-    Returns:
-      { species: 2 }
-
-    Because species == string cannot be tested true or false, where "bird" can be tested as false
-   */
   private static _isUnknown(input: Pred): Pred {
     return ƒBase._toPred(input === Pred.UNKNOWN)
   }
