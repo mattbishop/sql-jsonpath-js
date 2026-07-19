@@ -5,6 +5,7 @@ import {Temporal} from "@js-temporal/polyfill"
 import {CLDR} from "./datetime-parser.ts"
 import {type KeyValue, ZonedTime} from "./json-path.ts"
 import {EMPTY_ITERATOR, isIterableInput, ReplayableIterable} from "./iterators.ts"
+import {isBigInt, isNumber, isNumberOrString, isNumberOrStringOrBigInt, isString, type NumBigInt} from "./type-utils.ts"
 
 
 enum Pred {
@@ -32,7 +33,7 @@ type Predƒ = Mapƒ<SingleOrIterator<Pred>>
 type SingleOrIterator<T> = T | Seq<T>
 
 type StrictConfig = {
-  test:   Mapƒ<boolean>
+  strict: Mapƒ<boolean>
   error:  string
 }
 
@@ -40,6 +41,9 @@ type StrictConfig = {
 const KV_INDEX = "KV-index"
 
 const NO_VALUE = Symbol.for("No Value")
+
+const BIGINT_MIN = -(2n ** 63n)
+const BIGINT_MAX = 2n ** 63n - 1n
 
 
 /** @internal */
@@ -111,10 +115,6 @@ export class ƒBase {
     return typeof input
   }
 
-  private static _isString(input: unknown): input is string {
-    return typeof input === "string"
-  }
-
   private static _next<T>(input: SingleOrIterator<T>): T {
     return ƒBase._isSeq(input)
       ? input.next().value
@@ -147,11 +147,11 @@ export class ƒBase {
    * @param strict the strictness config.
    * @private
    */
-  private _checkStrict(input: unknown, strict?: StrictConfig) {
+  private _checkStrict(input: unknown, strict: StrictConfig) {
     if (this.lax || ƒBase._isSeq(input)) {
       return
     }
-    if (strict && !strict.test(input)) {
+    if (strict && !strict.strict(input)) {
       throw new Error(`In 'strict' mode! ${strict.error} Found: ${JSON.stringify(input)}`)
     }
   }
@@ -162,7 +162,7 @@ export class ƒBase {
    * @param strict strict config, if any.
    * @private
    */
-  private _toArray(input: unknown, strict?: StrictConfig): Array<unknown> {
+  private _toArray(input: unknown, strict: StrictConfig): Array<unknown> {
     this._checkStrict(input, strict)
     if (ƒBase._isSeq(input)) {
       return input.map((v) => Array.isArray(v) ? v : [v])
@@ -174,12 +174,14 @@ export class ƒBase {
   }
 
   /**
-   * Turn any input, like an array, into an iterator. Only used in lax mode.
-   * @param input The input to iterate.
-   * @param strict strict config, if any.
+   * Unwraps array input into an iterator, and converts a non-array into a singeton iterator (lax mode only).
+   * In strict mode, the non-array input will throw an error if the input is not an array and fails the strict test.
+   *
+   * @param input The input to unwrap.
+   * @param strict strict config, including input test and error message.
    * @private
    */
-  private _toIterator(input: unknown, strict?: StrictConfig): Seq<unknown> {
+  private _unwrap(input: unknown, strict: StrictConfig): Seq<unknown> {
     if (this.lax) {
       return ƒBase._toSeq(input)
     }
@@ -190,6 +192,7 @@ export class ƒBase {
   }
 
   private static _autoFlatMap<I extends Seq<unknown>>(input: unknown, mapƒ: Mapƒ<I>): I {
+    // todo determine if this is still required. The 'as I' cast is suspicious
     const mapped = this._autoMap(input, mapƒ) as I
     return ƒBase._isSeq(input)
       ? mapped.flatten() as I
@@ -214,14 +217,30 @@ export class ƒBase {
       : EMPTY_ITERATOR
   }
 
+  // SQL does not support IEEE 754 signed zero
+  private static _sqlNum(input: NumBigInt): NumBigInt {
+    return input == 0
+      ? isBigInt(input) ? 0n : 0
+      : input
+  }
+
   private static _mustBeNumber(input: SingleOrIterator<unknown>, method: string): number {
     const num = ƒBase._next<unknown>(input)
-    if (typeof num === "number") {
-      return num
+    if (isNumber(num)) {
+      return ƒBase._sqlNum(num) as number
     }
     throw new Error(`${method} param must be a number, found ${JSON.stringify(input)}.`)
   }
 
+  private static _mustBeNumberOrBigInt(input: SingleOrIterator<unknown>, method: string): NumBigInt {
+    const num = ƒBase._next<unknown>(input)
+    if (isNumber(num) || isBigInt(num)) {
+      return ƒBase._sqlNum(num)
+    }
+    throw new Error(`${method} param must be a number or bigint, found ${JSON.stringify(input)}.`)
+  }
+
+  // not a JSONPath function. Used to convert strings to numbers for math
   num(input: unknown): number {
     return ƒBase._mustBeNumber(input, "arithmetic")
   }
@@ -244,50 +263,64 @@ export class ƒBase {
 
 
   private static _double(input: unknown): number {
-    if (ƒBase._isString(input)) {
+    if (isString(input) || isBigInt(input)) {
       const num = Number(input)
       if (Number.isNaN(num)) {
         throw new Error(`double() param ${input} is not a representation of a number.`)
       }
-      return num
+      return ƒBase._sqlNum(num) as number
     }
     return ƒBase._mustBeNumber(input, "double()")
   }
 
-  double(input: unknown): SingleOrIterator<number> {
-    return ƒBase._autoMap(input, ƒBase._double)
+  double(input: unknown): Seq<number> {
+    return this._unwrap(input, { strict: isNumberOrString, error: "input must be a string or a number." })
+      .map(ƒBase._double)
   }
 
 
-  private static _ceiling(input: unknown): number {
-    return Math.ceil(ƒBase._mustBeNumber(input, "ceiling()"))
+  private static _ceiling(input: unknown): NumBigInt {
+    if (isBigInt(input)) {
+      return ƒBase._sqlNum(input)
+    }
+    if (isNumber(input)) {
+      return ƒBase._sqlNum(Math.ceil(input))
+    }
+    throw new Error(`ceiling() param must be a number, found ${JSON.stringify(input)}.`)
   }
 
-  ceiling(input: unknown): SingleOrIterator<number> {
+  ceiling(input: unknown): SingleOrIterator<NumBigInt> {
     return ƒBase._autoMap(input, ƒBase._ceiling)
   }
 
 
-  private static _floor(input: unknown): number {
-    return Math.floor(ƒBase._mustBeNumber(input, "floor()"))
+  private static _floor(input: unknown): NumBigInt {
+    if (isBigInt(input)) {
+      return ƒBase._sqlNum(input)
+    }
+    if (isNumber(input)) {
+      return ƒBase._sqlNum(Math.floor(input))
+    }
+    throw new Error(`floor() param must be a number, found ${JSON.stringify(input)}.`)
   }
 
-  floor(input: unknown): SingleOrIterator<number> {
+  floor(input: unknown): SingleOrIterator<NumBigInt> {
     return ƒBase._autoMap(input, ƒBase._floor)
   }
 
 
-  private static _abs(input: unknown): number {
-    return Math.abs(ƒBase._mustBeNumber(input, "abs()"))
+  private static _abs(input: unknown): NumBigInt {
+    const num = ƒBase._mustBeNumberOrBigInt(input, "abs()")
+    return num < 0 ? -num : num
   }
 
-  abs(input: unknown): SingleOrIterator<number> {
+  abs(input: unknown): SingleOrIterator<NumBigInt> {
     return ƒBase._autoMap(input, ƒBase._abs)
   }
 
 
   private static _date(input: unknown, parser: TemporalParser): Temporal.PlainDate {
-    if (ƒBase._isString(input)) {
+    if (isString(input)) {
       return parser.toDate(input)
     }
     throw new Error(`date() param must be a string, found ${JSON.stringify(input)}.`)
@@ -328,7 +361,7 @@ export class ƒBase {
   }
 
   private static _time(input: unknown, parser: TemporalParser, precision?: number): Temporal.PlainTime {
-    if (ƒBase._isString(input)) {
+    if (isString(input)) {
       let time = parser.toTime(input)
       if (precision !== undefined) {
         time = time.round(this._timeRoundOptions(precision))
@@ -349,7 +382,7 @@ export class ƒBase {
 
 
   private static _time_tz(input: unknown, parser: TemporalParser, precision?: number): Temporal.PlainTime {
-    if (ƒBase._isString(input)) {
+    if (isString(input)) {
       let time = parser.toTimeTz(input)
       if (precision !== undefined) {
         time = time.round(this._timeRoundOptions(precision))
@@ -409,7 +442,7 @@ export class ƒBase {
 
 
   private static _timestamp(input: unknown, parser: TemporalParser, precision?: number): Temporal.PlainDateTime {
-    if (ƒBase._isString(input)) {
+    if (isString(input)) {
       let timestamp = parser.toTimestamp(input)
       if (precision !== undefined) {
         timestamp = timestamp.round(this._timestampRoundOptions(precision))
@@ -455,7 +488,7 @@ export class ƒBase {
 
 
   private static _timestamp_tz(input: unknown, parser: TemporalParser, precision?: number): Temporal.Instant {
-    if (ƒBase._isString(input)) {
+    if (isString(input)) {
       let timestamp = parser.toTimestampTz(input)
       if (precision !== undefined) {
         timestamp = timestamp.round(this._timestampTzRoundOptions(precision))
@@ -496,7 +529,7 @@ export class ƒBase {
     timezone-aware jsonpath functions.
    */
   private static _datetime(input: unknown, parser: TemporalParser): TemporalType {
-    if (ƒBase._isString(input)) {
+    if (isString(input)) {
       return parser.toTemporal(input)
     }
     throw new Error(`datetime() param must be a string, found ${JSON.stringify(input)}.`)
@@ -508,13 +541,46 @@ export class ƒBase {
   }
 
 
+  private static _bigint(input: unknown): bigint {
+    let value
+    switch (typeof input) {
+      case "number":
+        // rounding is SQL standard behavior
+        // JS rounding is different from SQL rounding, for negative numbers
+        const int = input < 0
+          ? Math.ceil(input - 0.5)
+          : Math.round(input)
+        value = BigInt(int)
+        break;
+      case "string":
+        // JSONPath has same string parse rules as JS
+        value = BigInt(input as string)
+        break;
+      case "bigint":
+        value = input as bigint
+        break;
+      default:
+        throw new Error(`bigint() can only be applied to a string or numeric value: ${input}`)
+    }
+    if (value < BIGINT_MIN || value > BIGINT_MAX) {
+      throw new Error(`value out of range for bigint(): ${value}`)
+    }
+    return value
+  }
+
+  bigint(input: unknown): Seq<bigint> {
+    return this._unwrap(input, { strict: isNumberOrStringOrBigInt, error: "input must be a string, number or bigint." })
+      .map(ƒBase._bigint)
+  }
+
+
   private static _toKV(obj: Record<string, unknown>, id: number): Seq<KeyValue> {
     return iterate(Object.keys(obj))
       .map((key) => ({id, key, value: obj[key]}))
   }
 
   keyvalue(input: unknown): Seq<KeyValue> {
-    const objects = this._toIterator(input, {test: ƒBase._isObject, error: "keyvalue() param must be an object."})
+    const objects = this._unwrap(input, { strict: ƒBase._isObject, error: "keyvalue() param must be an object." })
     const mapƒ = (row: unknown) => {
       if (ƒBase._isObject(row)) {
         const id = this.scope.get(KV_INDEX) as number ?? 0
@@ -529,7 +595,7 @@ export class ƒBase {
 
 
   private _dotStar(input: unknown): Seq<unknown> {
-    return this._toIterator(input, { test: ƒBase._isObject, error: ".* can only be applied to an object." })
+    return this._unwrap(input, { strict: ƒBase._isObject, error: ".* can only be applied to an object." })
         .map(ƒBase._objectValues)
         .flatten()
   }
@@ -540,17 +606,18 @@ export class ƒBase {
 
 
   private _boxStar(input: unknown): Seq<unknown> {
-    // [*] is not the same as unwrap. it always turns the array into a seq
-    this._checkStrict(input, { test: Array.isArray, error: "[*] can only be applied to an array in strict mode." })
+    // [*] is not the same as unwrap, which always turns the array into a seq in lax mode.
+    this._checkStrict(input, { strict: Array.isArray, error: "[*] can only be applied to an array in strict mode." })
     return ƒBase._toSeq(input)
   }
 
   boxStar(input: unknown): Seq<unknown> {
+    // need the function so _checkStrict has a defined this
     return ƒBase._autoFlatMap(input, (i) => this._boxStar(i))
   }
 
 
-  private _getMember(obj: unknown, member: string): SingleOrIterator<unknown> {
+  private _getMember(obj: unknown, member: string): unknown {
     if (ƒBase._isObject(obj) && obj.hasOwnProperty(member)) {
       return obj[member]
     }
@@ -561,7 +628,7 @@ export class ƒBase {
   }
 
   private _member(input: unknown, member: string): Seq<unknown> {
-    return this._toIterator(input, { test: ƒBase._isObject, error: ".member can only be applied to an object." })
+    return this._unwrap(input, { strict: ƒBase._isObject, error: ".member can only be applied to an object." })
       .map((i) => this._getMember(i, member))
       .filter((i) => i !== NO_VALUE)
   }
@@ -585,7 +652,7 @@ export class ƒBase {
   }
 
   private _array(input: unknown, subscripts: any[]): Seq<any> {
-    const array = this._toArray(input, { test: Array.isArray, error: "Array accessors can only be applied to an array." })
+    const array = this._toArray(input, { strict: Array.isArray, error: "Array accessors can only be applied to an array." })
     return iterate(subscripts)
       .map((sub) => {
         const subType = ƒBase._type(sub)
@@ -669,12 +736,19 @@ export class ƒBase {
       right = ƒBase._toTemporalComparable(right)
       typeLeft = typeRight = "temporal"
     }
+    if (typeLeft === "bigint") {
+      typeLeft = "number"
+    }
+    if (typeRight === "bigint") {
+      typeRight = "number"
+    }
 
     // check that left and right can be compared
     if (typeLeft === typeRight) {
       switch (compOp) {
         case "==" :
-          return ƒBase._toPred(left === right)
+          // use ==, not === so that number and bigint will compare
+          return ƒBase._toPred(left == right)
         case "<>" :
         case "!=" :
           return ƒBase._toPred(left !== right)
@@ -845,7 +919,7 @@ export class ƒBase {
 
 
   private static _startsWith(input: unknown, start: string): Pred {
-    return ƒBase._isString(input)
+    return isString(input)
       ? ƒBase._toPred(input.startsWith(start))
       : Pred.UNKNOWN
   }
@@ -856,7 +930,7 @@ export class ƒBase {
 
 
   private static _match(input: unknown, pattern: RegExp): Pred {
-    return ƒBase._isString(input)
+    return isString(input)
       ? ƒBase._toPred(pattern.test(input))
       : Pred.UNKNOWN
   }

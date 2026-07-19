@@ -24,6 +24,8 @@ after(async () => {
 })
 
 
+// TODO add a 'expectError' flag as I have found tests where both PG and code throw errors, but should not
+// due to test statement construction.
 async function testCompareToPg(statement: string, data: Input<any>, variables?: Record<string, unknown>) {
   await testExistsCompareToPg(statement, data, variables)
   await testValuesCompareToPg(statement, data, variables)
@@ -48,7 +50,7 @@ async function testExistsCompareToPg(statement: string, data: Input<any>, variab
       actual = e as Error
     }
     if (actual instanceof Error) {
-      expect(pgActual instanceof Error).to.be.true
+      expect(pgActual instanceof Error, `pgActual not an Error, but actual is: ${actual.message}`).to.be.true
       console.info(`actual: ${actual.message}, pgActual: ${(pgActual as Error).message}`)
     } else {
       expect(actual).to.equal(pgActual)
@@ -62,15 +64,18 @@ async function testValuesCompareToPg(statement: string, data: Input<any>, variab
   }
   const stmt = compile(statement)
   for (const datum of data) {
-    const pgActual = await pgValues(statement, datum, variables)
+    let pgActual = await pgValues(statement, datum, variables)
     let actual
     try {
+      // pgLite doesn't return bigint from JSONPath, so convert to number for comparison.
+      // Number will not be exact for larger values, but it will match pg, which is the point of this test
       actual = Array.from(stmt.values(datum, {variables}))
+        .map((v) => typeof v === "bigint" ? Number(v) : v)
     } catch (e) {
       actual = e as Error
     }
     if (actual instanceof Error) {
-      expect(pgActual instanceof Error).to.be.true
+      expect(pgActual instanceof Error, `pgActual not an Error, but actual is: ${actual.message}`).to.be.true
       console.info(`actual: ${actual.message}, pgActual: ${(pgActual as Error).message}`)
     } else {
       expect(actual).to.deep.equal(pgActual)
@@ -725,7 +730,6 @@ describe("Statement tests", () => {
   })
 
 
-
   describe("size()", () => {
     it ("single values", () => {
       const statement = compile('$.size()')
@@ -767,48 +771,175 @@ describe("Statement tests", () => {
       expect(() => one(statement.values([]))).to.throw
     })
 
-    it("iterator of values", () => {
-      const statement = compile('$[*].double()')
-      const arrayTypes = statement.values(["100", 289967, "-1.7e-4"])
-      expect(Array.from(arrayTypes)).to.deep.equal([100, 289967, -0.00017])
+    it("iterator of values", async () => {
+      const src = '$[*].double()'
+      const data = ["100", 289967, "-1.7e-4"]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("matches sql for numeric values", async () => {
+      const src = '$.double()'
+      const data = [0, 1, -1, 77.6, -440.33, 9.1e7, -1.7e-4]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("matches sql for numeric strings", async () => {
+      const src = '$.double()'
+      const data = ["0", "1", "-1", "45", "9.1e7", "-1.7e-4"]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("matches sql for iterator values", async () => {
+      const src = '$[*].double()'
+      const data = ["100", 289967, "-1.7e-4"]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("matches sql for bigint values", async () => {
+      const src = '$.bigint().double()'
+      const data = 400
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("matches sql for filter predicates", async () => {
+      const src = '$[*] ? (@.double() > 10)'
+      const data = ["9", "10", "11", 12, "-20", "9.1e7"]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("matches sql errors for non-numeric values", async () => {
+      const src = '$.double()'
+      const data = [[], null, "bond", true, false, {}]
+      await testValuesCompareToPg(src, data)
+    })
+  })
+
+  describe("bigint()", () => {
+    it("converts integer numbers", async () => {
+      const src = '$.bigint()'
+      const data = [0, 1, -1, 42, 9007199254740991]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it ("handles -0n", () => {
+      const stmt = compile('$.bigint()')
+      const actual = one(stmt.values(-0n)) as bigint
+      expect(typeof actual).to.equal("bigint")
+      const test = actual.toLocaleString()
+      // cannot compare -0 to 0, but locale string preserves the '-'
+      expect(test).to.equal("0")
+    })
+
+    it("converts integer strings", async () => {
+      const src = '$.bigint()'
+      const data = ["0", "1", "-1", "42", "9007199254740991"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("handles decimal numbers", async () => {
+      const src = '$.bigint()'
+      const data = [1.1, 1.5, 1.9, -1.1, -1.5, -1.9]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("handles decimal strings", async () => {
+      const src = '$.bigint()'
+      const data = ["1.1", "1.5", "1.9", "-1.1", "-1.5", "-1.9"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("throws for non-numeric values", async () => {
+      const src = '$.bigint()'
+      const data = [null, [], true, false, "bond", {}]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("applies bigint() to iterator values", async () => {
+      const src = '$[*].bigint()'
+      const data = ["100", 289967, "-1700"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("can filter with bigint()", async () => {
+      const src = '$[*] ? (@.bigint() > 10)'
+      const data = ["9", "10", "11", 12, "-20"]
+      await testValuesCompareToPg(src, data.values())
     })
   })
 
   describe("ceiling()", () => {
-    it ("single values", () => {
-      const statement = compile('$.ceiling()')
-      const numberActual = one(statement.values(77.6))
-      expect(numberActual).to.equal(78)
-      expect(() => one(statement.values(null))).to.throw
-      expect(() => one(statement.values("77.4"))).to.throw
-      expect(() => one(statement.values(true))).to.throw
-      expect(() => one(statement.values({}))).to.throw
-      expect(() => one(statement.values([]))).to.throw
+    it("matches sql for numeric values", async () => {
+      const src = '$.ceiling()'
+      const data = [0, 1, -1, 77.6, -440.33, 9.1, -1.7e-4]
+      await testValuesCompareToPg(src, data.values())
     })
 
-    it("iterator of values", () => {
-      const statement = compile('$[*].ceiling()')
-      const arrayTypes = statement.values([1.1, 9.9, -1.7e-4])
-      expect(Array.from(arrayTypes)).to.deep.equal([2, 10, -0])
+    it("matches sql errors for non-numeric values", async () => {
+      const src = '$.ceiling()'
+      const data = [null, "77.4", true, false, {}, []]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("applies ceiling() to iterator values", async () => {
+      const src = '$[*].ceiling()'
+      const data = [1.1, 9.9, -100.7, -1.7e-4]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("matches sql for filter predicates", async () => {
+      const src = '$[*] ? (@.ceiling() > 10)'
+      const data = [9.1, 10.0, 10.5, 11, -12.3, 5.9]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("accepts bigint input from .bigint()", async () => {
+      const src = '$.bigint().ceiling()'
+      const data = [0, 1, -1, 42, -42, 9007199254740991, -9007199254740990]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("accepts bigint input from .bigint() for iterator values", async () => {
+      const src = '$[*].bigint().ceiling()'
+      const data = ["100", -289967, "-1700", 42]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("filters on ceiling() over bigint values", async () => {
+      const src = '$[*] ? (@.bigint().ceiling() > 10)'
+      const data = ["9", "-10", "11", -12, "-20", 42]
+      await testValuesCompareToPg(src, data)
     })
   })
 
   describe("abs()", () => {
-    it ("single values", () => {
-      const statement = compile('$.abs()')
-      const numberActual = one(statement.values(-440.33))
-      expect(numberActual).to.equal(440.33)
-      expect(() => one(statement.values(null))).to.throw
-      expect(() => one(statement.values("1977"))).to.throw
-      expect(() => one(statement.values(true))).to.throw
-      expect(() => one(statement.values({}))).to.throw
-      expect(() => one(statement.values([]))).to.throw
+    it ("single values", async () => {
+      const src = '$.abs()'
+      const data = [0, 1, -1, 440.33, -440.33, 9.1, -1.7e-4]
+      await testValuesCompareToPg(src, data.values())
     })
 
-    it("iterator of values", () => {
-      const statement = compile('$[*].abs()')
-      const arrayTypes = statement.values([33, -11, 9.1, -1.7e-4])
-      expect(Array.from(arrayTypes)).to.deep.equal([33, 11, 9.1, 0.00017])
+    it("matches sql errors for non-numeric values", async () => {
+      const src = '$.abs()'
+      const data = [null, "1977", true, false, {}, []]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("applies abs() to iterator values", async () => {
+      const src = '$[*].abs()'
+      const data = [33, -11, 9.1, -1.7e-4]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("matches sql for filter predicates", async () => {
+      const src = '$[*] ? (@.abs() > 10)'
+      const data = [9, -10, 11, -12, 5, -100]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("accepts bigint input from .bigint()", async () => {
+      const src = '$.bigint().abs()'
+      const data = [0, 1, -1, 42, -42, 9007199254740991, -9007199254740990]
+      await testValuesCompareToPg(src, data)
     })
   })
 
@@ -1004,10 +1135,16 @@ describe("Statement tests", () => {
       expect(() => one(statement.values(true))).to.throw
     })
 
-    it("supports iterator values", () => {
-      const statement = compile('$[*].a')
-      const actual = statement.values([{a: 1}, {a: 2}, {a: {a: 5}}])
-      expect(Array.from(actual)).to.deep.equal([1, 2, {a: 5}])
+    it("supports iterator values", async () => {
+      const src = '$[*].a'
+      const data = [{a: 1}, {a: 2}, {a: {a: 5}}]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("supports auto-unwrapping array of values", async () => {
+      const src = '$.a'
+      const data = [{a: 1}, {a: 2}, {a: {a: 5}}]
+      await testValuesCompareToPg(src, data)
     })
   })
 

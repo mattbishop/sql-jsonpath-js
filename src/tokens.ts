@@ -51,11 +51,32 @@ export const TimeStampTzMethod = createRegexToken({
 /*
   <JSON item method> ::=
           <period> <JSON method>
+
+  <JSON method> ::=
+            type <left paren> <right paren>
+          | size <left paren> <right paren>
+          | double <left paren> <right paren>
+          | ceiling <left paren> <right paren>
+          | floor <left paren> <right paren>
+          | abs <left paren> <right paren>
+          | datetime <left paren> [ <JSON datetime template> ] <right paren>
+          | keyvalue <left paren> <right paren>
+          | bigint <left paren> <right paren>
+          | boolean <left paren> <right paren> todo
+          | date <left paren> <right paren>
+          | decimal <left paren> [ <precision> [ <comma> <scale> ] ] <right paren> todo
+          | integer <left paren> <right paren> todo
+          | number <left paren> <right paren> todo
+          | string <left paren> <right paren> todo
+          | time <left paren> [ <time precision> ] <right paren>
+          | time_tz <left paren> [ <time precision> ] <right paren>
+          | timestamp <left paren> [ <timestamp precision> ] <right paren>
+          | timestamp_tz <left paren> [ <timestamp precision> ] <right paren>
  */
 /** @internal */
 export const ItemMethod = createRegexToken({
   name:             "ItemMethod",
-  pattern:          /\.\s*(type|size|double|ceiling|floor|abs|keyvalue|date)\s*\(\s*\)/y,
+  pattern:          /\.\s*(type|size|double|ceiling|floor|abs|keyvalue|bigint|date|)\s*\(\s*\)/y,
   start_chars_hint: ["."]
 })
 
