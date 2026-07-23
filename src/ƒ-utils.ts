@@ -24,7 +24,7 @@ export type Seq<T> = IteratorWithOperators<T>
     If Ij is array, then the Unicode character string “array”.
     If Ij is object, then the Unicode character string “object”.
  */
-export function type(input: unknown): string {
+export function sqlType(input: unknown): string {
   if (Array.isArray(input)) {
     return "array"
   }
@@ -71,7 +71,7 @@ export function isNumberOrStringOrBigInt(input: unknown): boolean {
 }
 
 export function isObject(input: unknown): input is Record<string, unknown> {
-  return type(input) === "object"
+  return sqlType(input) === "object"
 }
 
 export function isSeq(input: unknown): input is Seq<unknown> {

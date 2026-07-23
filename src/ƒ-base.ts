@@ -4,7 +4,18 @@ import {Temporal} from "@js-temporal/polyfill"
 import {CLDR} from "./datetime-parser.ts"
 import {type KeyValue, ZonedTime} from "./json-path.ts"
 import {EMPTY_ITERATOR, isIterableInput, ReplayableIterable} from "./iterators.ts"
-import {isBigInt, isNumber, isNumberOrString, isNumberOrStringOrBigInt, isObject, isSeq, isString, type NumBigInt, type Seq} from "./ƒ-utils.ts"
+import {
+  isBigInt,
+  isNumber,
+  isNumberOrString,
+  isNumberOrStringOrBigInt,
+  isObject,
+  isSeq,
+  isString,
+  type NumBigInt,
+  type Seq,
+  sqlType
+} from "./ƒ-utils.ts"
 
 
 enum Pred {
@@ -70,48 +81,6 @@ export class ƒBase {
 
   constructor(private readonly lax:   boolean,
               private readonly scope: Map<string, unknown>) { }
-
-  /*
-    From spec. Ij is a value to be typed.
-      If Ij is an SQL/JSON null, then the Unicode character string “null”.
-      If Ij is numeric, then the Unicode character string “number”.
-      If Ij is a character string, then the Unicode character string “string”.
-      If Ij is a Boolean, then the Unicode character string “boolean”.
-
-      If Ij is a date, then the Unicode character string “date”.
-      If Ij is a time without time zone, then the Unicode character string “time without time zone”.
-      If Ij is a time with time zone, then the Unicode character string “time with time zone”.
-      If Ij is a timestamp without time zone, then the Unicode character string “timestamp without time zone”.
-      If Ij is a timestamp with time zone, then the Unicode character string “timestamp with time zone”.
-
-      If Ij is array, then the Unicode character string “array”.
-      If Ij is object, then the Unicode character string “object”.
-   */
-  private static _type(input: unknown): string {
-    if (Array.isArray(input)) {
-      return "array"
-    }
-    if (input === null || input === undefined) {
-      return "null"
-    }
-    // input instanceof Date would fit here, if we used it
-    if (input instanceof Temporal.Instant) {
-      return "timestamp with time zone"
-    }
-    if (input instanceof Temporal.PlainDateTime) {
-      return "timestamp without time zone"
-    }
-    if (input instanceof ZonedTime) {
-      return "time with time zone"
-    }
-    if (input instanceof Temporal.PlainTime) {
-      return "time without time zone"
-    }
-    if (input instanceof Temporal.PlainDate) {
-      return "date"
-    }
-    return typeof input
-  }
 
   private static _next<T>(input: SingleOrIterator<T>): T {
     return isSeq(input)
@@ -237,7 +206,7 @@ export class ƒBase {
 
 
   type(input: unknown): SingleOrIterator<string> {
-    return ƒBase._autoMap(input, ƒBase._type)
+    return ƒBase._autoMap(input, sqlType)
   }
 
 
@@ -645,7 +614,7 @@ export class ƒBase {
     const array = this._toArray(input, { strict: Array.isArray, error: "Array accessors can only be applied to an array." })
     return iterate(subscripts)
       .map((sub) => {
-        const subType = ƒBase._type(sub)
+        const subType = sqlType(sub)
         if (subType === "number") {
           return this._maybeElement(array, sub)
         }
@@ -713,8 +682,8 @@ export class ƒBase {
 
 
   private static _compare(compOp: string, left: any, right: any): Pred {
-    let typeLeft = ƒBase._type(left)
-    let typeRight = ƒBase._type(right)
+    let typeLeft = sqlType(left)
+    let typeRight = sqlType(right)
 
     const nullComp = ƒBase._compareMaybeNull(compOp, typeLeft, typeRight)
     if (nullComp) {
