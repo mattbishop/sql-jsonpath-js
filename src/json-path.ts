@@ -1,4 +1,4 @@
-import {Temporal} from "@js-temporal/polyfill";
+import {Temporal} from "@js-temporal/polyfill"
 
 /**
  * Declared variable values for SQL JSONPath evaluation.

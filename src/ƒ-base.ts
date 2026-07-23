@@ -4,7 +4,7 @@ import {Temporal} from "@js-temporal/polyfill"
 import {CLDR} from "./datetime-parser.ts"
 import {type KeyValue, ZonedTime} from "./json-path.ts"
 import {EMPTY_ITERATOR, isIterableInput, ReplayableIterable} from "./iterators.ts"
-import {isBigInt, isNumber, isNumberOrString, isNumberOrStringOrBigInt, isSeq, isString, type NumBigInt, type Seq} from "./type-utils.ts"
+import {isBigInt, isNumber, isNumberOrString, isNumberOrStringOrBigInt, isObject, isSeq, isString, type NumBigInt, type Seq} from "./ƒ-utils.ts"
 
 
 enum Pred {
@@ -119,10 +119,6 @@ export class ƒBase {
       : input
   }
 
-  private static _isObject(input: unknown): input is Record<string, unknown> {
-    return ƒBase._type(input) === "object"
-  }
-
   /**
    * Turn any input into a Seq. Does not consider lax or strict mode.
    * @param input the input to Seq.
@@ -206,7 +202,7 @@ export class ƒBase {
   }
 
   private static _objectValues(input: unknown): Iterator<unknown> {
-    return ƒBase._isObject(input)
+    return isObject(input)
       ? iterate(Object.values(input))
       : EMPTY_ITERATOR
   }
@@ -545,14 +541,14 @@ export class ƒBase {
           ? Math.ceil(input - 0.5)
           : Math.round(input)
         value = BigInt(int)
-        break;
+        break
       case "string":
         // JSONPath has same string parse rules as JS
         value = BigInt(input as string)
-        break;
+        break
       case "bigint":
         value = input as bigint
-        break;
+        break
       default:
         throw new Error(`bigint() can only be applied to a string or numeric value: ${input}`)
     }
@@ -574,9 +570,9 @@ export class ƒBase {
   }
 
   keyvalue(input: unknown): Seq<KeyValue> {
-    const objects = this._unwrap(input, { strict: ƒBase._isObject, error: "keyvalue() param must be an object." })
+    const objects = this._unwrap(input, { strict: isObject, error: "keyvalue() param must be an object." })
     const mapƒ = (row: unknown) => {
-      if (ƒBase._isObject(row)) {
+      if (isObject(row)) {
         const id = this.scope.get(KV_INDEX) as number ?? 0
         // Loop back around to 0
         this.scope.set(KV_INDEX, id === Number.MAX_SAFE_INTEGER ? 0 : id + 1)
@@ -589,7 +585,7 @@ export class ƒBase {
 
 
   private _dotStar(input: unknown): Seq<unknown> {
-    return this._unwrap(input, { strict: ƒBase._isObject, error: ".* can only be applied to an object." })
+    return this._unwrap(input, { strict: isObject, error: ".* can only be applied to an object." })
         .map(ƒBase._objectValues)
         .flatten()
   }
@@ -612,7 +608,7 @@ export class ƒBase {
 
 
   private _getMember(obj: unknown, member: string): unknown {
-    if (ƒBase._isObject(obj) && obj.hasOwnProperty(member)) {
+    if (isObject(obj) && obj.hasOwnProperty(member)) {
       return obj[member]
     }
     if (this.lax) {
@@ -622,7 +618,7 @@ export class ƒBase {
   }
 
   private _member(input: unknown, member: string): Seq<unknown> {
-    return this._unwrap(input, { strict: ƒBase._isObject, error: ".member can only be applied to an object." })
+    return this._unwrap(input, { strict: isObject, error: ".member can only be applied to an object." })
       .map((i) => this._getMember(i, member))
       .filter((i) => i !== NO_VALUE)
   }
