@@ -1,11 +1,10 @@
 import {iterate} from "iterare"
-import {IteratorWithOperators} from "iterare/lib/iterate.js"
 import {Temporal} from "@js-temporal/polyfill"
 
 import {CLDR} from "./datetime-parser.ts"
 import {type KeyValue, ZonedTime} from "./json-path.ts"
 import {EMPTY_ITERATOR, isIterableInput, ReplayableIterable} from "./iterators.ts"
-import {isBigInt, isNumber, isNumberOrString, isNumberOrStringOrBigInt, isString, type NumBigInt} from "./type-utils.ts"
+import {isBigInt, isNumber, isNumberOrString, isNumberOrStringOrBigInt, isSeq, isString, type NumBigInt, type Seq} from "./type-utils.ts"
 
 
 enum Pred {
@@ -24,7 +23,6 @@ export enum TemporalTypes {
 }
 
 
-type Seq<T> = IteratorWithOperators<T>
 
 type Mapƒ<T> = (input: any) => T
 
@@ -116,13 +114,9 @@ export class ƒBase {
   }
 
   private static _next<T>(input: SingleOrIterator<T>): T {
-    return ƒBase._isSeq(input)
+    return isSeq(input)
       ? input.next().value
       : input
-  }
-
-  private static _isSeq(input: unknown): input is Seq<unknown> {
-    return input instanceof IteratorWithOperators
   }
 
   private static _isObject(input: unknown): input is Record<string, unknown> {
@@ -134,7 +128,7 @@ export class ƒBase {
    * @param input the input to Seq.
    */
   private static _toSeq(input: unknown): Seq<unknown> {
-    return ƒBase._isSeq(input)
+    return isSeq(input)
       ? input.flatten()
       : iterate(Array.isArray(input) ? input : [input])
   }
@@ -148,7 +142,7 @@ export class ƒBase {
    * @private
    */
   private _checkStrict(input: unknown, strict: StrictConfig) {
-    if (this.lax || ƒBase._isSeq(input)) {
+    if (this.lax || isSeq(input)) {
       return
     }
     if (strict && !strict.strict(input)) {
@@ -164,7 +158,7 @@ export class ƒBase {
    */
   private _toArray(input: unknown, strict: StrictConfig): Array<unknown> {
     this._checkStrict(input, strict)
-    if (ƒBase._isSeq(input)) {
+    if (isSeq(input)) {
       return input.map((v) => Array.isArray(v) ? v : [v])
         .toArray()
     } else if (Array.isArray(input)) {
@@ -186,7 +180,7 @@ export class ƒBase {
       return ƒBase._toSeq(input)
     }
     this._checkStrict(input, strict)
-    return ƒBase._isSeq(input)
+    return isSeq(input)
       ? input
       : iterate([input])
   }
@@ -194,13 +188,13 @@ export class ƒBase {
   private static _autoFlatMap<I extends Seq<unknown>>(input: unknown, mapƒ: Mapƒ<I>): I {
     // todo determine if this is still required. The 'as I' cast is suspicious
     const mapped = this._autoMap(input, mapƒ) as I
-    return ƒBase._isSeq(input)
+    return isSeq(input)
       ? mapped.flatten() as I
       : mapped
   }
 
   private static _autoMap<T>(input: SingleOrIterator<unknown>, mapƒ: Mapƒ<T>): SingleOrIterator<T> {
-    return ƒBase._isSeq(input)
+    return isSeq(input)
       ? input.map(mapƒ)
       : mapƒ(input)
   }
@@ -662,7 +656,7 @@ export class ƒBase {
         if (subType == "function") {
           return this._maybeElement(array, sub(array))
         }
-        if (ƒBase._isSeq(sub)) {
+        if (isSeq(sub)) {
           return sub.map((s) => this._maybeElement(array, s))
         }
         throw new Error("array accessor must be numbers")
@@ -698,7 +692,7 @@ export class ƒBase {
     try {
       const result = filterExp(input)
       // look for at least one Pred.TRUE in the iterator
-      return ƒBase._isSeq(result)
+      return isSeq(result)
         ? result.includes(Pred.TRUE)
         : result === Pred.TRUE
     } catch (e) {
@@ -894,7 +888,7 @@ export class ƒBase {
     try {
       const result = wff()
       let value
-      if (ƒBase._isSeq(result)) {
+      if (isSeq(result)) {
         const next = result.next()
         value = next.done
           ? NO_VALUE
