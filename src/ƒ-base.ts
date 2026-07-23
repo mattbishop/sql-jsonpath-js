@@ -14,7 +14,8 @@ import {
   isString,
   type NumBigInt,
   type Seq,
-  sqlType
+  sqlType,
+  toSeq
 } from "./ƒ-utils.ts"
 
 
@@ -88,16 +89,6 @@ export class ƒBase {
       : input
   }
 
-  /**
-   * Turn any input into a Seq. Does not consider lax or strict mode.
-   * @param input the input to Seq.
-   */
-  private static _toSeq(input: unknown): Seq<unknown> {
-    return isSeq(input)
-      ? input.flatten()
-      : iterate(Array.isArray(input) ? input : [input])
-  }
-
 
   /**
    * Examine input with strict test, if any. Throws error if in strict mode and
@@ -142,7 +133,7 @@ export class ƒBase {
    */
   private _unwrap(input: unknown, strict: StrictConfig): Seq<unknown> {
     if (this.lax) {
-      return ƒBase._toSeq(input)
+      return toSeq(input)
     }
     this._checkStrict(input, strict)
     return isSeq(input)
@@ -567,7 +558,7 @@ export class ƒBase {
   private _boxStar(input: unknown): Seq<unknown> {
     // [*] is not the same as unwrap, which always turns the array into a seq in lax mode.
     this._checkStrict(input, { strict: Array.isArray, error: "[*] can only be applied to an array in strict mode." })
-    return ƒBase._toSeq(input)
+    return toSeq(input)
   }
 
   boxStar(input: unknown): Seq<unknown> {
@@ -670,14 +661,14 @@ export class ƒBase {
     const matches = (value: unknown) => ƒBase._matchesFilter(value, filterExp)
 
     if (this.lax) {
-      return ƒBase._toSeq(input).filter(matches)
+      return toSeq(input).filter(matches)
     }
 
     const matched = isIterableInput(input)
       ? iterate(input).map(matches).some(Boolean)
       : matches(input)
 
-    return ƒBase._toSeq(matched ? [input] : [])
+    return toSeq(matched ? [input] : [])
   }
 
 
@@ -787,8 +778,8 @@ export class ƒBase {
         throw new Error("In 'strict' mode! right side of comparison cannot be an array.")
       }
     }
-    const leftValues = ƒBase._toSeq(left)
-    const rightValues = new ReplayableIterable(ƒBase._toSeq(right))
+    const leftValues = toSeq(left)
+    const rightValues = new ReplayableIterable(toSeq(right))
     let hasUnknown = false
     for (const l of leftValues) {
       for (const r of rightValues) {

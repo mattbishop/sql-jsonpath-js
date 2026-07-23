@@ -1,4 +1,5 @@
 import {Temporal} from "@js-temporal/polyfill"
+import {iterate} from "iterare"
 import {IteratorWithOperators} from "iterare/lib/iterate.js"
 
 import {ZonedTime} from "./json-path.ts"
@@ -76,4 +77,10 @@ export function isObject(input: unknown): input is Record<string, unknown> {
 
 export function isSeq(input: unknown): input is Seq<unknown> {
   return input instanceof IteratorWithOperators
+}
+
+export function toSeq(input: unknown): Seq<unknown> {
+  return isSeq(input)
+    ? input.flatten()
+    : iterate(Array.isArray(input) ? input : [input])
 }
