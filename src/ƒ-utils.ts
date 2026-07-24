@@ -9,6 +9,8 @@ export type NumBigInt = number | bigint
 
 export type Seq<T> = IteratorWithOperators<T>
 
+export type SingleOrIterator<T> = T | Seq<T>
+
 /*
   From spec. Ij is a value to be typed.
     If Ij is an SQL/JSON null, then the Unicode character string “null”.
@@ -51,6 +53,14 @@ export function sqlType(input: unknown): string {
   return typeof input
 }
 
+// SQL does not support IEEE 754 signed zero
+export function sqlNum(input: NumBigInt): NumBigInt {
+  return input == 0
+    ? isBigInt(input) ? 0n : 0
+    : input
+}
+
+
 export function isNumber(input: unknown): input is number {
   return typeof input === "number"
 }
@@ -83,4 +93,10 @@ export function toSeq(input: unknown): Seq<unknown> {
   return isSeq(input)
     ? input.flatten()
     : iterate(Array.isArray(input) ? input : [input])
+}
+
+export function next<T>(input: SingleOrIterator<T>): T {
+  return isSeq(input)
+    ? input.next().value
+    : input
 }

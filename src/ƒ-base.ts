@@ -11,9 +11,9 @@ import {
   isNumberOrStringOrBigInt,
   isObject,
   isSeq,
-  isString,
+  isString, next,
   type NumBigInt,
-  type Seq,
+  type Seq, sqlNum,
   sqlType,
   toSeq
 } from "./ƒ-utils.ts"
@@ -82,13 +82,6 @@ export class ƒBase {
 
   constructor(private readonly lax:   boolean,
               private readonly scope: Map<string, unknown>) { }
-
-  private static _next<T>(input: SingleOrIterator<T>): T {
-    return isSeq(input)
-      ? input.next().value
-      : input
-  }
-
 
   /**
    * Examine input with strict test, if any. Throws error if in strict mode and
@@ -167,25 +160,18 @@ export class ƒBase {
       : EMPTY_ITERATOR
   }
 
-  // SQL does not support IEEE 754 signed zero
-  private static _sqlNum(input: NumBigInt): NumBigInt {
-    return input == 0
-      ? isBigInt(input) ? 0n : 0
-      : input
-  }
-
   private static _mustBeNumber(input: SingleOrIterator<unknown>, method: string): number {
-    const num = ƒBase._next<unknown>(input)
+    const num = next<unknown>(input)
     if (isNumber(num)) {
-      return ƒBase._sqlNum(num) as number
+      return sqlNum(num) as number
     }
     throw new Error(`${method} param must be a number, found ${JSON.stringify(input)}.`)
   }
 
   private static _mustBeNumberOrBigInt(input: SingleOrIterator<unknown>, method: string): NumBigInt {
-    const num = ƒBase._next<unknown>(input)
+    const num = next<unknown>(input)
     if (isNumber(num) || isBigInt(num)) {
-      return ƒBase._sqlNum(num)
+      return sqlNum(num)
     }
     throw new Error(`${method} param must be a number or bigint, found ${JSON.stringify(input)}.`)
   }
@@ -218,7 +204,7 @@ export class ƒBase {
       if (Number.isNaN(num)) {
         throw new Error(`double() param ${input} is not a representation of a number.`)
       }
-      return ƒBase._sqlNum(num) as number
+      return sqlNum(num) as number
     }
     return ƒBase._mustBeNumber(input, "double()")
   }
@@ -231,10 +217,10 @@ export class ƒBase {
 
   private static _ceiling(input: unknown): NumBigInt {
     if (isBigInt(input)) {
-      return ƒBase._sqlNum(input)
+      return sqlNum(input)
     }
     if (isNumber(input)) {
-      return ƒBase._sqlNum(Math.ceil(input))
+      return sqlNum(Math.ceil(input))
     }
     throw new Error(`ceiling() param must be a number, found ${JSON.stringify(input)}.`)
   }
@@ -246,10 +232,10 @@ export class ƒBase {
 
   private static _floor(input: unknown): NumBigInt {
     if (isBigInt(input)) {
-      return ƒBase._sqlNum(input)
+      return sqlNum(input)
     }
     if (isNumber(input)) {
-      return ƒBase._sqlNum(Math.floor(input))
+      return sqlNum(Math.floor(input))
     }
     throw new Error(`floor() param must be a number, found ${JSON.stringify(input)}.`)
   }
@@ -817,7 +803,7 @@ export class ƒBase {
                            defaultPred: Pred): Pred {
     let hasUnknown = false
     for (const pred of preds) {
-      const value = ƒBase._next(pred)
+      const value = next(pred)
       if (value === seek) {
         return seek
       }
