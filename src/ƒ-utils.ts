@@ -3,13 +3,9 @@ import {iterate} from "iterare"
 import {IteratorWithOperators} from "iterare/lib/iterate.js"
 
 import {ZonedTime} from "./json-path.ts"
+import type {NumBigInt, Seq, SingleOrIterator} from "./types.ts";
 
 
-export type NumBigInt = number | bigint
-
-export type Seq<T> = IteratorWithOperators<T>
-
-export type SingleOrIterator<T> = T | Seq<T>
 
 /*
   From spec. Ij is a value to be typed.

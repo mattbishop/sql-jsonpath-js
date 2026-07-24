@@ -2,45 +2,12 @@ import {iterate} from "iterare"
 import {Temporal} from "@js-temporal/polyfill"
 
 import {CLDR} from "./datetime-parser.ts"
-import {type KeyValue, ZonedTime} from "./json-path.ts"
+import {type KeyValue} from "./json-path.ts"
 import {EMPTY_ITERATOR, isIterableInput, ReplayableIterable} from "./iterators.ts"
-import {
-  isBigInt,
-  isNumber,
-  isNumberOrString,
-  isNumberOrStringOrBigInt,
-  isObject,
-  isSeq,
-  isString, next,
-  type NumBigInt,
-  type Seq, sqlNum,
-  sqlType,
-  toSeq
-} from "./ƒ-utils.ts"
+import {isBigInt, isNumber, isNumberOrString, isNumberOrStringOrBigInt, isObject, isSeq, isString, next, sqlNum, sqlType, toSeq} from "./ƒ-utils.ts"
+import type {Mapƒ, NumBigInt, Predƒ, Seq, SingleOrIterator, TemporalParser, TemporalType} from "./types.ts";
+import {Pred, TemporalTypes} from "./types.ts"
 
-
-enum Pred {
-  TRUE = "T",
-  FALSE = "F",
-  UNKNOWN = "U"
-}
-
-/** @internal */
-export enum TemporalTypes {
-  DATE = "date",
-  TIME = "time without time zone",
-  TIME_TZ = "time with time zone",
-  TIMESTAMP = "timestamp without time zone",
-  TIMESTAMP_TZ = "timestamp with time zone",
-}
-
-
-
-type Mapƒ<T> = (input: any) => T
-
-type Predƒ = Mapƒ<SingleOrIterator<Pred>>
-
-type SingleOrIterator<T> = T | Seq<T>
 
 type StrictConfig = {
   strict: Mapƒ<boolean>
@@ -54,26 +21,6 @@ const NO_VALUE = Symbol.for("No Value")
 
 const BIGINT_MIN = -(2n ** 63n)
 const BIGINT_MAX = 2n ** 63n - 1n
-
-
-/** @internal */
-export type TemporalType =
-    Temporal.PlainDateTime
-  | Temporal.Instant            // DateTime with an offset value
-  // | Temporal.ZonedDateTime   // These have named time zones like "[Pacific/Vancouver]"
-  | Temporal.PlainDate
-  | Temporal.PlainTime
-  | ZonedTime
-
-/** @internal */
-export interface TemporalParser {
-  toDate(input: string): Temporal.PlainDate
-  toTime(input: string): Temporal.PlainTime
-  toTimeTz(input: string): ZonedTime
-  toTimestamp(input: string): Temporal.PlainDateTime
-  toTimestampTz(input: string): Temporal.Instant
-  toTemporal(input: string): TemporalType
-}
 
 
 

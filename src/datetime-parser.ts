@@ -1,7 +1,8 @@
 import {Temporal} from "@js-temporal/polyfill"
 
-import {TemporalTypes, type TemporalParser, type TemporalType} from "./ƒ-base.ts"
 import {ZonedTime} from "./json-path.ts"
+import {type TemporalParser, type TemporalType, TemporalTypes} from "./types.ts";
+
 
 /**
  * Constant for Unicode CLDR spec to parse strings into date / time objects.
