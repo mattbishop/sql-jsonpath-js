@@ -16,7 +16,7 @@ import {
   isString,
   next,
   sqlNum,
-  sqlType,
+  sqlType, toPred,
   toSeq
 } from "./ƒ-utils.ts"
 import type {Mapƒ, NumBigInt, Predƒ, Seq, SingleOrIterator, TemporalParser, TemporalType} from "./types.ts";
@@ -114,12 +114,6 @@ export class ƒBase {
     return isSeq(input)
       ? input.map(mapƒ)
       : mapƒ(input)
-  }
-
-  private static _toPred(condition: boolean): Pred {
-    return condition
-      ? Pred.TRUE
-      : Pred.FALSE
   }
 
   private static _objectValues(input: unknown): Iterator<unknown> {
@@ -653,18 +647,18 @@ export class ƒBase {
       switch (compOp) {
         case "==" :
           // use ==, not === so that number and bigint will compare
-          return ƒBase._toPred(left == right)
+          return toPred(left == right)
         case "<>" :
         case "!=" :
-          return ƒBase._toPred(left !== right)
+          return toPred(left !== right)
         case ">" :
-          return ƒBase._toPred(left > right)
+          return toPred(left > right)
         case ">=" :
-          return ƒBase._toPred(left >= right)
+          return toPred(left >= right)
         case "<" :
-          return ƒBase._toPred(left < right)
+          return toPred(left < right)
         case "<=" :
-          return ƒBase._toPred(left <= right)
+          return toPred(left <= right)
       }
     }
     return Pred.UNKNOWN
@@ -680,10 +674,10 @@ export class ƒBase {
     if (typeLeft === "null" || typeRight === "null") {
       switch (compOp) {
         case "==" :
-          return ƒBase._toPred(typeLeft === typeRight)
+          return toPred(typeLeft === typeRight)
         case "<>" :
         case "!=" :
-          return ƒBase._toPred(typeLeft !== typeRight)
+          return toPred(typeLeft !== typeRight)
         default:
           return Pred.UNKNOWN
       }
@@ -807,7 +801,7 @@ export class ƒBase {
       } else {
         value = result
       }
-      return ƒBase._toPred(value !== NO_VALUE)
+      return toPred(value !== NO_VALUE)
     } catch (e) {
       return Pred.UNKNOWN
     }
@@ -815,7 +809,7 @@ export class ƒBase {
 
 
   private static _isUnknown(input: Pred): Pred {
-    return ƒBase._toPred(input === Pred.UNKNOWN)
+    return toPred(input === Pred.UNKNOWN)
   }
 
   isUnknown(input: SingleOrIterator<Pred>): SingleOrIterator<Pred> {
@@ -825,7 +819,7 @@ export class ƒBase {
 
   private static _startsWith(input: unknown, start: string): Pred {
     return isString(input)
-      ? ƒBase._toPred(input.startsWith(start))
+      ? toPred(input.startsWith(start))
       : Pred.UNKNOWN
   }
 
@@ -836,7 +830,7 @@ export class ƒBase {
 
   private static _match(input: unknown, pattern: RegExp): Pred {
     return isString(input)
-      ? ƒBase._toPred(pattern.test(input))
+      ? toPred(pattern.test(input))
       : Pred.UNKNOWN
   }
 

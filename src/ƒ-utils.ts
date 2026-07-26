@@ -3,7 +3,7 @@ import {iterate} from "iterare"
 import {IteratorWithOperators} from "iterare/lib/iterate.js"
 
 import {ZonedTime} from "./json-path.ts"
-import type {NumBigInt, Seq, SingleOrIterator} from "./types.ts";
+import {type NumBigInt, Pred, type Seq, type SingleOrIterator} from "./types.ts";
 
 
 
@@ -99,4 +99,10 @@ export function next<T>(input: SingleOrIterator<T>): T {
   return isSeq(input)
     ? input.next().value
     : input
+}
+
+export function toPred(condition: boolean): Pred {
+  return condition
+    ? Pred.TRUE
+    : Pred.FALSE
 }
