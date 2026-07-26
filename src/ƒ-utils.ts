@@ -3,7 +3,7 @@ import {iterate} from "iterare"
 import {IteratorWithOperators} from "iterare/lib/iterate.js"
 
 import {ZonedTime} from "./json-path.ts"
-import {type NumBigInt, Pred, type Seq, type SingleOrIterator} from "./types.ts";
+import {type Mapƒ, type NumBigInt, Pred, type Seq, type SingleOrIterator} from "./types.ts"
 
 
 
@@ -105,4 +105,17 @@ export function toPred(condition: boolean): Pred {
   return condition
     ? Pred.TRUE
     : Pred.FALSE
+}
+
+export function autoMap<T>(input: SingleOrIterator<unknown>, mapƒ: Mapƒ<T>): SingleOrIterator<T> {
+  return isSeq(input)
+    ? input.map(mapƒ)
+    : mapƒ(input)
+}
+
+export function autoFlatMap<I extends Seq<unknown>>(input: unknown, mapƒ: Mapƒ<I>): I {
+  const mapped = autoMap(input, mapƒ) as I
+  return isSeq(input)
+    ? mapped.flatten() as I
+    : mapped
 }

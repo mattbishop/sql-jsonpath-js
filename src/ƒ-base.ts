@@ -6,6 +6,8 @@ import {CLDR} from "./datetime-parser.ts"
 import {type KeyValue} from "./json-path.ts"
 import {EMPTY_ITERATOR, isIterableInput, ReplayableIterable} from "./iterators.ts"
 import {
+  autoFlatMap,
+  autoMap,
   isBigInt,
   isNumber,
   isNumberOrBigInt,
@@ -16,10 +18,11 @@ import {
   isString,
   next,
   sqlNum,
-  sqlType, toPred,
+  sqlType,
+  toPred,
   toSeq
 } from "./ƒ-utils.ts"
-import type {Mapƒ, NumBigInt, Predƒ, Seq, SingleOrIterator, TemporalParser, TemporalType} from "./types.ts";
+import type {Mapƒ, NumBigInt, Predƒ, Seq, SingleOrIterator, TemporalParser, TemporalType} from "./types.ts"
 import {Pred, TemporalTypes} from "./types.ts"
 
 
@@ -102,26 +105,6 @@ export class ƒBase {
       : mapƒ(input)
   }
 
-  private static _autoFlatMap<I extends Seq<unknown>>(input: unknown, mapƒ: Mapƒ<I>): I {
-    // todo determine if this is still required. The 'as I' cast is suspicious
-    const mapped = this._autoMap(input, mapƒ) as I
-    return isSeq(input)
-      ? mapped.flatten() as I
-      : mapped
-  }
-
-  private static _autoMap<T>(input: SingleOrIterator<unknown>, mapƒ: Mapƒ<T>): SingleOrIterator<T> {
-    return isSeq(input)
-      ? input.map(mapƒ)
-      : mapƒ(input)
-  }
-
-  private static _objectValues(input: unknown): Iterator<unknown> {
-    return isObject(input)
-      ? iterate(Object.values(input))
-      : EMPTY_ITERATOR
-  }
-
   private static _mustBeNumber(input: SingleOrIterator<unknown>, method: string): number {
     const num = next<unknown>(input)
     // todo does this need to check for things like INFINITY
@@ -146,7 +129,7 @@ export class ƒBase {
 
 
   type(input: unknown): SingleOrIterator<string> {
-    return ƒBase._autoMap(input, sqlType)
+    return autoMap(input, sqlType)
   }
 
 
@@ -159,7 +142,7 @@ export class ƒBase {
   size(input: unknown): SingleOrIterator<number> {
     // cannot use unwrap since it must preserve Array shape for size()
     this._checkStrict(input, { strict: Array.isArray, error: "size() can only be applied to arrays." })
-    return ƒBase._autoMap(input, ƒBase._size)
+    return autoMap(input, ƒBase._size)
   }
 
 
@@ -260,7 +243,7 @@ export class ƒBase {
 
   date(input: unknown): SingleOrIterator<Temporal.PlainDate> {
     const parser = this.scope.get(CLDR) as TemporalParser
-    return ƒBase._autoMap(input, (v: unknown) => ƒBase._date(v, parser))
+    return autoMap(input, (v: unknown) => ƒBase._date(v, parser))
   }
 
   private static _timeRoundOptions(precision: number): Temporal.RoundTo<"second" | "millisecond" | "microsecond" | "nanosecond"> {
@@ -309,7 +292,7 @@ export class ƒBase {
   // ERROR: cannot convert value from timestamptz to time without time zone usage
   time(input: unknown, precision?: number): SingleOrIterator<Temporal.PlainTime> {
     const parser = this.scope.get(CLDR) as TemporalParser
-    return ƒBase._autoMap(input, (v: unknown) => ƒBase._time(v, parser, precision))
+    return autoMap(input, (v: unknown) => ƒBase._time(v, parser, precision))
   }
 
 
@@ -330,7 +313,7 @@ export class ƒBase {
   // It converts to UTC time and returns that
   time_tz(input: unknown, precision?: number): SingleOrIterator<Temporal.PlainTime> {
     const parser = this.scope.get(CLDR) as TemporalParser
-    return ƒBase._autoMap(input, (v: unknown) => ƒBase._time_tz(v, parser, precision))
+    return autoMap(input, (v: unknown) => ƒBase._time_tz(v, parser, precision))
   }
 
 
@@ -386,7 +369,7 @@ export class ƒBase {
 
   timestamp(input: unknown, precision?: number): SingleOrIterator<Temporal.PlainDateTime> {
     const parser = this.scope.get(CLDR) as TemporalParser
-    return ƒBase._autoMap(input, (v: unknown) => ƒBase._timestamp(v, parser, precision))
+    return autoMap(input, (v: unknown) => ƒBase._timestamp(v, parser, precision))
   }
 
   private static _timestampTzRoundOptions(precision: number): Temporal.RoundTo<"second" | "millisecond" | "microsecond" | "nanosecond"> {
@@ -432,7 +415,7 @@ export class ƒBase {
 
   timestamp_tz(input: unknown, precision?: number): SingleOrIterator<Temporal.Instant> {
     const parser = this.scope.get(CLDR) as TemporalParser
-    return ƒBase._autoMap(input, (v: unknown) => ƒBase._timestamp_tz(v, parser, precision))
+    return autoMap(input, (v: unknown) => ƒBase._timestamp_tz(v, parser, precision))
   }
 
 
@@ -469,7 +452,7 @@ export class ƒBase {
 
   datetime(input: unknown, template: string): SingleOrIterator<TemporalType> {
     const parser = this.scope.get(template ?? CLDR) as TemporalParser
-    return ƒBase._autoMap(input, (v: unknown) => ƒBase._datetime(v, parser))
+    return autoMap(input, (v: unknown) => ƒBase._datetime(v, parser))
   }
 
 
@@ -489,9 +472,14 @@ export class ƒBase {
       }
       throw new Error(`keyvalue() param must have object values, found ${JSON.stringify(row)}.`)
     }
-    return ƒBase._autoFlatMap(objects, mapƒ)
+    return autoFlatMap(objects, mapƒ)
   }
 
+  private static _objectValues(input: unknown): Iterator<unknown> {
+    return isObject(input)
+      ? iterate(Object.values(input))
+      : EMPTY_ITERATOR
+  }
 
   private _dotStar(input: unknown): Seq<unknown> {
     return this._unwrap(input, { strict: isObject, error: ".* can only be applied to an object." })
@@ -500,7 +488,7 @@ export class ƒBase {
   }
 
   dotStar(input: unknown): Seq<unknown> {
-    return ƒBase._autoFlatMap(input, (i) => this._dotStar(i))
+    return autoFlatMap(input, (i) => this._dotStar(i))
   }
 
 
@@ -512,7 +500,7 @@ export class ƒBase {
 
   boxStar(input: unknown): Seq<unknown> {
     // need the function so _checkStrict has a defined this
-    return ƒBase._autoFlatMap(input, (i) => this._boxStar(i))
+    return autoFlatMap(input, (i) => this._boxStar(i))
   }
 
 
@@ -533,7 +521,7 @@ export class ƒBase {
   }
 
   member(input: unknown, member: string): Seq<unknown> {
-    return ƒBase._autoFlatMap(input, (i) => this._member(i, member))
+    return autoFlatMap(input, (i) => this._member(i, member))
   }
 
 
@@ -571,7 +559,7 @@ export class ƒBase {
   }
 
   array(input: unknown, subscripts: unknown[]): Seq<any> {
-    return ƒBase._autoFlatMap(input, (i) => this._array(i, subscripts))
+    return autoFlatMap(input, (i) => this._array(i, subscripts))
   }
 
 
@@ -813,7 +801,7 @@ export class ƒBase {
   }
 
   isUnknown(input: SingleOrIterator<Pred>): SingleOrIterator<Pred> {
-    return ƒBase._autoMap(input, ƒBase._isUnknown)
+    return autoMap(input, ƒBase._isUnknown)
   }
 
 
@@ -824,7 +812,7 @@ export class ƒBase {
   }
 
   startsWith(input: unknown, start: string): SingleOrIterator<Pred> {
-    return ƒBase._autoMap(input, (i) => ƒBase._startsWith(i, start))
+    return autoMap(input, (i) => ƒBase._startsWith(i, start))
   }
 
 
@@ -835,6 +823,6 @@ export class ƒBase {
   }
 
   match(input: unknown, pattern: RegExp): SingleOrIterator<Pred> {
-    return ƒBase._autoMap(input, (i) => ƒBase._match(i, pattern))
+    return autoMap(input, (i) => ƒBase._match(i, pattern))
   }
 }
