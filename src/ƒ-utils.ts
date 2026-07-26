@@ -73,6 +73,10 @@ export function isNumberOrString(input: unknown): boolean {
   return typeof input === "number" || typeof input === "string"
 }
 
+export function isNumberOrBigInt(input: unknown): boolean {
+  return typeof input === "number" || typeof input === "bigint"
+}
+
 export function isNumberOrStringOrBigInt(input: unknown): boolean {
   return typeof input === "number" || typeof input === "string" || typeof input === "bigint"
 }

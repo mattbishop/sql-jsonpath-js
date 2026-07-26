@@ -874,6 +874,12 @@ describe("Statement tests", () => {
       await testValuesCompareToPg(src, data.values())
     })
 
+    it("strictly applies ceiling() to iterator values", async () => {
+      const src = 'strict $.ceiling()'
+      const data = [1.1, 9.9, -100.7, -1.7e-4]
+      await testValuesCompareToPg(src, data)
+    })
+
     it("matches sql errors for non-numeric values", async () => {
       const src = '$.ceiling()'
       const data = [null, "77.4", true, false, {}, []]

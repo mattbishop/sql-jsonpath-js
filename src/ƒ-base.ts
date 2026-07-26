@@ -1,10 +1,24 @@
 import {iterate} from "iterare"
+import {isIterable} from "iterare/lib/utils.js"
 import {Temporal} from "@js-temporal/polyfill"
 
 import {CLDR} from "./datetime-parser.ts"
 import {type KeyValue} from "./json-path.ts"
 import {EMPTY_ITERATOR, isIterableInput, ReplayableIterable} from "./iterators.ts"
-import {isBigInt, isNumber, isNumberOrString, isNumberOrStringOrBigInt, isObject, isSeq, isString, next, sqlNum, sqlType, toSeq} from "./ƒ-utils.ts"
+import {
+  isBigInt,
+  isNumber,
+  isNumberOrBigInt,
+  isNumberOrString,
+  isNumberOrStringOrBigInt,
+  isObject,
+  isSeq,
+  isString,
+  next,
+  sqlNum,
+  sqlType,
+  toSeq
+} from "./ƒ-utils.ts"
 import type {Mapƒ, NumBigInt, Predƒ, Seq, SingleOrIterator, TemporalParser, TemporalType} from "./types.ts";
 import {Pred, TemporalTypes} from "./types.ts"
 
@@ -81,6 +95,13 @@ export class ƒBase {
       : iterate([input])
   }
 
+  private _unwrapWith<T>(input: unknown, mapƒ: Mapƒ<T>, strict: StrictConfig): SingleOrIterator<T> {
+    this._checkStrict(input, strict)
+    return isIterable(input)
+      ? iterate(input).map(mapƒ)
+      : mapƒ(input)
+  }
+
   private static _autoFlatMap<I extends Seq<unknown>>(input: unknown, mapƒ: Mapƒ<I>): I {
     // todo determine if this is still required. The 'as I' cast is suspicious
     const mapped = this._autoMap(input, mapƒ) as I
@@ -109,6 +130,7 @@ export class ƒBase {
 
   private static _mustBeNumber(input: SingleOrIterator<unknown>, method: string): number {
     const num = next<unknown>(input)
+    // todo does this need to check for things like INFINITY
     if (isNumber(num)) {
       return sqlNum(num) as number
     }
@@ -141,6 +163,8 @@ export class ƒBase {
   }
 
   size(input: unknown): SingleOrIterator<number> {
+    // cannot use unwrap since it must preserve Array shape for size()
+    this._checkStrict(input, { strict: Array.isArray, error: "size() can only be applied to arrays." })
     return ƒBase._autoMap(input, ƒBase._size)
   }
 
@@ -156,9 +180,40 @@ export class ƒBase {
     return ƒBase._mustBeNumber(input, "double()")
   }
 
-  double(input: unknown): Seq<number> {
-    return this._unwrap(input, { strict: isNumberOrString, error: "input must be a string or a number." })
-      .map(ƒBase._double)
+  double(input: unknown): SingleOrIterator<number> {
+    return this._unwrapWith(input, ƒBase._double, { strict: isNumberOrString, error: "double() input must be a string or a number." })
+  }
+
+
+  private static _bigint(input: unknown): bigint {
+    let value
+    switch (typeof input) {
+      case "number":
+        // rounding is SQL standard behavior
+        // JS rounding is different from SQL rounding, for negative numbers
+        const int = input < 0
+          ? Math.ceil(input - 0.5)
+          : Math.round(input)
+        value = BigInt(int)
+        break
+      case "string":
+        // JSONPath has same string parse rules as JS
+        value = BigInt(input as string)
+        break
+      case "bigint":
+        value = input as bigint
+        break
+      default:
+        throw new Error(`bigint() can only be applied to a string or numeric value: ${input}`)
+    }
+    if (value < BIGINT_MIN || value > BIGINT_MAX) {
+      throw new Error(`value out of range for bigint(): ${value}`)
+    }
+    return value
+  }
+
+  bigint(input: unknown): SingleOrIterator<bigint> {
+    return this._unwrapWith(input, ƒBase._bigint, { strict: isNumberOrStringOrBigInt, error: "input must be a string, number or bigint." })
   }
 
 
@@ -173,7 +228,7 @@ export class ƒBase {
   }
 
   ceiling(input: unknown): SingleOrIterator<NumBigInt> {
-    return ƒBase._autoMap(input, ƒBase._ceiling)
+    return this._unwrapWith(input, ƒBase._ceiling, { strict: isNumberOrBigInt, error: "ceiling() input must be a number." })
   }
 
 
@@ -188,7 +243,7 @@ export class ƒBase {
   }
 
   floor(input: unknown): SingleOrIterator<NumBigInt> {
-    return ƒBase._autoMap(input, ƒBase._floor)
+    return this._unwrapWith(input, ƒBase._floor, { strict: isNumberOrBigInt, error: "floor() input must be a number." })
   }
 
 
@@ -198,7 +253,7 @@ export class ƒBase {
   }
 
   abs(input: unknown): SingleOrIterator<NumBigInt> {
-    return ƒBase._autoMap(input, ƒBase._abs)
+    return this._unwrapWith(input, ƒBase._abs, { strict: isNumberOrBigInt, error: "abs() input must be a number." })
   }
 
 
@@ -421,39 +476,6 @@ export class ƒBase {
   datetime(input: unknown, template: string): SingleOrIterator<TemporalType> {
     const parser = this.scope.get(template ?? CLDR) as TemporalParser
     return ƒBase._autoMap(input, (v: unknown) => ƒBase._datetime(v, parser))
-  }
-
-
-  private static _bigint(input: unknown): bigint {
-    let value
-    switch (typeof input) {
-      case "number":
-        // rounding is SQL standard behavior
-        // JS rounding is different from SQL rounding, for negative numbers
-        const int = input < 0
-          ? Math.ceil(input - 0.5)
-          : Math.round(input)
-        value = BigInt(int)
-        break
-      case "string":
-        // JSONPath has same string parse rules as JS
-        value = BigInt(input as string)
-        break
-      case "bigint":
-        value = input as bigint
-        break
-      default:
-        throw new Error(`bigint() can only be applied to a string or numeric value: ${input}`)
-    }
-    if (value < BIGINT_MIN || value > BIGINT_MAX) {
-      throw new Error(`value out of range for bigint(): ${value}`)
-    }
-    return value
-  }
-
-  bigint(input: unknown): Seq<bigint> {
-    return this._unwrap(input, { strict: isNumberOrStringOrBigInt, error: "input must be a string, number or bigint." })
-      .map(ƒBase._bigint)
   }
 
 
