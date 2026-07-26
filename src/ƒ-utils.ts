@@ -58,7 +58,8 @@ export function sqlNum(input: NumBigInt): NumBigInt {
 
 
 export function isNumber(input: unknown): input is number {
-  return typeof input === "number"
+  // SQL numbers are finite
+  return Number.isFinite(input)
 }
 
 export function isString(input: unknown): input is string {
@@ -70,15 +71,15 @@ export function isBigInt(input: unknown): input is bigint {
 }
 
 export function isNumberOrString(input: unknown): boolean {
-  return typeof input === "number" || typeof input === "string"
+  return isNumber(input) || isString(input)
 }
 
 export function isNumberOrBigInt(input: unknown): boolean {
-  return typeof input === "number" || typeof input === "bigint"
+  return isNumber(input) || isBigInt(input)
 }
 
 export function isNumberOrStringOrBigInt(input: unknown): boolean {
-  return typeof input === "number" || typeof input === "string" || typeof input === "bigint"
+  return isNumber(input) || isString(input) || isBigInt(input)
 }
 
 export function isObject(input: unknown): input is Record<string, unknown> {

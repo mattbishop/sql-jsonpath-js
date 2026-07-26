@@ -107,7 +107,6 @@ export class ƒBase {
 
   private static _mustBeNumber(input: SingleOrIterator<unknown>, method: string): number {
     const num = next<unknown>(input)
-    // todo does this need to check for things like INFINITY
     if (isNumber(num)) {
       return sqlNum(num) as number
     }
