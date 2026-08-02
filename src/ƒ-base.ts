@@ -62,6 +62,8 @@ export class ƒBase {
     if (this.lax || isSeq(input)) {
       return
     }
+    // todo isn't this just an array check for auto-unwrap?
+    // I'm checking input shape twice on strict.
     if (strict && !strict.strict(input)) {
       throw new Error(`In 'strict' mode! ${strict.error} Found: ${JSON.stringify(input)}`)
     }
@@ -75,33 +77,35 @@ export class ƒBase {
    */
   private _toArray(input: unknown, strict: StrictConfig): Array<unknown> {
     this._checkStrict(input, strict)
+    if (Array.isArray(input)) {
+      return input
+    }
     if (isSeq(input)) {
       return input.map((v) => Array.isArray(v) ? v : [v])
         .toArray()
-    } else if (Array.isArray(input)) {
-      return input
     }
     return [input]
   }
 
-  /**
+  /*
    * Unwraps array input into an iterator, and converts a non-array into a singeton iterator (lax mode only).
    * In strict mode, the non-array input will throw an error if the input is not an array and fails the strict test.
-   *
-   * @param input The input to unwrap.
-   * @param strict strict config, including input test and error message.
-   * @private
    */
   private _unwrap(input: unknown, strict: StrictConfig): Seq<unknown> {
-    if (this.lax) {
-      return toSeq(input)
-    }
     this._checkStrict(input, strict)
-    return isSeq(input)
-      ? input
-      : iterate([input])
+    return this.lax
+      ? toSeq(input)
+      : isSeq(input)
+        ? input
+        : iterate([input]);
   }
 
+  /*
+   * If lax, iterate and apply mapƒ, otherwise just apply mapƒ.
+   *
+   * Different from autoMap, in that it will iterate through arrays, while autoMap only iterates over Seq, thus treating
+   * arrays as a single value.
+   */
   private _unwrapWith<T>(input: unknown, mapƒ: Mapƒ<T>, strict: StrictConfig): SingleOrIterator<T> {
     this._checkStrict(input, strict)
     return isIterable(input)
@@ -117,6 +121,7 @@ export class ƒBase {
 
 
   type(input: unknown): SingleOrIterator<string> {
+    // do not unwrap input, unless it's a seq. Need type of array.
     return autoMap(input, sqlType)
   }
 
@@ -128,8 +133,8 @@ export class ƒBase {
   }
 
   size(input: unknown): SingleOrIterator<number> {
-    // cannot use unwrap since it must preserve Array shape for size()
     this._checkStrict(input, { strict: Array.isArray, error: "size() can only be applied to arrays." })
+    // do not use unwrap since it must preserve Array shape for size()
     return autoMap(input, ƒBase._size)
   }
 
@@ -138,7 +143,7 @@ export class ƒBase {
     if (isString(input) || isBigInt(input)) {
       const num = Number(input)
       if (Number.isNaN(num)) {
-        throw new Error(`double() param ${input} is not a representation of a number.`)
+        throw new Error(`double() input ${input} is not a representation of a number.`)
       }
       return sqlNum(num) as number
     }
@@ -212,7 +217,7 @@ export class ƒBase {
     if (isNumber(input)) {
       return sqlNum(Math.ceil(input))
     }
-    throw new Error(`ceiling() param must be a number, found ${JSON.stringify(input)}.`)
+    throw new Error(`ceiling() input must be a number, found ${JSON.stringify(input)}.`)
   }
 
   ceiling(input: unknown): SingleOrIterator<NumBigInt> {
@@ -227,7 +232,7 @@ export class ƒBase {
     if (isNumber(input)) {
       return sqlNum(Math.floor(input))
     }
-    throw new Error(`floor() param must be a number, found ${JSON.stringify(input)}.`)
+    throw new Error(`floor() input must be a number, found ${JSON.stringify(input)}.`)
   }
 
   floor(input: unknown): SingleOrIterator<NumBigInt> {
@@ -249,12 +254,13 @@ export class ƒBase {
     if (isString(input)) {
       return parser.toDate(input)
     }
-    throw new Error(`date() param must be a string, found ${JSON.stringify(input)}.`)
+    throw new Error(`date() input must be a string, found ${JSON.stringify(input)}.`)
   }
 
   date(input: unknown): SingleOrIterator<Temporal.PlainDate> {
     const parser = this.scope.get(CLDR) as TemporalParser
-    return autoMap(input, (v: unknown) => ƒBase._date(v, parser))
+    const mapƒ = (v: unknown) => ƒBase._date(v, parser)
+    return this._unwrapWith(input, mapƒ, { strict: isString, error: "date() input must be a string." })
   }
 
   private static _timeRoundOptions(precision: number): Temporal.RoundTo<"second" | "millisecond" | "microsecond" | "nanosecond"> {
@@ -294,7 +300,7 @@ export class ƒBase {
       }
       return time
     }
-    throw new Error(`time() param must be a string, found ${JSON.stringify(input)}.`)
+    throw new Error(`time() input must be a string, found ${JSON.stringify(input)}.`)
   }
 
 
@@ -303,7 +309,8 @@ export class ƒBase {
   // ERROR: cannot convert value from timestamptz to time without time zone usage
   time(input: unknown, precision?: number): SingleOrIterator<Temporal.PlainTime> {
     const parser = this.scope.get(CLDR) as TemporalParser
-    return autoMap(input, (v: unknown) => ƒBase._time(v, parser, precision))
+    const mapƒ = (v: unknown) => ƒBase._time(v, parser, precision)
+    return this._unwrapWith(input, mapƒ, { strict: isString, error: "time() input must be a string." })
   }
 
 
@@ -315,7 +322,7 @@ export class ƒBase {
       }
       return time
     }
-    throw new Error(`time() param must be a string, found ${JSON.stringify(input)}.`)
+    throw new Error(`time() input must be a string, found ${JSON.stringify(input)}.`)
   }
 
   // returns the time value in UTC, so calculates the effect of the time zone
@@ -324,7 +331,8 @@ export class ƒBase {
   // It converts to UTC time and returns that
   time_tz(input: unknown, precision?: number): SingleOrIterator<Temporal.PlainTime> {
     const parser = this.scope.get(CLDR) as TemporalParser
-    return autoMap(input, (v: unknown) => ƒBase._time_tz(v, parser, precision))
+    const mapƒ =  (v: unknown) => ƒBase._time_tz(v, parser, precision)
+    return this._unwrapWith(input, mapƒ, { strict: isString, error: "time_tz() input must be a string."})
   }
 
 
@@ -375,12 +383,13 @@ export class ƒBase {
       }
       return timestamp
     }
-    throw new Error(`timestamp() param must be a string, found ${JSON.stringify(input)}.`)
+    throw new Error(`timestamp() input must be a string, found ${JSON.stringify(input)}.`)
   }
 
   timestamp(input: unknown, precision?: number): SingleOrIterator<Temporal.PlainDateTime> {
     const parser = this.scope.get(CLDR) as TemporalParser
-    return autoMap(input, (v: unknown) => ƒBase._timestamp(v, parser, precision))
+    const mapƒ = (v: unknown) => ƒBase._timestamp(v, parser, precision)
+    return this._unwrapWith(input, mapƒ, { strict: isString, error: "timestamp() input must be a string." })
   }
 
   private static _timestampTzRoundOptions(precision: number): Temporal.RoundTo<"second" | "millisecond" | "microsecond" | "nanosecond"> {
@@ -421,12 +430,13 @@ export class ƒBase {
       }
       return timestamp
     }
-    throw new Error(`timestamp() param must be a string, found ${JSON.stringify(input)}.`)
+    throw new Error(`timestamp() input must be a string, found ${JSON.stringify(input)}.`)
   }
 
   timestamp_tz(input: unknown, precision?: number): SingleOrIterator<Temporal.Instant> {
     const parser = this.scope.get(CLDR) as TemporalParser
-    return autoMap(input, (v: unknown) => ƒBase._timestamp_tz(v, parser, precision))
+    const mapƒ = (v: unknown) => ƒBase._timestamp_tz(v, parser, precision)
+    return this._unwrapWith(input, mapƒ, { strict: isString, error: "timestamp() input must be a string." })
   }
 
 
@@ -458,12 +468,13 @@ export class ƒBase {
     if (isString(input)) {
       return parser.toTemporal(input)
     }
-    throw new Error(`datetime() param must be a string, found ${JSON.stringify(input)}.`)
+    throw new Error(`datetime() input must be a string, found ${JSON.stringify(input)}.`)
   }
 
   datetime(input: unknown, template: string): SingleOrIterator<TemporalType> {
     const parser = this.scope.get(template ?? CLDR) as TemporalParser
-    return autoMap(input, (v: unknown) => ƒBase._datetime(v, parser))
+    const mapƒ = (v: unknown) => ƒBase._datetime(v, parser)
+    return this._unwrapWith(input, mapƒ, { strict: isString, error: "datetime() input must be a string."})
   }
 
 
@@ -473,7 +484,7 @@ export class ƒBase {
   }
 
   keyvalue(input: unknown): Seq<KeyValue> {
-    const objects = this._unwrap(input, { strict: isObject, error: "keyvalue() param must be an object." })
+    const objects = this._unwrap(input, { strict: isObject, error: "keyvalue() input must be an object." })
     const mapƒ = (row: unknown) => {
       if (isObject(row)) {
         const id = this.scope.get(KV_INDEX) as number ?? 0
@@ -481,7 +492,7 @@ export class ƒBase {
         this.scope.set(KV_INDEX, id === Number.MAX_SAFE_INTEGER ? 0 : id + 1)
         return ƒBase._toKV(row, id)
       }
-      throw new Error(`keyvalue() param must have object values, found ${JSON.stringify(row)}.`)
+      throw new Error(`keyvalue() input must have object values, found ${JSON.stringify(row)}.`)
     }
     return autoFlatMap(objects, mapƒ)
   }
@@ -807,6 +818,7 @@ export class ƒBase {
   }
 
 
+// todo do these also autounwrap? How can I test this?
   private static _isUnknown(input: Pred): Pred {
     return toPred(input === Pred.UNKNOWN)
   }
