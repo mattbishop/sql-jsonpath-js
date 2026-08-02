@@ -128,3 +128,11 @@ export function autoFlatMap<I extends Seq<unknown>>(input: unknown, mapƒ: Mapƒ
     ? mapped.flatten() as I
     : mapped
 }
+
+export function mustBeNumber(input: SingleOrIterator<unknown>, method: string): number {
+  const num = next<unknown>(input)
+  if (isNumber(num)) {
+    return sqlNum(num) as number
+  }
+  throw new Error(`${method} param must be a number, found ${JSON.stringify(input)}.`)
+}

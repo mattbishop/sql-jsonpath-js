@@ -18,6 +18,7 @@ import {
   isObject,
   isSeq,
   isString,
+  mustBeNumber,
   next,
   sqlNum,
   sqlType,
@@ -107,13 +108,6 @@ export class ƒBase {
       : mapƒ(input)
   }
 
-  private static _mustBeNumber(input: SingleOrIterator<unknown>, method: string): number {
-    const num = next<unknown>(input)
-    if (isNumber(num)) {
-      return sqlNum(num) as number
-    }
-    throw new Error(`${method} param must be a number, found ${JSON.stringify(input)}.`)
-  }
 
   private static _mustBeNumberOrBigInt(input: SingleOrIterator<unknown>, method: string): NumBigInt {
     const num = next<unknown>(input)
@@ -125,7 +119,7 @@ export class ƒBase {
 
   // not a JSONPath function. Used to convert strings to numbers for math
   num(input: unknown): number {
-    return ƒBase._mustBeNumber(input, "arithmetic")
+    return mustBeNumber(input, "arithmetic")
   }
 
 
@@ -155,7 +149,7 @@ export class ƒBase {
       }
       return sqlNum(num) as number
     }
-    return ƒBase._mustBeNumber(input, "double()")
+    return mustBeNumber(input, "double()")
   }
 
   double(input: unknown): SingleOrIterator<number> {
@@ -599,8 +593,8 @@ export class ƒBase {
   }
 
   range(from: unknown, to: unknown): Seq<number> {
-    const start = ƒBase._mustBeNumber(from, "'from'")
-    const end = ƒBase._mustBeNumber(to, "'to'")
+    const start = mustBeNumber(from, "'from'")
+    const end = mustBeNumber(to, "'to'")
     return iterate(ƒBase._range(start, end))
   }
 
