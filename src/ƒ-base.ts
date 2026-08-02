@@ -10,11 +10,8 @@ import {
   autoMap,
   isBigInt,
   isBoolean,
-  isBooleanOrNumberOrStringOrBigInt,
   isNumber,
   isNumberOrBigInt,
-  isNumberOrString,
-  isNumberOrStringOrBigInt,
   isObject,
   isSeq,
   isString,
@@ -55,17 +52,16 @@ export class ƒBase {
    * Examine input with strict test, if any. Throws error if in strict mode and
    * the strictness test does not pass.
    * @param input the input to test.
-   * @param strict the strictness config.
+   * @param config the strictness config.
    * @private
    */
-  private _checkStrict(input: unknown, strict: StrictConfig) {
+  private _checkStrict(input: unknown, config: StrictConfig) {
     if (this.lax || isSeq(input)) {
       return
     }
-    // todo isn't this just an array check for auto-unwrap?
-    // I'm checking input shape twice on strict.
-    if (strict && !strict.strict(input)) {
-      throw new Error(`In 'strict' mode! ${strict.error} Found: ${JSON.stringify(input)}`)
+    const {strict, error} = config
+    if (!strict(input)) {
+      throw new Error(`In 'strict' mode! ${error} Found: ${JSON.stringify(input)}`)
     }
   }
 
@@ -106,8 +102,8 @@ export class ƒBase {
    * Different from autoMap, in that it will iterate through arrays, while autoMap only iterates over Seq, thus treating
    * arrays as a single value.
    */
-  private _unwrapWith<T>(input: unknown, mapƒ: Mapƒ<T>, strict: StrictConfig): SingleOrIterator<T> {
-    this._checkStrict(input, strict)
+  private _unwrapWith<T>(input: unknown, mapƒ: Mapƒ<T>, strict?: StrictConfig): SingleOrIterator<T> {
+    this._checkStrict(input, strict || { strict: (input) => !Array.isArray(input), error: "Cannot unwrap non-array input." })
     return isIterable(input)
       ? iterate(input).map(mapƒ)
       : mapƒ(input)
@@ -151,7 +147,7 @@ export class ƒBase {
   }
 
   double(input: unknown): SingleOrIterator<number> {
-    return this._unwrapWith(input, ƒBase._double, { strict: isNumberOrString, error: "double() input must be a string or a number." })
+    return this._unwrapWith(input, ƒBase._double)
   }
 
 
@@ -183,7 +179,7 @@ export class ƒBase {
   }
 
   bigint(input: unknown): SingleOrIterator<bigint> {
-    return this._unwrapWith(input, ƒBase._bigint, { strict: isNumberOrStringOrBigInt, error: "input must be a string, number or bigint." })
+    return this._unwrapWith(input, ƒBase._bigint)
   }
 
 
@@ -200,14 +196,13 @@ export class ƒBase {
       }
     }
     else if (isNumberOrBigInt(input)) {
-      // @ts-ignore '>' applies to both number and bigit
       return input > 0
     }
     throw new Error(`boolean() can only be applied to a boolean, string or numeric value: ${input}`)
   }
 
   boolean(input: unknown): SingleOrIterator<boolean> {
-    return this._unwrapWith(input, ƒBase._boolean, { strict: isBooleanOrNumberOrStringOrBigInt, error: "input must be a string or boolean." })
+    return this._unwrapWith(input, ƒBase._boolean)
   }
 
   private static _ceiling(input: unknown): NumBigInt {
@@ -221,7 +216,7 @@ export class ƒBase {
   }
 
   ceiling(input: unknown): SingleOrIterator<NumBigInt> {
-    return this._unwrapWith(input, ƒBase._ceiling, { strict: isNumberOrBigInt, error: "ceiling() input must be a number." })
+    return this._unwrapWith(input, ƒBase._ceiling)
   }
 
 
@@ -236,7 +231,7 @@ export class ƒBase {
   }
 
   floor(input: unknown): SingleOrIterator<NumBigInt> {
-    return this._unwrapWith(input, ƒBase._floor, { strict: isNumberOrBigInt, error: "floor() input must be a number." })
+    return this._unwrapWith(input, ƒBase._floor)
   }
 
 
@@ -246,7 +241,7 @@ export class ƒBase {
   }
 
   abs(input: unknown): SingleOrIterator<NumBigInt> {
-    return this._unwrapWith(input, ƒBase._abs, { strict: isNumberOrBigInt, error: "abs() input must be a number." })
+    return this._unwrapWith(input, ƒBase._abs)
   }
 
 
@@ -260,7 +255,7 @@ export class ƒBase {
   date(input: unknown): SingleOrIterator<Temporal.PlainDate> {
     const parser = this.scope.get(CLDR) as TemporalParser
     const mapƒ = (v: unknown) => ƒBase._date(v, parser)
-    return this._unwrapWith(input, mapƒ, { strict: isString, error: "date() input must be a string." })
+    return this._unwrapWith(input, mapƒ)
   }
 
   private static _timeRoundOptions(precision: number): Temporal.RoundTo<"second" | "millisecond" | "microsecond" | "nanosecond"> {
@@ -310,7 +305,7 @@ export class ƒBase {
   time(input: unknown, precision?: number): SingleOrIterator<Temporal.PlainTime> {
     const parser = this.scope.get(CLDR) as TemporalParser
     const mapƒ = (v: unknown) => ƒBase._time(v, parser, precision)
-    return this._unwrapWith(input, mapƒ, { strict: isString, error: "time() input must be a string." })
+    return this._unwrapWith(input, mapƒ)
   }
 
 
@@ -332,7 +327,7 @@ export class ƒBase {
   time_tz(input: unknown, precision?: number): SingleOrIterator<Temporal.PlainTime> {
     const parser = this.scope.get(CLDR) as TemporalParser
     const mapƒ =  (v: unknown) => ƒBase._time_tz(v, parser, precision)
-    return this._unwrapWith(input, mapƒ, { strict: isString, error: "time_tz() input must be a string."})
+    return this._unwrapWith(input, mapƒ)
   }
 
 
@@ -389,7 +384,7 @@ export class ƒBase {
   timestamp(input: unknown, precision?: number): SingleOrIterator<Temporal.PlainDateTime> {
     const parser = this.scope.get(CLDR) as TemporalParser
     const mapƒ = (v: unknown) => ƒBase._timestamp(v, parser, precision)
-    return this._unwrapWith(input, mapƒ, { strict: isString, error: "timestamp() input must be a string." })
+    return this._unwrapWith(input, mapƒ)
   }
 
   private static _timestampTzRoundOptions(precision: number): Temporal.RoundTo<"second" | "millisecond" | "microsecond" | "nanosecond"> {
@@ -436,7 +431,7 @@ export class ƒBase {
   timestamp_tz(input: unknown, precision?: number): SingleOrIterator<Temporal.Instant> {
     const parser = this.scope.get(CLDR) as TemporalParser
     const mapƒ = (v: unknown) => ƒBase._timestamp_tz(v, parser, precision)
-    return this._unwrapWith(input, mapƒ, { strict: isString, error: "timestamp() input must be a string." })
+    return this._unwrapWith(input, mapƒ)
   }
 
 
@@ -474,7 +469,7 @@ export class ƒBase {
   datetime(input: unknown, template: string): SingleOrIterator<TemporalType> {
     const parser = this.scope.get(template ?? CLDR) as TemporalParser
     const mapƒ = (v: unknown) => ƒBase._datetime(v, parser)
-    return this._unwrapWith(input, mapƒ, { strict: isString, error: "datetime() input must be a string."})
+    return this._unwrapWith(input, mapƒ)
   }
 
 
@@ -484,7 +479,6 @@ export class ƒBase {
   }
 
   keyvalue(input: unknown): Seq<KeyValue> {
-    const objects = this._unwrap(input, { strict: isObject, error: "keyvalue() input must be an object." })
     const mapƒ = (row: unknown) => {
       if (isObject(row)) {
         const id = this.scope.get(KV_INDEX) as number ?? 0
@@ -492,9 +486,10 @@ export class ƒBase {
         this.scope.set(KV_INDEX, id === Number.MAX_SAFE_INTEGER ? 0 : id + 1)
         return ƒBase._toKV(row, id)
       }
-      throw new Error(`keyvalue() input must have object values, found ${JSON.stringify(row)}.`)
+      throw new Error(`keyvalue() input must be an object, found ${JSON.stringify(row)}.`)
     }
-    return autoFlatMap(objects, mapƒ)
+    const unwrapped = this._unwrapWith(input, mapƒ, { strict: isObject, error: "keyvalue() input must be an object." })
+    return toSeq(unwrapped) as Seq<KeyValue>
   }
 
   private static _objectValues(input: unknown): Iterator<unknown> {
@@ -516,7 +511,7 @@ export class ƒBase {
 
   private _boxStar(input: unknown): Seq<unknown> {
     // [*] is not the same as unwrap, which always turns the array into a seq in lax mode.
-    this._checkStrict(input, { strict: Array.isArray, error: "[*] can only be applied to an array in strict mode." })
+    this._checkStrict(input, { strict: Array.isArray, error: "[*] can only be applied to an array." })
     return toSeq(input)
   }
 
@@ -537,11 +532,16 @@ export class ƒBase {
   }
 
   private _member(input: unknown, member: string): Seq<unknown> {
+    // strict throws an error for unknown members, but lax just returns no value
     return this._unwrap(input, { strict: isObject, error: ".member can only be applied to an object." })
       .map((i) => this._getMember(i, member))
       .filter((i) => i !== NO_VALUE)
   }
 
+  // todo This always returns a Seq, but it usually is not.
+  // hard part is lax mode; needs to gracefully ignore non-existent members, while in strict, throw.
+  // thing.nope.bigint() should throw in strict, but return nothing in lax.
+  // perhaps NO_VALUE means return EMPTY_SEQ?
   member(input: unknown, member: string): Seq<unknown> {
     return autoFlatMap(input, (i) => this._member(i, member))
   }

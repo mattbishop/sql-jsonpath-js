@@ -74,20 +74,8 @@ export function isBoolean(input: unknown): input is boolean {
   return typeof input === "boolean"
 }
 
-export function isNumberOrString(input: unknown): boolean {
-  return isNumber(input) || isString(input)
-}
-
-export function isNumberOrBigInt(input: unknown): boolean {
+export function isNumberOrBigInt(input: unknown): input is number | bigint {
   return isNumber(input) || isBigInt(input)
-}
-
-export function isNumberOrStringOrBigInt(input: unknown): boolean {
-  return isNumber(input) || isString(input) || isBigInt(input)
-}
-
-export function isBooleanOrNumberOrStringOrBigInt(input: unknown): boolean {
-  return isBoolean(input) || isNumberOrStringOrBigInt(input)
 }
 
 export function isObject(input: unknown): input is Record<string, unknown> {
@@ -134,7 +122,7 @@ export function mustBeNumber(input: SingleOrIterator<unknown>, method: string): 
   if (isNumber(num)) {
     return sqlNum(num) as number
   }
-  throw new Error(`${method} param must be a number, found ${JSON.stringify(input)}.`)
+  throw new Error(`${method} input must be a number, found ${JSON.stringify(input)}.`)
 }
 
 export function mustBeNumberOrBigInt(input: SingleOrIterator<unknown>, method: string): NumBigInt {
@@ -142,5 +130,5 @@ export function mustBeNumberOrBigInt(input: SingleOrIterator<unknown>, method: s
   if (isNumber(num) || isBigInt(num)) {
     return sqlNum(num)
   }
-  throw new Error(`${method} param must be a number or bigint, found ${JSON.stringify(input)}.`)
+  throw new Error(`${method} input must be a number or bigint, found ${JSON.stringify(input)}.`)
 }
