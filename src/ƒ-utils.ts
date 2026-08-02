@@ -70,6 +70,10 @@ export function isBigInt(input: unknown): input is bigint {
   return typeof input === "bigint"
 }
 
+export function isBoolean(input: unknown): input is boolean {
+  return typeof input === "boolean"
+}
+
 export function isNumberOrString(input: unknown): boolean {
   return isNumber(input) || isString(input)
 }
@@ -80,6 +84,10 @@ export function isNumberOrBigInt(input: unknown): boolean {
 
 export function isNumberOrStringOrBigInt(input: unknown): boolean {
   return isNumber(input) || isString(input) || isBigInt(input)
+}
+
+export function isBooleanOrNumberOrStringOrBigInt(input: unknown): boolean {
+  return isBoolean(input) || isNumberOrStringOrBigInt(input)
 }
 
 export function isObject(input: unknown): input is Record<string, unknown> {

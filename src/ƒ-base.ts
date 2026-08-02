@@ -9,6 +9,8 @@ import {
   autoFlatMap,
   autoMap,
   isBigInt,
+  isBoolean,
+  isBooleanOrNumberOrStringOrBigInt,
   isNumber,
   isNumberOrBigInt,
   isNumberOrString,
@@ -192,6 +194,29 @@ export class ƒBase {
     return this._unwrapWith(input, ƒBase._bigint, { strict: isNumberOrStringOrBigInt, error: "input must be a string, number or bigint." })
   }
 
+
+  private static _boolean(input: unknown): boolean {
+    if (isBoolean(input)) {
+      return input
+    }
+    if (isString(input)) {
+      if (/true|t|1|yes|y|on/i.test(input)) {
+        return true
+      }
+      if (/false|f|0|no|n|off/i.test(input)) {
+        return false
+      }
+    }
+    else if (isNumberOrBigInt(input)) {
+      // @ts-ignore '>' applies to both number and bigit
+      return input > 0
+    }
+    throw new Error(`boolean() can only be applied to a boolean, string or numeric value: ${input}`)
+  }
+
+  boolean(input: unknown): SingleOrIterator<boolean> {
+    return this._unwrapWith(input, ƒBase._boolean, { strict: isBooleanOrNumberOrStringOrBigInt, error: "input must be a string or boolean." })
+  }
 
   private static _ceiling(input: unknown): NumBigInt {
     if (isBigInt(input)) {
