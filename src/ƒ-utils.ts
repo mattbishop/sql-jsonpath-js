@@ -136,3 +136,11 @@ export function mustBeNumber(input: SingleOrIterator<unknown>, method: string): 
   }
   throw new Error(`${method} param must be a number, found ${JSON.stringify(input)}.`)
 }
+
+export function mustBeNumberOrBigInt(input: SingleOrIterator<unknown>, method: string): NumBigInt {
+  const num = next<unknown>(input)
+  if (isNumber(num) || isBigInt(num)) {
+    return sqlNum(num)
+  }
+  throw new Error(`${method} param must be a number or bigint, found ${JSON.stringify(input)}.`)
+}

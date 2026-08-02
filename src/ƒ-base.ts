@@ -19,6 +19,7 @@ import {
   isSeq,
   isString,
   mustBeNumber,
+  mustBeNumberOrBigInt,
   next,
   sqlNum,
   sqlType,
@@ -108,14 +109,6 @@ export class ƒBase {
       : mapƒ(input)
   }
 
-
-  private static _mustBeNumberOrBigInt(input: SingleOrIterator<unknown>, method: string): NumBigInt {
-    const num = next<unknown>(input)
-    if (isNumber(num) || isBigInt(num)) {
-      return sqlNum(num)
-    }
-    throw new Error(`${method} param must be a number or bigint, found ${JSON.stringify(input)}.`)
-  }
 
   // not a JSONPath function. Used to convert strings to numbers for math
   num(input: unknown): number {
@@ -243,7 +236,7 @@ export class ƒBase {
 
 
   private static _abs(input: unknown): NumBigInt {
-    const num = ƒBase._mustBeNumberOrBigInt(input, "abs()")
+    const num = mustBeNumberOrBigInt(input, "abs()")
     return num < 0 ? -num : num
   }
 
