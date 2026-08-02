@@ -488,8 +488,9 @@ export class ƒBase {
       }
       throw new Error(`keyvalue() input must be an object, found ${JSON.stringify(row)}.`)
     }
-    const unwrapped = this._unwrapWith(input, mapƒ, { strict: isObject, error: "keyvalue() input must be an object." })
-    return toSeq(unwrapped) as Seq<KeyValue>
+    return this._unwrap(input, { strict: isObject, error: "keyvalue() can only be applied to an object." })
+      .map(mapƒ)
+      .flatten()
   }
 
   private static _objectValues(input: unknown): Iterator<unknown> {
