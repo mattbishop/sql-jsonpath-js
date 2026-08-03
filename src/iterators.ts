@@ -24,10 +24,6 @@ export function toInputIterator(input: Input): Iterator<unknown> {
 }
 
 
-/** @internal */
-export const EMPTY_ITERATOR = [][Symbol.iterator]()
-
-
 /**
  * Wraps a single-pass iterable so it can be iterated multiple times.
  *

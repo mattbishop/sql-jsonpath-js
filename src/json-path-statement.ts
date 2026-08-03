@@ -8,6 +8,7 @@ import {DefaultOnEmptyIterator, DefaultOnErrorIterator, isIterableInput, one, to
 import type {Input, NamedVariables, SqlJsonPathStatement, ValuesConfig} from "./json-path.ts"
 import {JsonPathParser} from "./parser.ts"
 import {allTokens} from "./tokens.ts"
+import {NO_VALUE} from "./types.ts"
 
 
 const jsonPathLexer = new Lexer(allTokens, {ensureOptimizations: true})
@@ -52,9 +53,10 @@ function createFunction({source, lax, scope}: CodegenContext): SJPFn {
       throw new Error(`no variable named '$${name}'`)
     }
     const result = fn(ƒ, $, $$)
-    return result instanceof IteratorWithOperators
+    const iter = result instanceof IteratorWithOperators
       ? result
       : iterate([result])
+    return iter.filter((v) => v !== NO_VALUE)
   }
 }
 

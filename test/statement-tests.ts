@@ -1149,7 +1149,7 @@ describe("Statement tests", () => {
 
     it("supports auto-unwrapping array of values", async () => {
       const src = '$.a'
-      const data = [{a: 1}, {a: 2}, {a: {a: 5}}]
+      const data = [{a: 1}, {a: 2}, {b: 3}, {a: {a: 5}}]
       await testValuesCompareToPg(src, data)
     })
   })

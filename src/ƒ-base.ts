@@ -4,7 +4,7 @@ import {Temporal} from "@js-temporal/polyfill"
 
 import {CLDR} from "./datetime-parser.ts"
 import {type KeyValue} from "./json-path.ts"
-import {EMPTY_ITERATOR, isIterableInput, ReplayableIterable} from "./iterators.ts"
+import {isIterableInput, ReplayableIterable} from "./iterators.ts"
 import {
   autoFlatMap,
   autoMap,
@@ -23,8 +23,18 @@ import {
   toPred,
   toSeq
 } from "./ƒ-utils.ts"
-import type {Mapƒ, NumBigInt, Predƒ, Seq, SingleOrIterator, TemporalParser, TemporalType} from "./types.ts"
-import {Pred, TemporalTypes} from "./types.ts"
+import {
+  type Mapƒ,
+  NO_VALUE,
+  type NumBigInt,
+  Pred,
+  type Predƒ,
+  type Seq,
+  type SingleOrIterator,
+  type TemporalParser,
+  type TemporalType,
+  TemporalTypes
+} from "./types.ts"
 
 
 type StrictConfig = {
@@ -34,9 +44,7 @@ type StrictConfig = {
 
 
 const KV_INDEX = "KV-index"
-
-const NO_VALUE = Symbol.for("No Value")
-
+const EMPTY_SEQ = iterate([])
 const BIGINT_MIN = -(2n ** 63n)
 const BIGINT_MAX = 2n ** 63n - 1n
 
@@ -496,7 +504,7 @@ export class ƒBase {
   private static _objectValues(input: unknown): Iterator<unknown> {
     return isObject(input)
       ? iterate(Object.values(input))
-      : EMPTY_ITERATOR
+      : EMPTY_SEQ
   }
 
   private _dotStar(input: unknown): Seq<unknown> {
@@ -522,29 +530,19 @@ export class ƒBase {
   }
 
 
-  private _getMember(obj: unknown, member: string): unknown {
+  private _member(obj: unknown, member: string): unknown {
     if (isObject(obj) && obj.hasOwnProperty(member)) {
       return obj[member]
     }
     if (this.lax) {
       return NO_VALUE
     }
-    throw new Error(`Object does not contain key '${member}', in strict mode.`)
+    throw new Error(`Object does not contain key '${member}'. In strict mode.`)
   }
 
-  private _member(input: unknown, member: string): Seq<unknown> {
-    // strict throws an error for unknown members, but lax just returns no value
-    return this._unwrap(input, { strict: isObject, error: ".member can only be applied to an object." })
-      .map((i) => this._getMember(i, member))
-      .filter((i) => i !== NO_VALUE)
-  }
-
-  // todo This always returns a Seq, but it usually is not.
-  // hard part is lax mode; needs to gracefully ignore non-existent members, while in strict, throw.
-  // thing.nope.bigint() should throw in strict, but return nothing in lax.
-  // perhaps NO_VALUE means return EMPTY_SEQ?
-  member(input: unknown, member: string): Seq<unknown> {
-    return autoFlatMap(input, (i) => this._member(i, member))
+  member(input: unknown, member: string): SingleOrIterator<unknown> {
+    const mapƒ = (i: unknown) => this._member(i, member)
+    return this._unwrapWith(input, mapƒ)
   }
 
 
@@ -558,7 +556,7 @@ export class ƒBase {
     if (this.lax) {
       return NO_VALUE
     }
-    throw new Error (`In 'strict' mode. Array subscript [${pos}] is out of bounds.`)
+    throw new Error (`Array subscript [${pos}] is out of bounds. In 'strict' mode.`)
   }
 
   private _array(input: unknown, subscripts: any[]): Seq<any> {
@@ -576,7 +574,6 @@ export class ƒBase {
         }
         throw new Error("array accessor must be numbers")
       })
-      .filter((i) => i !== NO_VALUE)
       .flatten()
   }
 

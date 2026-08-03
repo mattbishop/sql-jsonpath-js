@@ -62,3 +62,7 @@ export interface TemporalParser {
 
   toTemporal(input: string): TemporalType
 }
+
+
+/** @internal */
+export const NO_VALUE = Symbol.for("No Value")
