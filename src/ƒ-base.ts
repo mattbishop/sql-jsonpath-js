@@ -203,7 +203,7 @@ export class ƒBase {
         return false
       }
     }
-    else if (isNumber(input) && Number.isInteger(input) || isBigInt(input)) {
+    else if ((isNumber(input) && Number.isInteger(input)) || isBigInt(input)) {
       return input != 0
     }
     throw new Error(`boolean() can only be applied to a boolean, string or integer value: ${JSON.stringify(input)}`)
