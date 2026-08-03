@@ -11,7 +11,6 @@ import {
   isBigInt,
   isBoolean,
   isNumber,
-  isNumberOrBigInt,
   isObject,
   isSeq,
   isString,

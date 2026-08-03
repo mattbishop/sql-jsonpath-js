@@ -74,10 +74,6 @@ export function isBoolean(input: unknown): input is boolean {
   return typeof input === "boolean"
 }
 
-export function isNumberOrBigInt(input: unknown): input is number | bigint {
-  return isNumber(input) || isBigInt(input)
-}
-
 export function isObject(input: unknown): input is Record<string, unknown> {
   return sqlType(input) === "object"
 }
