@@ -548,7 +548,7 @@ export class ƒBase {
   }
 
 
-  private _maybeElement(array: Array<unknown>, pos: any): unknown {
+  private _maybeElement(array: Array<unknown>, pos: number): unknown {
     if (pos < array.length) {
       const value = array[pos]
       return Array.isArray(value)
@@ -565,15 +565,14 @@ export class ƒBase {
     const array = this._toArray(input, { strict: Array.isArray, error: "Array accessors can only be applied to an array." })
     return iterate(subscripts)
       .map((sub) => {
-        const subType = sqlType(sub)
-        if (subType === "number") {
+        if (isNumber(sub)) {
           return this._maybeElement(array, sub)
         }
-        if (subType == "function") {
+        if (typeof sub === "function") {
           return this._maybeElement(array, sub(array))
         }
         if (isSeq(sub)) {
-          return sub.map((s) => this._maybeElement(array, s))
+          return sub.map((s) => this._maybeElement(array, s as number))
         }
         throw new Error("array accessor must be numbers")
       })
