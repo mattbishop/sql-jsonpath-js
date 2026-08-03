@@ -196,17 +196,17 @@ export class ƒBase {
       return input
     }
     if (isString(input)) {
-      if (/true|t|1|yes|y|on/i.test(input)) {
+      if (/^(?:true|t|1|yes|y|on)$/i.test(input)) {
         return true
       }
-      if (/false|f|0|no|n|off/i.test(input)) {
+      if (/^(?:false|f|0|no|n|off)$/i.test(input)) {
         return false
       }
     }
-    else if (isNumberOrBigInt(input)) {
-      return input > 0
+    else if (isNumber(input) && Number.isInteger(input) || isBigInt(input)) {
+      return input != 0
     }
-    throw new Error(`boolean() can only be applied to a boolean, string or numeric value: ${input}`)
+    throw new Error(`boolean() can only be applied to a boolean, string or integer value: ${JSON.stringify(input)}`)
   }
 
   boolean(input: unknown): SingleOrIterator<boolean> {

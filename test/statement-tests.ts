@@ -10,6 +10,7 @@ import {PGlite} from "@electric-sql/pglite"
 import {compile, one} from "../src/index.ts"
 import {isIterableInput, ReplayableIterable} from "../src/iterators.ts"
 import type {Input} from "../src/json-path.ts"
+import {isNumber} from "../src/ƒ-utils";
 
 // testing from /dist to ensure the exported interface is correct
 
@@ -75,8 +76,13 @@ async function testValuesCompareToPg(statement: string, data: Input<any>, variab
       actual = e as Error
     }
     if (actual instanceof Error) {
+      // @ts-ignore
+      console.info(`actual: ${actual.message}, pgActual: ${pgActual.message}`)
       expect(pgActual instanceof Error, `pgActual not an Error, but actual is: ${actual.message}`).to.be.true
-      console.info(`actual: ${actual.message}, pgActual: ${(pgActual as Error).message}`)
+    } else if (pgActual instanceof Error) {
+      // @ts-ignore
+      console.info(`actual: ${actual.message}, pgActual: ${pgActual.message}`)
+      expect(actual instanceof Error, `actual not an Error, but pgActual is: ${pgActual.message}`).to.be.true
     } else {
       expect(actual).to.deep.equal(pgActual)
     }
@@ -864,6 +870,62 @@ describe("Statement tests", () => {
       const src = '$[*] ? (@.bigint() > 10)'
       const data = ["9", "10", "11", 12, "-20"]
       await testValuesCompareToPg(src, data.values())
+    })
+  })
+
+  describe("boolean()", () => {
+    it("passes through boolean values", async () => {
+      const src = '$.boolean()'
+      const data = [true, false]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("converts postgres true string values", async () => {
+      const src = '$.boolean()'
+      const data = ["true", "t", "yes", "y", "on", "1"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("converts postgres false string values", async () => {
+      const src = '$.boolean()'
+      const data = ["false", "f", "no", "n", "off", "0"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("converts string values case-insensitively", async () => {
+      const src = '$.boolean()'
+      const data = ["TRUE", "False", "YeS", "OFF", "On", "nO"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("matches postgres behavior for numeric values", async () => {
+      const src = '$.boolean()'
+      const data = [0, 1, -1, 2, 77.6, -440.33]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("applies boolean() to iterator values", async () => {
+      const src = '$[*].boolean()'
+      const data = [true, false, "true", "false", "yes", "no", "on", "off", "1", "0"]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("can filter with boolean()", async () => {
+      const src = '$[*] ? (@.boolean() == true)'
+      const data = [true, false, "true", "false", "yes", "no", "on", "off", "1", "0"]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("matches postgres errors for invalid boolean string values", async () => {
+      const src = '$.boolean()'
+      const data = ["", "truthy", "falsy", "2", "-1", "maybe", "null"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("matches postgres errors for invalid non-scalar values", async () => {
+      const src = '$.boolean()'
+      const data = [null, [], {}, ["true"], {value: true}]
+      await testValuesCompareToPg(src, data)
     })
   })
 
