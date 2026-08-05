@@ -75,6 +75,66 @@ describe("Codegen tests", () => {
       })
     })
 
+    describe("bigint()", () => {
+      it ("single values", () => {
+        const ctx = generateFunctionSource('$.bigint()')
+        expect(ctx.source).to.equal('return ƒ.bigint($)')
+      })
+
+      it("iterator of values", () => {
+        const ctx = generateFunctionSource('$[*].bigint()')
+        expect (ctx.source).to.equal('return ƒ.bigint(ƒ.boxStar($))')
+      })
+    })
+
+    describe("boolean()", () => {
+      it ("single values", () => {
+        const ctx = generateFunctionSource('$.boolean()')
+        expect(ctx.source).to.equal('return ƒ.boolean($)')
+      })
+
+      it("iterator of values", () => {
+        const ctx = generateFunctionSource('$[*].boolean()')
+        expect (ctx.source).to.equal('return ƒ.boolean(ƒ.boxStar($))')
+      })
+    })
+
+    describe("integer()", () => {
+      it ("single values", () => {
+        const ctx = generateFunctionSource('$.integer()')
+        expect(ctx.source).to.equal('return ƒ.integer($)')
+      })
+
+      it("iterator of values", () => {
+        const ctx = generateFunctionSource('$[*].integer()')
+        expect (ctx.source).to.equal('return ƒ.integer(ƒ.boxStar($))')
+      })
+    })
+
+    describe("number()", () => {
+      it ("single values", () => {
+        const ctx = generateFunctionSource('$.number()')
+        expect(ctx.source).to.equal('return ƒ.number($)')
+      })
+
+      it("iterator of values", () => {
+        const ctx = generateFunctionSource('$[*].number()')
+        expect (ctx.source).to.equal('return ƒ.number(ƒ.boxStar($))')
+      })
+    })
+
+    describe("string()", () => {
+      it ("single values", () => {
+        const ctx = generateFunctionSource('$.string()')
+        expect(ctx.source).to.equal('return ƒ.string($)')
+      })
+
+      it("iterator of values", () => {
+        const ctx = generateFunctionSource('$[*].string()')
+        expect (ctx.source).to.equal('return ƒ.string(ƒ.boxStar($))')
+      })
+    })
+
     describe("ceiling()", () => {
       it("single values", () => {
         const ctx = generateFunctionSource('$. ceiling ()')
@@ -84,6 +144,18 @@ describe("Codegen tests", () => {
       it("iterator of values", () => {
         const ctx = generateFunctionSource('$[*].ceiling()')
         expect (ctx.source).to.equal('return ƒ.ceiling(ƒ.boxStar($))')
+      })
+    })
+
+    describe("floor()", () => {
+      it ("single values", () => {
+        const ctx = generateFunctionSource('$.floor()')
+        expect(ctx.source).to.equal('return ƒ.floor($)')
+      })
+
+      it("iterator of values", () => {
+        const ctx = generateFunctionSource('$[*].floor()')
+        expect (ctx.source).to.equal('return ƒ.floor(ƒ.boxStar($))')
       })
     })
 
