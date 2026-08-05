@@ -4,7 +4,7 @@ import {Temporal} from "@js-temporal/polyfill"
 
 import {CLDR} from "./datetime-parser.ts"
 import {type KeyValue} from "./json-path.ts"
-import {isIterableInput, ReplayableIterable} from "./iterators.ts"
+import {isIterableInput, noValueFilter, ReplayableIterable} from "./iterators.ts"
 import {
   autoFlatMap,
   autoMap,
@@ -110,9 +110,14 @@ export class ƒBase {
    * arrays as a single value.
    */
   private _unwrapWith<T>(input: unknown, mapƒ: Mapƒ<T>, strict?: StrictConfig): SingleOrIterator<T> {
-    this._checkStrict(input, strict || { strict: (input) => !Array.isArray(input), error: "Cannot unwrap non-array input." })
+    if (input === NO_VALUE) {
+      return NO_VALUE as T
+    }
+    this._checkStrict(input, strict || {strict: (input) => !Array.isArray(input), error: "Cannot unwrap non-array input."})
     return isIterable(input)
-      ? iterate(input).map(mapƒ)
+      ? iterate(input)
+          .map(mapƒ)
+          .filter(noValueFilter)
       : mapƒ(input)
   }
 
@@ -733,8 +738,9 @@ export class ƒBase {
         throw new Error("In 'strict' mode! right side of comparison cannot be an array.")
       }
     }
-    const leftValues = toSeq(left)
-    const rightValues = new ReplayableIterable(toSeq(right))
+    //todo optimize for single values
+    const leftValues = toSeq(left).filter(noValueFilter)
+    const rightValues = new ReplayableIterable(toSeq(right).filter(noValueFilter))
     let hasUnknown = false
     for (const l of leftValues) {
       for (const r of rightValues) {
@@ -814,13 +820,12 @@ export class ƒBase {
   }
 
 
-// todo do these also autounwrap? How can I test this?
   private static _isUnknown(input: Pred): Pred {
     return toPred(input === Pred.UNKNOWN)
   }
 
   isUnknown(input: SingleOrIterator<Pred>): SingleOrIterator<Pred> {
-    return autoMap(input, ƒBase._isUnknown)
+    return this._unwrapWith(input, ƒBase._isUnknown)
   }
 
 
@@ -831,7 +836,7 @@ export class ƒBase {
   }
 
   startsWith(input: unknown, start: string): SingleOrIterator<Pred> {
-    return autoMap(input, (i) => ƒBase._startsWith(i, start))
+    return this._unwrapWith(input, (i) => ƒBase._startsWith(i, start))
   }
 
 
@@ -842,6 +847,6 @@ export class ƒBase {
   }
 
   match(input: unknown, pattern: RegExp): SingleOrIterator<Pred> {
-    return autoMap(input, (i) => ƒBase._match(i, pattern))
+    return this._unwrapWith(input, (i) => ƒBase._match(i, pattern))
   }
 }

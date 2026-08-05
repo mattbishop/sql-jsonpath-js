@@ -4,11 +4,10 @@ import {IteratorWithOperators} from "iterare/lib/iterate.js"
 
 import {type CodegenContext, newCodegenVisitor} from "./codegen-visitor.ts"
 import {ƒBase} from "./ƒ-base.ts"
-import {DefaultOnEmptyIterator, DefaultOnErrorIterator, isIterableInput, one, toInputIterator} from "./iterators.ts"
+import {DefaultOnEmptyIterator, DefaultOnErrorIterator, isIterableInput, noValueFilter, one, toInputIterator} from "./iterators.ts"
 import type {Input, NamedVariables, SqlJsonPathStatement, ValuesConfig} from "./json-path.ts"
 import {JsonPathParser} from "./parser.ts"
 import {allTokens} from "./tokens.ts"
-import {NO_VALUE} from "./types.ts"
 
 
 const jsonPathLexer = new Lexer(allTokens, {ensureOptimizations: true})
@@ -56,7 +55,7 @@ function createFunction({source, lax, scope}: CodegenContext): SJPFn {
     const iter = result instanceof IteratorWithOperators
       ? result
       : iterate([result])
-    return iter.filter((v) => v !== NO_VALUE)
+    return iter.filter(noValueFilter)
   }
 }
 

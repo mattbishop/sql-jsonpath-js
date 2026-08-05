@@ -522,8 +522,16 @@ describe("Statement tests", () => {
         await testValuesCompareToPg(src, data)
       })
 
+      it("handles missing member values before 'is unknown'", async () => {
+        const src = '$ ? ((@.sleepy == true) is unknown)'
+        const data = [{sleepy: "Y"}, {missing: true}, {sleepy: true}, {sleepy: 77}]
+        await testValuesCompareToPg(src, data)
+      })
+
       it("can filter 'is unknown' predicates", async () => {
         const src = '$ ? ((@.sleepy == true) is unknown)'
+        // todo interesting, it keeps going through the objects even after the first test matches 'is unknown'. Probably should
+        // short-circuit and skip the rest?
         const data = [{sleepy: 77}, {sleepy: true}, {sleepy: false}, {sleepy: "yes"}]
         await testValuesCompareToPg(src, data)
       })
@@ -597,6 +605,12 @@ describe("Statement tests", () => {
         const data = [["matt"], ["arjun", "mark", "mary"], ["abby"]]
         await testValuesCompareToPg(src, data)
       })
+
+      it("handles missing member values before 'starts with'", async () => {
+        const src = '$ ? (@.name starts with "a")'
+        const data = [{name: "apple"}, {missing: true}, {name: "orange"}, {name: "argon"}]
+        await testValuesCompareToPg(src, data)
+      })
     })
 
     describe("can filter 'like_regex' predicates", () => {
@@ -616,6 +630,12 @@ describe("Statement tests", () => {
         const statement = compile('$ ? (@[*] like_regex "\\\\d+")')
         const actual = statement.values([true, ["bear", "8854"], ["not a number"], ["1", "-2"]])
         expect(Array.from(actual)).to.deep.equal([["bear", "8854"], ["1", "-2"]])
+      })
+
+      it("handles missing member values before 'like_regex'", async () => {
+        const src = '$ ? (@.name like_regex "^a")'
+        const data = [{name: "apple"}, {missing: true}, {name: "orange"}, {name: "argon"}]
+        await testValuesCompareToPg(src, data)
       })
     })
 
@@ -925,6 +945,12 @@ describe("Statement tests", () => {
     it("matches postgres errors for invalid non-scalar values", async () => {
       const src = '$.boolean()'
       const data = [null, [], {}, ["true"], {value: true}]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("omits missing member values before boolean()", async () => {
+      const src = '$.flag.boolean()'
+      const data = [{flag: "true"}, {missing: true}, {flag: "false"}]
       await testValuesCompareToPg(src, data)
     })
   })

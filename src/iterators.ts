@@ -1,6 +1,13 @@
 import {isIterable} from "iterare/lib/utils.js"
 
 import type {Input} from "./json-path.ts"
+import {NO_VALUE} from "./types.ts"
+
+
+/** @internal */
+export function noValueFilter(v: unknown) {
+  return v !== NO_VALUE
+}
 
 
 /**
