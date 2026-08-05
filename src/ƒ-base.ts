@@ -102,7 +102,7 @@ export class ƒBase {
       ? toSeq(input)
       : isSeq(input)
         ? input
-        : iterate([input]);
+        : iterate([input])
   }
 
   /*
@@ -223,6 +223,35 @@ export class ƒBase {
 
   integer(input: unknown): SingleOrIterator<number> {
     return this._unwrapWith(input, ƒBase._integer)
+  }
+
+
+  private static _number(input: unknown): number {
+    let value
+    switch (typeof input) {
+      case "number":
+        value = input
+        break
+      case "string":
+        if (input === "") {
+          // JS treats "" as 0, SQL does not.
+          value = Number.NaN
+          break
+        }
+      case "bigint":
+        value = Number(input)
+        break
+      default:
+        throw new Error(`number() can only be applied to a string or numeric value: ${input}`)
+    }
+    if (!Number.isFinite(value)) {
+      throw new Error(`number() input ${input} is not a representation of a finite number.`)
+    }
+    return sqlNum(value) as number
+  }
+
+  number(input: unknown): SingleOrIterator<number> {
+    return this._unwrapWith(input, ƒBase._number)
   }
 
 

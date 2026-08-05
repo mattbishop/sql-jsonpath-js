@@ -10,7 +10,6 @@ import {PGlite} from "@electric-sql/pglite"
 import {compile, one} from "../src/index.ts"
 import {isIterableInput, ReplayableIterable} from "../src/iterators.ts"
 import type {Input} from "../src/json-path.ts"
-import {isNumber} from "../src/ƒ-utils";
 
 // testing from /dist to ensure the exported interface is correct
 
@@ -963,6 +962,57 @@ describe("Statement tests", () => {
     it("throws for out-of-range bigint input from .bigint()", async () => {
       const src = '$.bigint().integer()'
       const data = [2147483648, -2147483649]
+      await testValuesCompareToPg(src, data)
+    })
+  })
+
+  describe("number()", () => {
+    it("converts numeric values", async () => {
+      const src = '$.number()'
+      const data = [0, -0, 1, -1, 42, 77.6, -440.33, 9.1e7, -1.7e-4]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("handles -0", () => {
+      const stmt = compile('$.number()')
+      const actual = one(stmt.values(-0))
+      expect(actual).to.equal(0)
+      expect(Object.is(actual, -0)).to.be.false
+    })
+
+    it("converts numeric strings", async () => {
+      const src = '$.number()'
+      const data = ["0", "1", "-1", "42", "77.6", "-440.33", "9.1e7", "-1.7e-4"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("throws for non-numeric values", async () => {
+      const src = '$.number()'
+      const data = [null, [], true, false, "bond", {}, "", "NaN", "Infinity", "-Infinity"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("applies number() to iterator values", async () => {
+      const src = '$[*].number()'
+      const data = ["100", 289967, "-1.7e-4"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("can filter with number()", async () => {
+      const src = '$[*] ? (@.number() > 10)'
+      const data = ["9", "10", "11", 12, "-20", "9.1e7"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("accepts bigint input from .bigint()", async () => {
+      const src = '$.bigint().number()'
+      const data = [0, 1, -1, 42, -42]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("accepts integer input from .integer()", async () => {
+      const src = '$.integer().number()'
+      const data = [0, 1, -1, 42, -42, 2147483647, -2147483648]
       await testValuesCompareToPg(src, data)
     })
   })
