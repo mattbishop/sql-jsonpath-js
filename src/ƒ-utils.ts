@@ -56,6 +56,12 @@ export function sqlNum(input: NumBigInt): NumBigInt {
     : input
 }
 
+// SQL rounding rules different from JS
+export function sqlRound(input: number): number {
+  return input < 0
+    ? Math.ceil(input - 0.5)
+    : Math.round(input)
+}
 
 export function isNumber(input: unknown): input is number {
   // SQL numbers are finite

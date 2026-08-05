@@ -852,7 +852,7 @@ describe("Statement tests", () => {
       const actual = one(stmt.values(-0n)) as bigint
       expect(typeof actual).to.equal("bigint")
       const test = actual.toLocaleString()
-      // cannot compare -0 to 0, but locale string preserves the '-'
+      // cannot compare -0 to 0, even with Object.is(), but locale string preserves the '-'
       expect(test).to.equal("0")
     })
 
@@ -868,7 +868,7 @@ describe("Statement tests", () => {
       await testValuesCompareToPg(src, data.values())
     })
 
-    it("handles decimal strings", async () => {
+    it("throws for decimal strings", async () => {
       const src = '$.bigint()'
       const data = ["1.1", "1.5", "1.9", "-1.1", "-1.5", "-1.9"]
       await testValuesCompareToPg(src, data.values())
@@ -890,6 +890,80 @@ describe("Statement tests", () => {
       const src = '$[*] ? (@.bigint() > 10)'
       const data = ["9", "10", "11", 12, "-20"]
       await testValuesCompareToPg(src, data.values())
+    })
+  })
+
+  describe("integer()", () => {
+    it("converts integer numbers", async () => {
+      const src = '$.integer()'
+      const data = [0, -0, 1, -1, 42, 2147483647, -2147483648]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("handles -0", () => {
+      const stmt = compile('$.integer()')
+      const actual = one(stmt.values(-0))
+      expect(actual).to.equal(0)
+      expect(Object.is(actual, -0)).to.be.false
+    })
+
+    it("converts integer strings", async () => {
+      const src = '$.integer()'
+      const data = ["0", "1", "-1", "42", "2147483647", "-2147483648"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("handles decimal numbers", async () => {
+      const src = '$.integer()'
+      const data = [1.1, 1.5, 1.9, -1.1, -1.5, -1.9]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("throws for decimal strings", async () => {
+      const src = '$.integer()'
+      const data = ["1.1", "1.5", "1.9", "-1.1", "-1.5", "-1.9"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("throws for non-numeric values", async () => {
+      const src = '$.integer()'
+      const data = [null, [], true, false, "bond", {}]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("throws for out-of-range values", async () => {
+      const src = '$.integer()'
+      const data = [
+        2147483648,
+        -2147483649,
+        "2147483648",
+        "-2147483649"
+      ]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("applies integer() to iterator values", async () => {
+      const src = '$[*].integer()'
+      const data = ["100", 289967, "-1700"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("can filter with integer()", async () => {
+      const src = '$[*] ? (@.integer() > 10)'
+      const data = ["9", "10", "11", 12, "-20"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("accepts bigint input from .bigint()", async () => {
+      const src = '$.bigint().integer()'
+      const data = [0, 1, -1, 42, -42, 2147483647, -2147483648]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("throws for out-of-range bigint input from .bigint()", async () => {
+      const src = '$.bigint().integer()'
+      const data = [2147483648, -2147483649]
+      await testValuesCompareToPg(src, data)
     })
   })
 

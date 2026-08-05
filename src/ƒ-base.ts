@@ -18,6 +18,7 @@ import {
   mustBeNumberOrBigInt,
   next,
   sqlNum,
+  sqlRound,
   sqlType,
   toPred,
   toSeq
@@ -46,7 +47,8 @@ const KV_INDEX = "KV-index"
 const EMPTY_SEQ = iterate([])
 const BIGINT_MIN = -(2n ** 63n)
 const BIGINT_MAX = 2n ** 63n - 1n
-
+const INTEGER_MIN = -(2 ** 31)
+const INTEGER_MAX = 2 ** 31 - 1
 
 
 /** @internal */
@@ -163,16 +165,12 @@ export class ƒBase {
   }
 
 
+
   private static _bigint(input: unknown): bigint {
     let value
     switch (typeof input) {
       case "number":
-        // rounding is SQL standard behavior
-        // JS rounding is different from SQL rounding, for negative numbers
-        const int = input < 0
-          ? Math.ceil(input - 0.5)
-          : Math.round(input)
-        value = BigInt(int)
+        value = BigInt(sqlRound(input))
         break
       case "string":
         // JSONPath has same string parse rules as JS
@@ -192,6 +190,39 @@ export class ƒBase {
 
   bigint(input: unknown): SingleOrIterator<bigint> {
     return this._unwrapWith(input, ƒBase._bigint)
+  }
+
+
+  private static _integer(input: unknown): number {
+    // string or number or bigint
+    // needs to be a 32-bit integer, range -2147483648 to 2147483647
+    let value
+    switch (typeof input) {
+      case "number":
+        value = sqlRound(input)
+        break
+      case "string":
+        value = Number(input)
+        if (!Number.isInteger(value)) {
+          // do not round decimal strings.
+          throw new Error(`integer() string input cannot be a decimal value: ${input}`)
+        }
+        break
+      case "bigint":
+        value = Number(input)
+        break
+      default:
+        throw new Error(`integer() can only be applied to a string or numeric value: ${input}`)
+    }
+    if (value < INTEGER_MIN || value > INTEGER_MAX) {
+      throw new Error(`value out of range for integer(): ${value}`)
+    }
+    // SQL does not have -0
+    return Object.is(value, -0) ? 0 : value
+  }
+
+  integer(input: unknown): SingleOrIterator<number> {
+    return this._unwrapWith(input, ƒBase._integer)
   }
 
 
