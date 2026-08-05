@@ -633,6 +633,11 @@ export class ƒBase {
 
 
   private static _compare(compOp: string, left: any, right: any): Pred {
+    // these are not comparable, even if both are NO_VALUE
+    if (left === NO_VALUE || right === NO_VALUE) {
+      return Pred.FALSE
+    }
+
     let typeLeft = sqlType(left)
     let typeRight = sqlType(right)
 
@@ -729,6 +734,7 @@ export class ƒBase {
     return temporal.toString()
   }
 
+
   compare(compOp: string, left: unknown, right: unknown): Pred {
     if (!this.lax) {
       if (Array.isArray(left)) {
@@ -738,7 +744,12 @@ export class ƒBase {
         throw new Error("In 'strict' mode! right side of comparison cannot be an array.")
       }
     }
-    //todo optimize for single values
+
+    // skip looping
+    if (!isIterable(left) && !isIterable(right)) {
+      return ƒBase._compare(compOp, left, right)
+    }
+
     const leftValues = toSeq(left).filter(noValueFilter)
     const rightValues = new ReplayableIterable(toSeq(right).filter(noValueFilter))
     let hasUnknown = false
