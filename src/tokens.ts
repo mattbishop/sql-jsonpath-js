@@ -67,7 +67,7 @@ export const TimeStampTzMethod = createRegexToken({
           | decimal <left paren> [ <precision> [ <comma> <scale> ] ] <right paren> todo
           | integer <left paren> <right paren>
           | number <left paren> <right paren>
-          | string <left paren> <right paren> todo
+          | string <left paren> <right paren>
           | time <left paren> [ <time precision> ] <right paren>
           | time_tz <left paren> [ <time precision> ] <right paren>
           | timestamp <left paren> [ <timestamp precision> ] <right paren>
@@ -76,7 +76,7 @@ export const TimeStampTzMethod = createRegexToken({
 /** @internal */
 export const ItemMethod = createRegexToken({
   name:             "ItemMethod",
-  pattern:          /\.\s*(type|size|double|ceiling|floor|abs|date|keyvalue|integer|number|bigint|boolean)\s*\(\s*\)/y,
+  pattern:          /\.\s*(type|size|double|ceiling|floor|abs|date|keyvalue|bigint|boolean|integer|number|string)\s*\(\s*\)/y,
   start_chars_hint: ["."]
 })
 

@@ -780,6 +780,97 @@ describe("Statement tests", () => {
     })
   })
 
+
+  describe("string()", () => {
+    it("passes through string values", async () => {
+      const src = '$.string()'
+      const data = ["", "xyz", "hello world", "123", "true"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("converts numeric values", async () => {
+      const src = '$.string()'
+      const data = [0, 1, -1, 42, 1.23, -440.33, 9.1e7, -1.7e-4]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("converts boolean values", async () => {
+      const src = '$.string()'
+      const data = [true, false]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("converts datetime values", async () => {
+      const src = '$.timestamp().string()'
+      const data = [
+        "2023-08-15 12:34:56",
+        "2020-01-01 02:11:18.0214"
+      ]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("converts date values", async () => {
+      const src = '$.date().string()'
+      const data = [
+        "2023-08-15",
+        "2020-01-01"
+      ]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("converts time values", async () => {
+      const src = '$.time().string()'
+      const data = [
+        "12:34:56",
+        "02:11:18.0214"
+      ]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("throws for invalid input values", async () => {
+      const src = '$.string()'
+      const data = [null, [], {}, [1], {value: "xyz"}]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("applies string() to iterator values", async () => {
+      const src = '$[*].string()'
+      const data = [1.23, "xyz", false]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("can filter with string()", async () => {
+      const src = '$[*] ? (@.string() starts with "1")'
+      const data = [1.23, "1999", false, "xyz", 20]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("accepts number input from .number()", async () => {
+      const src = '$.number().string()'
+      const data = ["0", "1", "-1", "42", "77.6", "-440.33"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("accepts integer input from .integer()", async () => {
+      const src = '$.integer().string()'
+      const data = [0, 1, -1, 42, -42]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("accepts bigint input from .bigint()", async () => {
+      const src = '$.bigint().string()'
+      const data = [0, 1, -1, 42, -42]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("accepts boolean input from .boolean()", async () => {
+      const src = '$.boolean().string()'
+      const data = [true, false, "true", "false", "yes", "no", 1, 0]
+      await testValuesCompareToPg(src, data.values())
+    })
+  })
+
+
   describe("double()", () => {
     it ("single values", () => {
       const statement = compile('$.double()')

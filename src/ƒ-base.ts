@@ -255,6 +255,29 @@ export class ƒBase {
   }
 
 
+  private static _string(input: unknown): string {
+    switch (typeof input) {
+      case "string":
+        return input
+      case "boolean":
+      case "number":
+      case "bigint":
+        return String(input)
+    }
+    if (   input instanceof Temporal.Instant
+        || input instanceof Temporal.PlainDateTime
+        || input instanceof Temporal.PlainDate
+        || input instanceof Temporal.PlainTime) {
+      return input.toString()
+    }
+    throw new Error(`string() can only be applied to a string, boolean, numeric, or datetime value: ${JSON.stringify(input)}`)
+  }
+
+  string(input: unknown): SingleOrIterator<string> {
+    return this._unwrapWith(input, ƒBase._string)
+  }
+
+
   private static _boolean(input: unknown): boolean {
     if (isBoolean(input)) {
       return input
