@@ -123,6 +123,38 @@ describe("Codegen tests", () => {
       })
     })
 
+    describe("decimal()", () => {
+      it("single values", () => {
+        const ctx = generateFunctionSource('$ .decimal (  )')
+        expect(ctx.source).to.equal('return ƒ.decimal($)')
+      })
+
+      it("single values with precision", () => {
+        const ctx = generateFunctionSource('$ .decimal ( 3 )')
+        expect(ctx.source).to.equal('return ƒ.decimal($,3)')
+      })
+
+      it("single values with precision and scale", () => {
+        const ctx = generateFunctionSource('$ .decimal ( 3 , 4 )')
+        expect(ctx.source).to.equal('return ƒ.decimal($,3,4)')
+      })
+
+      it("iterator of values", () => {
+        const ctx = generateFunctionSource('$[*].decimal()')
+        expect (ctx.source).to.equal('return ƒ.decimal(ƒ.boxStar($))')
+      })
+
+      it("iterator of values with precision", () => {
+        const ctx = generateFunctionSource('$[*].decimal(3)')
+        expect (ctx.source).to.equal('return ƒ.decimal(ƒ.boxStar($),3)')
+      })
+
+      it("iterator of values with precision and scale", () => {
+        const ctx = generateFunctionSource('$[*].decimal(3,1)')
+        expect (ctx.source).to.equal('return ƒ.decimal(ƒ.boxStar($),3,1)')
+      })
+    })
+
     describe("string()", () => {
       it ("single values", () => {
         const ctx = generateFunctionSource('$.string()')
@@ -214,6 +246,11 @@ describe("Codegen tests", () => {
       it("iterator of values", () => {
         const ctx = generateFunctionSource('$[*].time()')
         expect (ctx.source).to.equal('return ƒ.time(ƒ.boxStar($))')
+      })
+
+      it("iterator of values with precision", () => {
+        const ctx = generateFunctionSource('$[*].time(3)')
+        expect (ctx.source).to.equal('return ƒ.time(ƒ.boxStar($),3)')
       })
     })
 

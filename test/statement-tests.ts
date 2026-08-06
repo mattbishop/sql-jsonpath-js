@@ -871,6 +871,127 @@ describe("Statement tests", () => {
   })
 
 
+  describe("decimal()", () => {
+    it("converts numeric values", async () => {
+      const src = '$.decimal()'
+      const data = [0, -0, 1, -1, 42, 77.6, -440.33, 9.1e7, -1.7e-4]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("handles -0", () => {
+      const stmt = compile('$.decimal()')
+      const actual = one(stmt.values(-0))
+      expect(actual).to.equal(0)
+      expect(Object.is(actual, -0)).to.be.false
+    })
+
+    it("converts numeric strings", async () => {
+      const src = '$.decimal()'
+      const data = ["0", "1", "-1", "42", "77.6", "-440.33", "9.1e7", "-1.7e-4"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("throws for non-numeric values", async () => {
+      const src = '$.decimal()'
+      const data = [null, [], true, false, "bond", {}, "", "NaN", "Infinity", "-Infinity"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("applies decimal() to iterator values", async () => {
+      const src = '$[*].decimal()'
+      const data = ["100", 289967, "-1.7e-4"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("can filter with decimal()", async () => {
+      const src = '$[*] ? (@.decimal() > 10)'
+      const data = ["9", "10", "11", 12, "-20", "9.1e7"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("accepts bigint input from .bigint()", async () => {
+      const src = '$.bigint().decimal()'
+      const data = [0, 1, -1, 42, -42]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("accepts integer input from .integer()", async () => {
+      const src = '$.integer().decimal()'
+      const data = [0, 1, -1, 42, -42, 2147483647, -2147483648]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("rounds to the requested scale", async () => {
+      const src = '$.decimal(5,2)'
+      const data = [1.234, 1.235, -1.234, -1.235, 123.456, "77.555", "-77.555"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("uses scale 0 when only precision is specified", async () => {
+      const src = '$.decimal(5)'
+      const data = [1.4, 1.5, -1.4, -1.5, 123.456, "77.555", "-77.555"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("allows values that fit precision and scale", async () => {
+      const src = '$.decimal(5,2)'
+      const data = [0, 1, -1, 123.45, -123.45, 999.99, -999.99, "123.45", "-123.45"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("throws when values exceed precision and scale", async () => {
+      const src = '$.decimal(5,2)'
+      const data = [1000, -1000, 9999.99, -9999.99, "1000", "-1000", "9999.99", "-9999.99"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("throws when rounding causes precision overflow", async () => {
+      const src = '$.decimal(5,2)'
+      const data = [999.995, -999.995, "999.995", "-999.995"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("supports zero scale explicitly", async () => {
+      const src = '$.decimal(5,0)'
+      const data = [1.4, 1.5, -1.4, -1.5, 99999, -99999, "42.5", "-42.5"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("throws when zero-scale rounded values exceed precision", async () => {
+      const src = '$.decimal(5,0)'
+      const data = [99999.5, -99999.5, "99999.5", "-99999.5"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("supports scale equal to precision", async () => {
+      const src = '$.decimal(2,2)'
+      const data = [0, 0.1, 0.12, -0.12, "0.99", "-0.99"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("throws when scale equal to precision leaves no integer digits", async () => {
+      const src = '$.decimal(2,2)'
+      const data = [1, -1, "1", "-1"]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("rejects scale without precision syntax", () => {
+      expect(() => compile('$.decimal(,2)')).to.throw
+    })
+
+    it("rejects non-numeric precision and scale syntax", () => {
+      expect(() => compile('$.decimal(a)')).to.throw
+      expect(() => compile('$.decimal(5,a)')).to.throw
+    })
+
+    it("omits missing member values before decimal()", async () => {
+      const src = '$.value.decimal(5,2)'
+      const data = [{value: "123.456"}, {missing: true}, {value: "77.555"}]
+      await testValuesCompareToPg(src, data)
+    })
+  })
+
+
   describe("double()", () => {
     it ("single values", () => {
       const statement = compile('$.double()')

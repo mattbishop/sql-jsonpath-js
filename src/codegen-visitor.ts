@@ -242,7 +242,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
 
 
     method(node: MethodCstChildren, ctx: CodegenContext): CodegenContext {
-      const {ItemMethod, DatetimeMethod, TimeStampTzMethod} = node
+      const {ItemMethod, DatetimeMethod, DecimalMethod, TimeStampTzMethod} = node
       const {source: primary} = ctx
       let source = primary
       if (ItemMethod) {
@@ -252,6 +252,11 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
           ctx.scope.set(CLDR, buildTemporalParser())
         }
         source = `ƒ.${methodName}${attrs}`
+      } else if (DecimalMethod) {
+        const [{payload: [precision, scale]}] = DecimalMethod
+        const precisionStr = precision === undefined ? "" : `,${precision}`
+        const scaleStr = scale === undefined ? "" : `,${scale}`
+        source = `ƒ.decimal(${primary}${precisionStr}${scaleStr})`
       } else if (DatetimeMethod) {
         const [{payload: [, template]}] = DatetimeMethod
         let templateParam = ""

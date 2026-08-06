@@ -49,6 +49,17 @@ export const TimeStampTzMethod = createRegexToken({
 })
 
 /*
+  decimal <left paren> [ <precision> [ <comma> <scale> ] ] <right paren>
+ */
+/** @internal */
+export const DecimalMethod = createRegexToken({
+  name:             "DecimalMethod",
+  pattern:          /\.\s*decimal\s*\(\s*(?:(\d+)\s*(?:,\s*(\d+)\s*)?)?\)/y,
+  start_chars_hint: ["."]
+})
+
+
+/*
   <JSON item method> ::=
           <period> <JSON method>
 
@@ -64,7 +75,7 @@ export const TimeStampTzMethod = createRegexToken({
           | bigint <left paren> <right paren>
           | boolean <left paren> <right paren>
           | date <left paren> <right paren>
-          | decimal <left paren> [ <precision> [ <comma> <scale> ] ] <right paren> todo
+          | decimal <left paren> [ <precision> [ <comma> <scale> ] ] <right paren>
           | integer <left paren> <right paren>
           | number <left paren> <right paren>
           | string <left paren> <right paren>
@@ -200,6 +211,7 @@ export const allTokens = [
   ItemMethod,
   DatetimeMethod,
   TimeStampTzMethod,
+  DecimalMethod,
   WildcardMember,
   Member,
   WildcardArray,
@@ -216,11 +228,14 @@ export const allTokens = [
   RightParen,
   FilterStart,
   FilterValue,
-  WhiteSpace // not used in any rules; ignored
+  WhiteSpace // not used in any rules, ignored
 ]
 
 
-// Used to create Tokens with Regex patterns that Chevrotain cannot handle, like unicode patterns.
+/*
+ Used to create Tokens with Regex patterns that Chevrotain cannot handle, like unicode patterns.
+ Provides a payload with the regex captured groups, unlike regular createToken()
+ */
 function createRegexToken(configIn: ITokenConfig): TokenType {
   const {pattern: regex, ...config} = configIn
   if (!(regex instanceof RegExp)) {
@@ -235,6 +250,7 @@ function createRegexToken(configIn: ITokenConfig): TokenType {
       regex.lastIndex = offset
       const m = regex.exec(text)
       if (m && m.length > 1) {
+        // attach the matcher result, skipping the first element which is the whole matched string.
         (m as unknown as CustomPatternMatcherReturn).payload = m.slice(1)
       }
       return m

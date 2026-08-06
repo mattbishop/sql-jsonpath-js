@@ -63,6 +63,31 @@ export function sqlRound(input: number): number {
     : Math.round(input)
 }
 
+export function toNumber(input: unknown, method: string): number {
+  let value
+  switch (typeof input) {
+    case "number":
+      value = input
+      break
+    case "string":
+      if (input === "") {
+        // JS treats "" as 0, SQL does not.
+        value = Number.NaN
+        break
+      }
+    case "bigint":
+      value = Number(input)
+      break
+    default:
+      throw new Error(`${method}() can only be applied to a string or numeric value: ${input}`)
+  }
+  if (!Number.isFinite(value)) {
+    throw new Error(`${method}() input ${input} is not a representation of a finite number.`)
+  }
+  return sqlNum(value) as number
+}
+
+
 export function isNumber(input: unknown): input is number {
   // SQL numbers are finite
   return Number.isFinite(input)

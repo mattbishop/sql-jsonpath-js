@@ -19,7 +19,7 @@ import {
   next,
   sqlNum,
   sqlRound,
-  sqlType,
+  sqlType, toNumber,
   toPred,
   toSeq
 } from "./ƒ-utils.ts"
@@ -227,31 +227,65 @@ export class ƒBase {
 
 
   private static _number(input: unknown): number {
-    let value
-    switch (typeof input) {
-      case "number":
-        value = input
-        break
-      case "string":
-        if (input === "") {
-          // JS treats "" as 0, SQL does not.
-          value = Number.NaN
-          break
-        }
-      case "bigint":
-        value = Number(input)
-        break
-      default:
-        throw new Error(`number() can only be applied to a string or numeric value: ${input}`)
-    }
-    if (!Number.isFinite(value)) {
-      throw new Error(`number() input ${input} is not a representation of a finite number.`)
-    }
-    return sqlNum(value) as number
+    return toNumber(input, "number")
   }
 
   number(input: unknown): SingleOrIterator<number> {
     return this._unwrapWith(input, ƒBase._number)
+  }
+
+
+  private static _decimal(input: unknown, precision?: number, scale?: number): number {
+    /*
+      Take the input and squeeze it into the precision and scale box.
+      precision is how many numbers, total, including decimal values.
+      Decimal 4 means 122.4, 1.224, 12.24 are valid.
+      Scale means how many decimal digits. It will add 0 to the decimal value to make it match.
+      That's not something JS number can do so not relevant.
+      Decimal 4, Scale 2 means 12.4 => 12.40, 1.24 => 1.24
+      Scale will also round the decimal portion up to the scale:
+      Decimal 4, Scale 2 means 1.245 => 1.25
+      Round decimals first, then test the final number against precision.
+     */
+    let value = toNumber(input, "decimal")
+
+    const hasPrecision = precision !== undefined
+    // scale only considered if precision is set
+    const hasScale = precision && scale !== undefined
+
+    if (hasPrecision) {
+      if (!Number.isInteger(precision) || precision < 1) {
+        throw new Error(`decimal() precision must be a positive integer, found ${JSON.stringify(precision)}.`)
+      }
+      if (hasScale && (!Number.isInteger(scale) || scale < 0 || scale > precision)) {
+        throw new Error(`decimal() scale must be an integer between 0 and precision, found ${JSON.stringify(scale)}.`)
+      }
+    }
+
+    if (hasScale) {
+      const mult = 10 ** scale
+      value = sqlRound(value * mult) / mult
+    } else if (hasPrecision) {
+      value = sqlRound(value)
+    }
+
+    if (hasPrecision) {
+      const absValue = Math.abs(value)
+      const integerDigits = absValue < 1
+        ? 0
+        : Math.trunc(absValue).toString().length
+      const maxIntegerDigits = precision - (scale ?? 0)
+      if (integerDigits > maxIntegerDigits) {
+        throw new Error(`value out of range for decimal(${precision}${hasScale ? `,${scale}` : ""}): ${value}`)
+      }
+    }
+
+    return value
+  }
+
+  decimal(input: unknown, precision?: number, scale?: number): SingleOrIterator<number> {
+    const mapƒ = (v: unknown) => ƒBase._decimal(v, precision, scale)
+    return this._unwrapWith(input, mapƒ)
   }
 
 

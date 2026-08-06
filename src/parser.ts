@@ -1,4 +1,4 @@
-import {CstParser, EOF} from "chevrotain"
+import {CstParser} from "chevrotain"
 
 import {
   allTokens,
@@ -9,7 +9,7 @@ import {
   ComparisonOperator,
   ContextVariable,
   DatetimeMethod,
-  TimeStampTzMethod,
+  DecimalMethod,
   Exists,
   FilterStart,
   FilterValue,
@@ -31,6 +31,7 @@ import {
   RightParen,
   StartsWith,
   StringLiteral,
+  TimeStampTzMethod,
   To,
   UnaryOperator,
   WildcardArray,
@@ -42,6 +43,7 @@ import {
 export class JsonPathParser extends CstParser {
   constructor() {
     super(allTokens)
+    // must be called, not a performance consideration
     this.performSelfAnalysis()
   }
 
@@ -216,11 +218,11 @@ export class JsonPathParser extends CstParser {
           | time_tz <left paren> [ <time precision> ] <right paren>
           | timestamp <left paren> [ <timestamp precision> ] <right paren>
           | timestamp_tz <left paren> [ <timestamp precision> ] <right paren>
-      // todo finish adding these, some are missing like decimal and bigint
    */
   itemMethod = this.RULE("method", () => {
     this.OR([
       { ALT: () => this.CONSUME(ItemMethod) },
+      { ALT: () => this.CONSUME(DecimalMethod) },
       { ALT: () => this.CONSUME(DatetimeMethod) },
       { ALT: () => this.CONSUME(TimeStampTzMethod) }
     ])

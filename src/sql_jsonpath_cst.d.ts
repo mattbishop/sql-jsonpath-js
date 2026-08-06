@@ -120,6 +120,7 @@ export interface MethodCstNode extends CstNode {
 
 export type MethodCstChildren = {
   ItemMethod?: IToken[];
+  DecimalMethod?: IToken[];
   DatetimeMethod?: IToken[];
   TimeStampTzMethod?: IToken[];
 };
