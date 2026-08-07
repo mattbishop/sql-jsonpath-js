@@ -6,6 +6,41 @@ import {generateFunctionSource} from "../src/json-path-statement.ts"
 
 describe("Codegen tests", () => {
 
+  describe("source failure tests", () => {
+    it("logs and throws lexical errors while generating function source", () => {
+      const original = console.error
+      const calls: unknown[][] = []
+      console.error = (...args: unknown[]) => {
+        calls.push(args)
+      }
+
+      try {
+        expect(() => generateFunctionSource("$ # bad")).to.throw()
+        expect(calls).to.have.length(1)
+        expect(String(calls[0][0])).to.contain("Cannot tokenize")
+      } finally {
+        console.error = original
+      }
+    })
+
+    it("logs and throws parser errors while generating function source", () => {
+      const original = console.error
+      const calls: unknown[][] = []
+      console.error = (...args: unknown[]) => {
+        calls.push(args)
+      }
+
+      try {
+        expect(() => generateFunctionSource("$.")).to.throw()
+        expect(calls).to.have.length(1)
+        expect(String(calls[0][0])).to.contain("Cannot tokenize")
+      } finally {
+        console.error = original
+      }
+    })
+  })
+
+
   describe("Modes", () => {
 
     it("default mode is lax", () => {

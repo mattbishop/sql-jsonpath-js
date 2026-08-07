@@ -5,17 +5,14 @@ import * as assert from "node:assert"
 import {after, describe, it} from "node:test"
 import {PGlite} from "@electric-sql/pglite"
 
-
-// better for debugging issues
-import {compile, one} from "../src/index.ts"
 import {isIterableInput, ReplayableIterable} from "../src/iterators.ts"
 import type {Input} from "../src/json-path.ts"
 
+// better for debugging issues
+import {compile, one} from "../src/index.ts"
 // testing from /dist to ensure the exported interface is correct
+//import {compile, one} from "../dist/index.js"
 
-/*
-import {compile, one} from "../dist/index.js"
-*/
 
 const pg = await PGlite.create()
 
