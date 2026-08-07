@@ -1,6 +1,6 @@
 # SQL/JSONPath for JS
 
-Javascript implementation of the SQL/JSONPath dialect, from SQL2016 which provides features to query data for elements that match an expression.
+JavaScript implementation of the SQL/JSONPath dialect, from SQL2023 which provides features to query data for elements that match an expression.
 
 ### Installation
 
@@ -8,11 +8,11 @@ This library supports EcmaScript module loading (ESM).
 
 `npm install sql-jsonpath-js`
 
-This library includes TypeScript definitions so TS developers do not need to install separate type definitions.
+This library includes TypeScript definitions, so TS developers do not need to install separate type definitions.
 
 #### Usage
 
-The UX is similar to Javascript’s RegExp class where one first compiles a SQL/JSONPath string into a `SqlJsonPathStatement` and then use that statement to examine data objects. The statement can be reused.
+The UX is similar to JavaScript’s RegExp class where one first compiles a SQL/JSONPath string into a `SqlJsonPathStatement` and then use that statement to examine data objects. The statement can be reused.
 
 A SQL/JSONPath for JS (SJP) statement has two operations to work with JS values. One can use `statement.exists(value)` to test if the statement matches a value, while data can be extracted from a larger value using the `statement.values(value)` method.
 
@@ -228,22 +228,29 @@ A predicate can transform the navigation data with arithmetic operators. These d
 
 Value functions offer ways to extract type information and apply mathematical functions before testing the value with predicate operators.
 
-| Function                 | Description                                                                                                                                                                              |
-|--------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `.type()`                | Returns `null`, `boolean`, `number`, `string`, `array`, `object` or `date`                                                                                                               |
-| `.size()`                | If `@` references an array, then it returns the number of elements in the array. Otherwise returns 1.                                                                                    |
-| `.double()`              | Converts a string to a numeric value                                                                                                                                                     |
-| `.ceiling()`             | Round a numeric value up to the next largest integer                                                                                                                                     |
-| `.floor()`               | Round a numeric value down to the next smallest integer                                                                                                                                  |
-| `.abs()`                 | The absolute value of a numeric value                                                                                                                                                    |
-| `.datetime("template"?)` | Converts a string into a Date object. The optional `template` is a quoted template string. If omitted, the ISO-8601 pattern (built into Javascript) will be used to evaluate the string. |
-| `.keyvalue()`            | Converts an object into an array of name/value objects: `[[name, value], ...]` which allows a predicate to extract the key name and value.                                               |
+| Function                       | Description                                                                                                                                                                                           |
+|--------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `.type()`                      | Returns the sql type of the value.                                                                                                                                                                    |
+| `.size()`                      | If `@` references an array, then it returns the number of elements in the array. Otherwise returns 1.                                                                                                 |
+| `.keyvalue()`                  | Converts an object into an array of name/value objects: `[[name, value], ...]` which allows a predicate to extract the key name and value.                                                            |
+| `.double()`, `.number()`       | Converts an input to a numeric value. In SQL, `number()` converts into a precise decimal. JS does not have a BigDecimal, so these methods do the same thing.                                          |
+| `.decimal(precision?, scale?)` | Rounds a decimal number to the scale, if provided, and then tests the precision of the result.                                                                                                        |
+| `.integer()`                   | Converts a value to an integer.                                                                                                                                                                       |
+| `.boolean()`                   | Converts a value to a boolean. Evaluates non-boolean values according to [Postgres rules](https://www.postgresql.org/docs/current/datatype-boolean.html).                                             |
+| `.bigint()`                    | Converts a value to a BigInt.                                                                                                                                                                         |
+| `.ceiling()`                   | Round a numeric value up to the next largest integer.                                                                                                                                                 |
+| `.floor()`                     | Round a numeric value down to the next smallest integer.                                                                                                                                              |
+| `.abs()`                       | The absolute value of a numeric value                                                                                                                                                                 |
+| `.datetime("template"?)`       | Converts a string into a relevant Temporal object. The optional `template` is a quoted template string. Defaults to the ISO-8601 pattern (built into Javascript) will be used to evaluate the string. |
+| `.date()`                      | Extracts the date value from a Temporal object or string.                                                                                                                                             |
+| `.time()`                      | Extracts the time value from a Temporal object or string.                                                                                                                                             |
+| `.time_tz()`                   | Extracts the time value, including time zone, from a Temporal object or string.                                                                                                                       |
+| `.timestamp()`                 | Extracts the time and date value from a Temporal object or string.                                                                                                                                    |
+| `.timestamp_tz()`              | Extracts the time and date value, including time zone, from a Temporal object or string.                                                                                                              |
 
-##### Datetime Template
+##### Datetime, and Template
 
-Datetime template formatting uses the Luxon library internally. One can use the symbols as described in the docs:
-
-https://moment.github.io/luxon/#/parsing?id=table-of-tokens
+Datetime template formatting follows the specification defined for SQL/JSONPath. The [Postgres docs](https://www.postgresql.org/docs/current/functions-json.html#:~:text=Note,-The%20result%20type) explain in detail the behavior of the method, a well as the template definition.
 
 #### Predicate Functions
 
@@ -256,7 +263,7 @@ A value can be tested for existence, and string values can be tested for prefixe
 | `starts with "<text>"`                          | Value starts with specified text                                                                                           |
 | `like_regex "regex-expression" flag? "<flags>"` | Uses Javascript’s [Regular Expressions](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions) |
 
-Regex flags are optional, and change the pattern matching behavior. See the [RegExp docs](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#advanced_searching_with_flags) for more information.
+Regex flags are optional and change the pattern matching behavior. See the [RegExp docs](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#advanced_searching_with_flags) for more information.
 
 ### Examples
 

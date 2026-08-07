@@ -19,7 +19,8 @@ import {
   next,
   sqlNum,
   sqlRound,
-  sqlType, toNumber,
+  sqlType,
+  toNumber,
   toPred,
   toSeq
 } from "./ƒ-utils.ts"
@@ -150,14 +151,7 @@ export class ƒBase {
 
 
   private static _double(input: unknown): number {
-    if (isString(input) || isBigInt(input)) {
-      const num = Number(input)
-      if (Number.isNaN(num)) {
-        throw new Error(`double() input ${input} is not a representation of a number.`)
-      }
-      return sqlNum(num) as number
-    }
-    return mustBeNumber(input, "double()")
+    return toNumber(input, "double")
   }
 
   double(input: unknown): SingleOrIterator<number> {
