@@ -134,8 +134,9 @@ const templateTokenizer = /(A\.M\.|P\.M\.|HH12|HH24|HH|YYYY|YYY|YY|Y|MM|DDD|DD|M
 function createFormattedParser(template: string): StringToTemporal {
   const fields = new Set<string>()
   let regexPattern = ""
-  let lastWasDelim = false
+  let hasYear = false, hasMonthDay = false, hasTime = false
 
+  let lastWasDelim = false
   for (const match of template.matchAll(templateTokenizer)) {
     const [_, field, delim] = match
 
@@ -146,6 +147,9 @@ function createFormattedParser(template: string): StringToTemporal {
       fields.add(field)
       regexPattern += FIELD_TO_REGEX[field]
       lastWasDelim = false
+      hasYear = hasYear || /^[YR]/.test(field)
+      hasMonthDay = hasMonthDay || /^MM|^D/.test(field)
+      hasTime = hasTime || /^[APFHST]/.test(field)
     } else if (delim) {
       if (lastWasDelim) {
         throw new Error("Rule 2: Consecutive delimiters")
@@ -201,14 +205,7 @@ function createFormattedParser(template: string): StringToTemporal {
 
     const dateArgs = { year, month, day, hour, minute, second, millisecond, microsecond, nanosecond }
 
-    let hasYear, hasMonthDay, hasTime
-    for (const field of fields) {
-      hasYear = hasYear || /^[YR]/.test(field)
-      hasMonthDay = hasMonthDay || /^MM|^D/.test(field)
-      hasTime = hasTime || /^[APFHST]/.test(field)
-    }
     const hasDate = hasYear || hasMonthDay
-
     const offset = fields.has("TZH") && `${g.tzh}:${g.tzm || "00"}`
     const overflow = "reject"
     if (hasDate && hasTime) {
