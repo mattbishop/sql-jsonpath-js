@@ -201,13 +201,13 @@ function createFormattedParser(template: string): StringToTemporal {
 
     const dateArgs = { year, month, day, hour, minute, second, millisecond, microsecond, nanosecond }
 
-    let hasYear, hasMonthDay, hasDate, hasTime
+    let hasYear, hasMonthDay, hasTime
     for (const field of fields) {
       hasYear = hasYear || /^[YR]/.test(field)
       hasMonthDay = hasMonthDay || /^MM|^D/.test(field)
-      hasDate = hasYear || hasMonthDay
       hasTime = hasTime || /^[APFHST]/.test(field)
     }
+    const hasDate = hasYear || hasMonthDay
 
     const offset = fields.has("TZH") && `${g.tzh}:${g.tzm || "00"}`
     const overflow = "reject"
