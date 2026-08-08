@@ -6,6 +6,7 @@ import {type TemporalParser, type TemporalType, TemporalTypes} from "./types.ts"
 
 /**
  * Constant for Unicode CLDR spec to parse strings into date / time objects.
+ * @internal
  */
 export const CLDR = "CLDR"
 

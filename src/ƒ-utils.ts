@@ -23,6 +23,7 @@ import {type Mapƒ, type NumBigInt, Pred, type Seq, type SingleOrIterator} from 
     If Ij is array, then the Unicode character string “array”.
     If Ij is object, then the Unicode character string “object”.
  */
+/** @internal */
 export function sqlType(input: unknown): string {
   if (Array.isArray(input)) {
     return "array"
@@ -50,6 +51,7 @@ export function sqlType(input: unknown): string {
 }
 
 // SQL does not support IEEE 754 signed zero
+/** @internal */
 export function sqlNum(input: NumBigInt): NumBigInt {
   return input == 0
     ? isBigInt(input) ? 0n : 0
@@ -57,12 +59,14 @@ export function sqlNum(input: NumBigInt): NumBigInt {
 }
 
 // SQL rounding rules different from JS
+/** @internal */
 export function sqlRound(input: number): number {
   return input < 0
     ? Math.ceil(input - 0.5)
     : Math.round(input)
 }
 
+/** @internal */
 export function toNumber(input: unknown, method: string): number {
   let value
   switch (typeof input) {
@@ -87,56 +91,66 @@ export function toNumber(input: unknown, method: string): number {
   return sqlNum(value) as number
 }
 
-
+/** @internal */
 export function isNumber(input: unknown): input is number {
   // SQL numbers are finite
   return Number.isFinite(input)
 }
 
+/** @internal */
 export function isString(input: unknown): input is string {
   return typeof input === "string"
 }
 
+/** @internal */
 export function isBigInt(input: unknown): input is bigint {
   return typeof input === "bigint"
 }
 
+/** @internal */
 export function isBoolean(input: unknown): input is boolean {
   return typeof input === "boolean"
 }
 
+/** @internal */
 export function isObject(input: unknown): input is Record<string, unknown> {
   return sqlType(input) === "object"
 }
 
+/** @internal */
 export function isSeq(input: unknown): input is Seq<unknown> {
   return input instanceof IteratorWithOperators
 }
 
+/** @internal */
 export function toSeq(input: unknown): Seq<unknown> {
   return isSeq(input)
     ? input.flatten()
     : iterate(Array.isArray(input) ? input : [input])
 }
 
+/** @internal */
 export function next<T>(input: SingleOrIterator<T>): T {
   return isSeq(input)
     ? input.next().value
     : input
 }
 
+/** @internal */
 export function toPred(condition: boolean): Pred {
   return condition
     ? Pred.TRUE
     : Pred.FALSE
 }
 
+/** @internal */
 export function autoMap<T>(input: SingleOrIterator<unknown>, mapƒ: Mapƒ<T>): SingleOrIterator<T> {
   return isSeq(input)
     ? input.map(mapƒ)
     : mapƒ(input)
 }
 
+/** @internal */
 export function autoFlatMap<I extends Seq<unknown>>(input: unknown, mapƒ: Mapƒ<I>): I {
   const mapped = autoMap(input, mapƒ) as I
   return isSeq(input)
@@ -144,6 +158,7 @@ export function autoFlatMap<I extends Seq<unknown>>(input: unknown, mapƒ: Mapƒ
     : mapped
 }
 
+/** @internal */
 export function mustBeNumber(input: SingleOrIterator<unknown>, method: string): number {
   const num = next<unknown>(input)
   if (isNumber(num)) {
@@ -152,6 +167,7 @@ export function mustBeNumber(input: SingleOrIterator<unknown>, method: string): 
   throw new Error(`${method} input must be a number, found ${JSON.stringify(input)}.`)
 }
 
+/** @internal */
 export function mustBeNumberOrBigInt(input: SingleOrIterator<unknown>, method: string): NumBigInt {
   const num = next<unknown>(input)
   if (isNumber(num) || isBigInt(num)) {
