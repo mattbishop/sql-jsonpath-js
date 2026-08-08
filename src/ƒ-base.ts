@@ -63,7 +63,6 @@ export class ƒBase {
    * the strictness test does not pass.
    * @param input the input to test.
    * @param config the strictness config.
-   * @private
    */
   private _checkStrict(input: unknown, config: StrictConfig) {
     if (this.lax || isSeq(input)) {
@@ -75,12 +74,6 @@ export class ƒBase {
     }
   }
 
-  /**
-   * Turn any input, like an iterator, into an array. Only used in lax mode.
-   * @param input The input to wrap.
-   * @param strict strict config, if any.
-   * @private
-   */
   private _toArray(input: unknown, strict: StrictConfig): Array<unknown> {
     this._checkStrict(input, strict)
     if (Array.isArray(input)) {
@@ -93,24 +86,9 @@ export class ƒBase {
     return [input]
   }
 
-  /*
-   * Unwraps array input into an iterator, and converts a non-array into a singeton iterator (lax mode only).
+  /**
+   * Unwraps array input into an iterator and applies the mapƒ to the iterator, or to the single value.
    * In strict mode, the non-array input will throw an error if the input is not an array and fails the strict test.
-   */
-  private _unwrap(input: unknown, strict: StrictConfig): Seq<unknown> {
-    this._checkStrict(input, strict)
-    return this.lax
-      ? toSeq(input)
-      : isSeq(input)
-        ? input
-        : iterate([input])
-  }
-
-  /*
-   * If lax, iterate and apply mapƒ, otherwise just apply mapƒ.
-   *
-   * Different from autoMap, in that it will iterate through arrays, while autoMap only iterates over Seq, thus treating
-   * arrays as a single value.
    */
   private _unwrapWith<T>(input: unknown, mapƒ: Mapƒ<T>, strict?: StrictConfig): SingleOrIterator<T> {
     if (input === NO_VALUE) {
@@ -329,13 +307,10 @@ export class ƒBase {
   }
 
   private static _ceiling(input: unknown): NumBigInt {
-    if (isBigInt(input)) {
-      return sqlNum(input)
-    }
-    if (isNumber(input)) {
-      return sqlNum(Math.ceil(input))
-    }
-    throw new Error(`ceiling() input must be a number, found ${JSON.stringify(input)}.`)
+    const num = mustBeNumberOrBigInt(input, "ceiling")
+    return isBigInt(num)
+      ? num
+      : sqlNum(Math.ceil(num as number))
   }
 
   ceiling(input: unknown): SingleOrIterator<NumBigInt> {
@@ -344,13 +319,10 @@ export class ƒBase {
 
 
   private static _floor(input: unknown): NumBigInt {
-    if (isBigInt(input)) {
-      return sqlNum(input)
-    }
-    if (isNumber(input)) {
-      return sqlNum(Math.floor(input))
-    }
-    throw new Error(`floor() input must be a number, found ${JSON.stringify(input)}.`)
+    const num = mustBeNumberOrBigInt(input, "floor")
+    return isBigInt(num)
+      ? num
+      : sqlNum(Math.floor(num as number))
   }
 
   floor(input: unknown): SingleOrIterator<NumBigInt> {
@@ -611,21 +583,19 @@ export class ƒBase {
       }
       throw new Error(`keyvalue() input must be an object, found ${JSON.stringify(row)}.`)
     }
-    return this._unwrap(input, { strict: isObject, error: "keyvalue() can only be applied to an object." })
-      .map(mapƒ)
+    return this._unwrapWith(input, mapƒ, { strict: isObject, error: "keyvalue() can only be applied to an object." })
       .flatten()
   }
 
-  private static _objectValues(input: unknown): Iterator<unknown> {
+  private static _objectValues(input: unknown): Seq<unknown> {
     return isObject(input)
       ? iterate(Object.values(input))
       : EMPTY_SEQ
   }
 
   private _dotStar(input: unknown): Seq<unknown> {
-    return this._unwrap(input, { strict: isObject, error: ".* can only be applied to an object." })
-        .map(ƒBase._objectValues)
-        .flatten()
+    return this._unwrapWith(input, ƒBase._objectValues, { strict: isObject, error: ".* can only be applied to an object." })
+      .flatten()
   }
 
   dotStar(input: unknown): Seq<unknown> {
