@@ -208,8 +208,8 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       ctx = maybeAppend(ContextVariable, ctx)
       let source = ctx.source
       if (NamedVariable) {
-        const name = NamedVariable[0].image.substring(1)
-        source = `$$("${name}")`
+        const [{image: name}] = NamedVariable
+        source = `$$("${name.substring(1)}")`
       } else if (FilterValue) {
         source = `${ctx.source}v`
       } else if (Last) {
@@ -408,7 +408,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
           m -> JS m
           x -> JS none, don't support.
 
-          However, JS has more Javascript flags. Much more useful, so just pass them in. I could create a 'spec' mode
+          However, JS has more flags. Much more useful, so just pass them in. I could create a 'spec' mode
           that only accepts i, s, and m, but let's see if anyone asks for that.
          */
         const flags = maybeImage(FlagValue).slice(1, -1)

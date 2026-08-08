@@ -1,7 +1,7 @@
-import {Temporal} from "@js-temporal/polyfill";
+import {Temporal} from "@js-temporal/polyfill"
 import {IteratorWithOperators} from "iterare/lib/iterate.js"
 
-import {ZonedTime} from "./json-path.ts";
+import {ZonedTime} from "./json-path.ts"
 
 
 /** @internal */

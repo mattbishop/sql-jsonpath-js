@@ -111,6 +111,6 @@ export class ZonedTime extends Temporal.PlainTime {
   }
 
   toString(options?: Temporal.ToStringPrecisionOptions): string {
-    return super.toString(options) + "Z"
+    return `${super.toString(options)}Z`
   }
 }

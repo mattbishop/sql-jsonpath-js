@@ -1,7 +1,7 @@
 import {Temporal} from "@js-temporal/polyfill"
 
 import {ZonedTime} from "./json-path.ts"
-import {type TemporalParser, type TemporalType, TemporalTypes} from "./types.ts";
+import {type TemporalParser, type TemporalType, TemporalTypes} from "./types.ts"
 
 
 /**
@@ -64,7 +64,6 @@ function _toTimeTz(parser: StringToTemporal, input: string): ZonedTime {
     return value
   }
   if (value instanceof Temporal.Instant) {
-    //?? PG 18 goes to UTC, 17 goes to local timezone. I may need to revisit this during comparison
     return ZonedTime.from(value.toZonedDateTimeISO("UTC"))
   }
   throw new Error(`Cannot convert input to a time with time zone: "${input}"`)
@@ -129,7 +128,7 @@ const FIELD_TO_REGEX: Record<string, string> = {
   "FF9":    "(?<ff>\\d{9})"
 }
 
-// Matches standard tokens, or single delimiters
+// Matches standard tokens or single delimiters
 const templateTokenizer = /(A\.M\.|P\.M\.|HH12|HH24|HH|YYYY|YYY|YY|Y|MM|DDD|DD|MI|SSSSS|SS|TZH|TZM|FF[1-9]|RRRR|RR)|([-.\/,';: ])/g
 
 function createFormattedParser(template: string): StringToTemporal {
@@ -202,22 +201,22 @@ function createFormattedParser(template: string): StringToTemporal {
 
     const dateArgs = { year, month, day, hour, minute, second, millisecond, microsecond, nanosecond }
 
-    const hasYear = ["YYYY", "YYY", "YY", "Y", "RRRR", "RR"].some((f) => { return fields.has(f) })
-    const hasMonthDay = ["MM", "DD", "DDD"].some((f) => { return fields.has(f) })
+    const hasYear = ["YYYY", "YYY", "YY", "Y", "RRRR", "RR"].some((f) => fields.has(f))
+    const hasMonthDay = ["MM", "DD", "DDD"].some((f) => fields.has(f))
     const hasDate = hasYear || hasMonthDay
-    const hasTime = ["HH24", "HH", "SSSSS"].some((f) => { return fields.has(f) }) ||
-      ["A.M.", "P.M."].some((f) => { return fields.has(f) }) ||
-      ["FF1", "FF2", "FF3", "FF4", "FF5", "FF6", "FF7", "FF8", "FF9"].some((f) => { return fields.has(f) })
+    const hasTime = ["HH24", "HH", "SSSSS"].some((f) => fields.has(f)) ||
+      ["A.M.", "P.M."].some((f) => fields.has(f)) ||
+      ["FF1", "FF2", "FF3", "FF4", "FF5", "FF6", "FF7", "FF8", "FF9"].some((f) => fields.has(f))
     const offset = fields.has("TZH") && `${g.tzh}:${g.tzm || "00"}`
     const overflow = "reject"
     if (hasDate && hasTime) {
       if (offset) {
         return Temporal.ZonedDateTime.from({
             ...dateArgs,
-            timeZone: "Etc/UTC",  // timeZone is required, but will probably not match the offset
+            timeZone: "Etc/UTC",  // timeZone is required but will probably not match the offset
             offset
           }, {
-            offset: "use",      // in the case of conflict between offset and timeZone, use the offset value
+            offset: "use",        // in the case of conflict between offset and timeZone, use the offset value
             overflow
           }
         ).toInstant()
@@ -226,21 +225,21 @@ function createFormattedParser(template: string): StringToTemporal {
       }
     }
     if (hasDate) {
-      return Temporal.PlainDate.from({ year, month, day }, {overflow})
+      return Temporal.PlainDate.from({year, month, day}, {overflow})
     }
     if (offset) {
       const zdt = Temporal.ZonedDateTime.from({
           ...dateArgs,
-          timeZone: "Etc/UTC",  // timeZone is required, but will probably not match the offset
+          timeZone: "Etc/UTC",  // timeZone is required but will probably not match the offset
           offset
         }, {
-          offset: "use",      // in the case of conflict between offset and timeZone, use the offset value
+          offset: "use",        // in the case of conflict between offset and timeZone, use the offset value
           overflow
         }
       )
       return ZonedTime.from(zdt)
     }
-    return Temporal.PlainTime.from({ hour, minute, second, millisecond, microsecond, nanosecond }, {overflow})
+    return Temporal.PlainTime.from({hour, minute, second, millisecond, microsecond, nanosecond}, {overflow})
   }
 }
 
@@ -252,7 +251,7 @@ function parseTemporalString(input: string): TemporalType {
       return Temporal.PlainTime.from(input, options)
     case TemporalTypes.TIME_TZ:
       // Instant wants a date portion
-      const instant = Temporal.Instant.from("1970-01-01T" + input)
+      const instant = Temporal.Instant.from(`1970-01-01T${input}`)
       // apply effect of timezone to time
       return ZonedTime.from(instant.toZonedDateTimeISO("UTC"), options)
     case TemporalTypes.DATE:

@@ -144,7 +144,7 @@ export class ƒBase {
   }
 
   size(input: unknown): SingleOrIterator<number> {
-    this._checkStrict(input, { strict: Array.isArray, error: "size() can only be applied to arrays." })
+    this._checkStrict(input, {strict: Array.isArray, error: "size() can only be applied to arrays."})
     // do not use unwrap since it must preserve Array shape for size()
     return autoMap(input, ƒBase._size)
   }
@@ -249,10 +249,10 @@ export class ƒBase {
 
     if (hasPrecision) {
       if (!Number.isInteger(precision) || precision < 1) {
-        throw new Error(`decimal() precision must be a positive integer, found ${JSON.stringify(precision)}.`)
+        throw new Error(`decimal() precision must be a positive integer, found ${precision}.`)
       }
       if (hasScale && (!Number.isInteger(scale) || scale < 0 || scale > precision)) {
-        throw new Error(`decimal() scale must be an integer between 0 and precision, found ${JSON.stringify(scale)}.`)
+        throw new Error(`decimal() scale must be an integer between 0 and precision, found ${scale}.`)
       }
     }
 
@@ -384,7 +384,7 @@ export class ƒBase {
   private static _timeRoundOptions(precision: number): Temporal.RoundTo<"second" | "millisecond" | "microsecond" | "nanosecond"> {
     const roundingMode = "halfExpand"
     if (precision > 9) {
-      throw new Error(`time() precision must be an integer between 0 and 9, found ${JSON.stringify(precision)}.`)
+      throw new Error(`time() precision must be an integer between 0 and 9, found ${precision}.`)
     }
     if (precision === 0) {
       return { smallestUnit: "second", roundingMode }
@@ -456,7 +456,7 @@ export class ƒBase {
 
   private static _timestampRoundOptions(precision: number): Temporal.RoundTo<"day" | "hour" | "minute" | "second" | "millisecond" | "microsecond" | "nanosecond"> {
     if (precision > 9) {
-      throw new Error(`timestamp() precision must be an integer between 0 and 9, found ${JSON.stringify(precision)}.`)
+      throw new Error(`timestamp() precision must be an integer between 0 and 9, found ${precision}.`)
     }
     const roundingMode = "halfExpand"
     if (precision === 0) {
@@ -512,7 +512,7 @@ export class ƒBase {
 
   private static _timestampTzRoundOptions(precision: number): Temporal.RoundTo<"second" | "millisecond" | "microsecond" | "nanosecond"> {
     if (precision > 9) {
-      throw new Error(`timestamp_tz() precision must be an integer between 0 and 9, found ${JSON.stringify(precision)}.`)
+      throw new Error(`timestamp_tz() precision must be an integer between 0 and 9, found ${precision}.`)
     }
     const roundingMode = "halfExpand"
     if (precision === 0) {
@@ -635,7 +635,7 @@ export class ƒBase {
 
   private _boxStar(input: unknown): Seq<unknown> {
     // [*] is not the same as unwrap, which always turns the array into a seq in lax mode.
-    this._checkStrict(input, { strict: Array.isArray, error: "[*] can only be applied to an array." })
+    this._checkStrict(input, {strict: Array.isArray, error: "[*] can only be applied to an array."})
     return toSeq(input)
   }
 
@@ -675,7 +675,7 @@ export class ƒBase {
   }
 
   private _array(input: unknown, subscripts: any[]): Seq<any> {
-    const array = this._toArray(input, { strict: Array.isArray, error: "Array accessors can only be applied to an array." })
+    const array = this._toArray(input, {strict: Array.isArray, error: "Array accessors can only be applied to an array."})
     return iterate(subscripts)
       .map((sub) => {
         if (isNumber(sub)) {
@@ -729,14 +729,16 @@ export class ƒBase {
   }
 
   filter(input: unknown, filterExp: Predƒ): Seq<unknown> {
-    const matches = (value: unknown) => ƒBase._matchesFilter(value, filterExp)
+    const matches = (v: unknown) => ƒBase._matchesFilter(v, filterExp)
 
     if (this.lax) {
       return toSeq(input).filter(matches)
     }
 
     const matched = isIterableInput(input)
-      ? iterate(input).map(matches).some(Boolean)
+      ? iterate(input)
+          .map(matches)
+          .some(Boolean)
       : matches(input)
 
     return toSeq(matched ? [input] : [])

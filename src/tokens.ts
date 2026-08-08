@@ -251,7 +251,7 @@ function createRegexToken(configIn: ITokenConfig): TokenType {
       const m = regex.exec(text)
       if (m && m.length > 1) {
         // attach the matcher result, skipping the first element which is the whole matched string.
-        (m as unknown as CustomPatternMatcherReturn).payload = m.slice(1)
+        (m as CustomPatternMatcherReturn).payload = m.slice(1)
       }
       return m
     },
