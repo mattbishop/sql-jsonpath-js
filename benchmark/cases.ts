@@ -15,7 +15,11 @@ type Book = {
 }
 
 function createBooks(count: number): Book[] {
-  return Array.from({length: count}, (_, index) => ({
+  return Array.from({length: count}, (_, index) => createBook(index))
+}
+
+function createBook(index: number): Book {
+  return {
     id: index,
     category: index % 10 === 0
       ? "reference"
@@ -45,7 +49,7 @@ function createBooks(count: number): Book[] {
         count: (index * 3) % 100
       }
     ]
-  }))
+  }
 }
 
 function createStore(bookCount: number) {
@@ -61,50 +65,49 @@ function createStore(bookCount: number) {
 }
 
 function* createBookIterator(count: number): Generator<Book> {
-  for (let i = 0; i < count; i++) {
-    yield createBooks(1)[0]!
+  for (let i = 1; i <= count; i++) {
+    yield createBook(i)
   }
 }
 
-const BOOK_COUNT = Number(process.env.BENCH_SIZE ?? 50_000)
-const ITERATIONS = Number(process.env.BENCH_ITERATIONS ?? 20)
+const ITERATIONS = Number(process.env.BENCH_ITERATIONS ?? 10_000)
 
 const benchmarks: BenchmarkCase[] = [
   {
     name: "large array member projection",
     statement: "$.store.book[*].author",
-    input: () => createStore(BOOK_COUNT),
+    input: () => createStore(200),
     iterations: ITERATIONS
   },
   {
     name: "large array numeric filter",
     statement: "$.store.book ? (@.price > 25)",
-    input: () => createStore(BOOK_COUNT),
+    input: () => createStore(100),
     iterations: ITERATIONS
   },
   {
     name: "large array exists filter",
     statement: "$.store.book ? (exists(@.isbn))",
-    input: () => createStore(BOOK_COUNT),
+    input: () => createStore(100),
     iterations: ITERATIONS
   },
   {
     name: "large array nested wildcard projection",
     statement: "$.store.book[*].stock[*].count",
-    input: () => createStore(BOOK_COUNT),
+    input: () => createStore(1000),
     iterations: ITERATIONS
   },
   {
     name: "large array string predicate",
     statement: '$.store.book.title ? (@ starts with "SQL")',
-    input: () => createStore(BOOK_COUNT),
+    input: () => createStore(50),
     iterations: ITERATIONS
   },
   {
     name: "iterator input exists",
     statement: '$ ? (@.category == "technical")',
     operation: "exists",
-    input: () => createBookIterator(BOOK_COUNT),
+    input: () => createBookIterator(1000),
     iterations: ITERATIONS
   }
 ]

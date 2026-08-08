@@ -24,8 +24,8 @@ type BenchmarkResult = {
   resultCount: number
 }
 
-const DEFAULT_ITERATIONS = 25
-const DEFAULT_WARMUP_ITERATIONS = 5
+const DEFAULT_ITERATIONS = 1000
+const DEFAULT_WARMUP_ITERATIONS = 50
 
 function consumeValues(statement: SqlJsonPathStatement, input: unknown): number {
   let count = 0
