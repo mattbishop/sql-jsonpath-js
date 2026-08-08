@@ -189,8 +189,7 @@ export class ƒBase {
     if (value < INTEGER_MIN || value > INTEGER_MAX) {
       throw new Error(`value out of range for integer(): ${value}`)
     }
-    // SQL does not have -0
-    return Object.is(value, -0) ? 0 : value
+    return sqlNum(value)
   }
 
   integer(input: unknown): SingleOrIterator<number> {

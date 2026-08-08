@@ -52,10 +52,8 @@ export function sqlType(input: unknown): string {
 
 // SQL does not support IEEE 754 signed zero
 /** @internal */
-export function sqlNum(input: NumBigInt): NumBigInt {
-  return input == 0
-    ? isBigInt(input) ? 0n : 0
-    : input
+export function sqlNum(input: number): number {
+  return Object.is(input, -0) ? 0 : input
 }
 
 // SQL rounding rules different from JS
@@ -88,7 +86,7 @@ export function toNumber(input: unknown, method: string): number {
   if (!Number.isFinite(value)) {
     throw new Error(`${method}() input ${input} is not a representation of a finite number.`)
   }
-  return sqlNum(value) as number
+  return sqlNum(value)
 }
 
 /** @internal */
@@ -170,8 +168,11 @@ export function mustBeNumber(input: SingleOrIterator<unknown>, method: string): 
 /** @internal */
 export function mustBeNumberOrBigInt(input: SingleOrIterator<unknown>, method: string): NumBigInt {
   const num = next<unknown>(input)
-  if (isNumber(num) || isBigInt(num)) {
+  if (isNumber(num)) {
     return sqlNum(num)
+  }
+  if (isBigInt(num)) {
+    return num
   }
   throw new Error(`${method} input must be a number or bigint, found ${JSON.stringify(input)}.`)
 }
