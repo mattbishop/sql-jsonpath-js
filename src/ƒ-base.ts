@@ -206,41 +206,39 @@ export class ƒBase {
   }
 
 
+  /*
+    Take the input and squeeze it into the precision and scale box.
+    precision is how many numbers, total, including decimal values.
+    Decimal 4 means 122.4, 1.224, 12.24 are valid.
+    Scale means how many decimal digits. It will add 0 to the decimal value to make it match.
+    That's not something JS number can do so not relevant.
+    Decimal 4, Scale 2 means 12.4 => 12.40, 1.24 => 1.24
+    Scale will also round the decimal portion up to the scale:
+    Decimal 4, Scale 2 means 1.245 => 1.25
+    Round decimals first, then test the final number against precision.
+   */
   private static _decimal(input: unknown, precision?: number, scale?: number): number {
-    /*
-      Take the input and squeeze it into the precision and scale box.
-      precision is how many numbers, total, including decimal values.
-      Decimal 4 means 122.4, 1.224, 12.24 are valid.
-      Scale means how many decimal digits. It will add 0 to the decimal value to make it match.
-      That's not something JS number can do so not relevant.
-      Decimal 4, Scale 2 means 12.4 => 12.40, 1.24 => 1.24
-      Scale will also round the decimal portion up to the scale:
-      Decimal 4, Scale 2 means 1.245 => 1.25
-      Round decimals first, then test the final number against precision.
-     */
     let value = toNumber(input, "decimal")
 
     const hasPrecision = precision !== undefined
     // scale only considered if precision is set
     const hasScale = precision && scale !== undefined
 
-    if (hasPrecision) {
-      if (!Number.isInteger(precision) || precision < 1) {
-        throw new Error(`decimal() precision must be a positive integer, found ${precision}.`)
-      }
-      if (hasScale && (!Number.isInteger(scale) || scale < 0 || scale > precision)) {
+    if (hasScale) {
+      if (!Number.isInteger(scale) || scale < 0 || scale > precision) {
         throw new Error(`decimal() scale must be an integer between 0 and precision, found ${scale}.`)
       }
-    }
-
-    if (hasScale) {
       const mult = 10 ** scale
       value = sqlRound(value * mult) / mult
     } else if (hasPrecision) {
+      // only round if scale is not set
       value = sqlRound(value)
     }
 
     if (hasPrecision) {
+      if (!Number.isInteger(precision) || precision < 1) {
+        throw new Error(`decimal() precision must be a positive integer, found ${precision}.`)
+      }
       const absValue = Math.abs(value)
       const integerDigits = absValue < 1
         ? 0
@@ -250,7 +248,6 @@ export class ƒBase {
         throw new Error(`value out of range for decimal(${precision}${hasScale ? `,${scale}` : ""}): ${value}`)
       }
     }
-
     return value
   }
 
