@@ -1,27 +1,19 @@
-import {iterate} from "iterare"
-import {isIterable} from "iterare/lib/utils.js"
-
 import {CLDR} from "./datetime-parser.ts"
 import {type KeyValue} from "./json-path.ts"
-import {isIterableInput, noValueFilter, ReplayableIterable} from "./iterators.ts"
+import {autoFlatMap, autoMap, flatten, isIterable, isIterableInput, isSeq, next, noValueFilter, ReplayableIterable, toSeq} from "./iterators.ts"
 import {
-  autoFlatMap,
-  autoMap,
   isBigInt,
   isBoolean,
   isNumber,
   isObject,
-  isSeq,
   isString,
   mustBeNumber,
   mustBeNumberOrBigInt,
-  next,
   sqlNum,
   sqlRound,
   sqlType,
   toNumber,
-  toPred,
-  toSeq
+  toPred
 } from "./ƒ-utils.ts"
 import {
   type Mapƒ,
@@ -30,7 +22,7 @@ import {
   Pred,
   type Predƒ,
   type Seq,
-  type SingleOrIterator,
+  type SingleOrSeq,
   type TemporalParser,
   type TemporalType,
   TemporalTypes
@@ -44,7 +36,7 @@ type StrictConfig = {
 
 
 const KV_INDEX = "KV-index"
-const EMPTY_SEQ = iterate([])
+const EMPTY_SEQ = Iterator.from([])
 const BIGINT_MIN = -(2n ** 63n)
 const BIGINT_MAX = 2n ** 63n - 1n
 const INTEGER_MIN = -(2 ** 31)
@@ -89,13 +81,13 @@ export class ƒBase {
    * Unwraps array input into an iterator and applies the mapƒ to the iterator, or to the single value.
    * In strict mode, the non-array input will throw an error if the input is not an array and fails the strict test.
    */
-  private _unwrapWith<T>(input: unknown, mapƒ: Mapƒ<T>, strict?: StrictConfig): SingleOrIterator<T> {
+  private _unwrapWith<T>(input: unknown, mapƒ: Mapƒ<T>, strict?: StrictConfig): SingleOrSeq<T> {
     if (input === NO_VALUE) {
       return NO_VALUE as T
     }
     this._checkStrict(input, strict || {strict: (input) => !Array.isArray(input), error: "Cannot unwrap non-array input."})
     return isIterable(input)
-      ? iterate(input)
+      ? Iterator.from(input)
           .map(mapƒ)
           .filter(noValueFilter)
       : mapƒ(input)
@@ -108,7 +100,7 @@ export class ƒBase {
   }
 
 
-  type(input: unknown): SingleOrIterator<string> {
+  type(input: unknown): SingleOrSeq<string> {
     // do not unwrap input, unless it's a seq. Need type of array.
     return autoMap(input, sqlType)
   }
@@ -120,7 +112,7 @@ export class ƒBase {
       : 1
   }
 
-  size(input: unknown): SingleOrIterator<number> {
+  size(input: unknown): SingleOrSeq<number> {
     this._checkStrict(input, {strict: Array.isArray, error: "size() can only be applied to arrays."})
     // do not use unwrap since it must preserve Array shape for size()
     return autoMap(input, ƒBase._size)
@@ -131,7 +123,7 @@ export class ƒBase {
     return toNumber(input, "double")
   }
 
-  double(input: unknown): SingleOrIterator<number> {
+  double(input: unknown): SingleOrSeq<number> {
     return this._unwrapWith(input, ƒBase._double)
   }
 
@@ -159,7 +151,7 @@ export class ƒBase {
     return value
   }
 
-  bigint(input: unknown): SingleOrIterator<bigint> {
+  bigint(input: unknown): SingleOrSeq<bigint> {
     return this._unwrapWith(input, ƒBase._bigint)
   }
 
@@ -191,7 +183,7 @@ export class ƒBase {
     return sqlNum(value)
   }
 
-  integer(input: unknown): SingleOrIterator<number> {
+  integer(input: unknown): SingleOrSeq<number> {
     return this._unwrapWith(input, ƒBase._integer)
   }
 
@@ -200,7 +192,7 @@ export class ƒBase {
     return toNumber(input, "number")
   }
 
-  number(input: unknown): SingleOrIterator<number> {
+  number(input: unknown): SingleOrSeq<number> {
     return this._unwrapWith(input, ƒBase._number)
   }
 
@@ -250,7 +242,7 @@ export class ƒBase {
     return value
   }
 
-  decimal(input: unknown, precision?: number, scale?: number): SingleOrIterator<number> {
+  decimal(input: unknown, precision?: number, scale?: number): SingleOrSeq<number> {
     const mapƒ = (v: unknown) => ƒBase._decimal(v, precision, scale)
     return this._unwrapWith(input, mapƒ)
   }
@@ -274,7 +266,7 @@ export class ƒBase {
     throw new Error(`string() can only be applied to a string, boolean, numeric, or datetime value: ${JSON.stringify(input)}`)
   }
 
-  string(input: unknown): SingleOrIterator<string> {
+  string(input: unknown): SingleOrSeq<string> {
     return this._unwrapWith(input, ƒBase._string)
   }
 
@@ -297,7 +289,7 @@ export class ƒBase {
     throw new Error(`boolean() can only be applied to a boolean, string or integer value: ${JSON.stringify(input)}`)
   }
 
-  boolean(input: unknown): SingleOrIterator<boolean> {
+  boolean(input: unknown): SingleOrSeq<boolean> {
     return this._unwrapWith(input, ƒBase._boolean)
   }
 
@@ -308,7 +300,7 @@ export class ƒBase {
       : sqlNum(Math.ceil(num as number))
   }
 
-  ceiling(input: unknown): SingleOrIterator<NumBigInt> {
+  ceiling(input: unknown): SingleOrSeq<NumBigInt> {
     return this._unwrapWith(input, ƒBase._ceiling)
   }
 
@@ -320,7 +312,7 @@ export class ƒBase {
       : sqlNum(Math.floor(num as number))
   }
 
-  floor(input: unknown): SingleOrIterator<NumBigInt> {
+  floor(input: unknown): SingleOrSeq<NumBigInt> {
     return this._unwrapWith(input, ƒBase._floor)
   }
 
@@ -330,7 +322,7 @@ export class ƒBase {
     return num < 0 ? -num : num
   }
 
-  abs(input: unknown): SingleOrIterator<NumBigInt> {
+  abs(input: unknown): SingleOrSeq<NumBigInt> {
     return this._unwrapWith(input, ƒBase._abs)
   }
 
@@ -342,7 +334,7 @@ export class ƒBase {
     throw new Error(`date() input must be a string, found ${JSON.stringify(input)}.`)
   }
 
-  date(input: unknown): SingleOrIterator<Temporal.PlainDate> {
+  date(input: unknown): SingleOrSeq<Temporal.PlainDate> {
     const parser = this.scope.get(CLDR) as TemporalParser
     const mapƒ = (v: unknown) => ƒBase._date(v, parser)
     return this._unwrapWith(input, mapƒ)
@@ -392,7 +384,7 @@ export class ƒBase {
   // cannot accept time zones, must throw an error:
   // > SELECT jsonb_path_query('"2020-01-01T02:11:18.0214-02:00"'::JSONB, '$.time()');
   // ERROR: cannot convert value from timestamptz to time without time zone usage
-  time(input: unknown, precision?: number): SingleOrIterator<Temporal.PlainTime> {
+  time(input: unknown, precision?: number): SingleOrSeq<Temporal.PlainTime> {
     const parser = this.scope.get(CLDR) as TemporalParser
     const mapƒ = (v: unknown) => ƒBase._time(v, parser, precision)
     return this._unwrapWith(input, mapƒ)
@@ -414,7 +406,7 @@ export class ƒBase {
   // > SELECT jsonb_path_query('"2020-01-01T02:11:18.0214-02:00"'::JSONB, '$.time_tz()');
   // "04:11:18.0214+00:00"
   // It converts to UTC time and returns that
-  time_tz(input: unknown, precision?: number): SingleOrIterator<Temporal.PlainTime> {
+  time_tz(input: unknown, precision?: number): SingleOrSeq<Temporal.PlainTime> {
     const parser = this.scope.get(CLDR) as TemporalParser
     const mapƒ =  (v: unknown) => ƒBase._time_tz(v, parser, precision)
     return this._unwrapWith(input, mapƒ)
@@ -471,7 +463,7 @@ export class ƒBase {
     throw new Error(`timestamp() input must be a string, found ${JSON.stringify(input)}.`)
   }
 
-  timestamp(input: unknown, precision?: number): SingleOrIterator<Temporal.PlainDateTime> {
+  timestamp(input: unknown, precision?: number): SingleOrSeq<Temporal.PlainDateTime> {
     const parser = this.scope.get(CLDR) as TemporalParser
     const mapƒ = (v: unknown) => ƒBase._timestamp(v, parser, precision)
     return this._unwrapWith(input, mapƒ)
@@ -518,7 +510,7 @@ export class ƒBase {
     throw new Error(`timestamp() input must be a string, found ${JSON.stringify(input)}.`)
   }
 
-  timestamp_tz(input: unknown, precision?: number): SingleOrIterator<Temporal.Instant> {
+  timestamp_tz(input: unknown, precision?: number): SingleOrSeq<Temporal.Instant> {
     const parser = this.scope.get(CLDR) as TemporalParser
     const mapƒ = (v: unknown) => ƒBase._timestamp_tz(v, parser, precision)
     return this._unwrapWith(input, mapƒ)
@@ -556,7 +548,7 @@ export class ƒBase {
     throw new Error(`datetime() input must be a string, found ${JSON.stringify(input)}.`)
   }
 
-  datetime(input: unknown, template: string): SingleOrIterator<TemporalType> {
+  datetime(input: unknown, template: string): SingleOrSeq<TemporalType> {
     const parser = this.scope.get(template ?? CLDR) as TemporalParser
     const mapƒ = (v: unknown) => ƒBase._datetime(v, parser)
     return this._unwrapWith(input, mapƒ)
@@ -564,7 +556,7 @@ export class ƒBase {
 
 
   private static _toKV(obj: Record<string, unknown>, id: number): Seq<KeyValue> {
-    return iterate(Object.keys(obj))
+    return Iterator.from(Object.keys(obj))
       .map((key) => ({id, key, value: obj[key]}))
   }
 
@@ -579,18 +571,18 @@ export class ƒBase {
       throw new Error(`keyvalue() input must be an object, found ${JSON.stringify(row)}.`)
     }
     return this._unwrapWith(input, mapƒ, { strict: isObject, error: "keyvalue() can only be applied to an object." })
-      .flatten()
+      .flatMap<KeyValue>(flatten)
   }
 
   private static _objectValues(input: unknown): Seq<unknown> {
     return isObject(input)
-      ? iterate(Object.values(input))
+      ? Iterator.from(Object.values(input))
       : EMPTY_SEQ
   }
 
   private _dotStar(input: unknown): Seq<unknown> {
     return this._unwrapWith(input, ƒBase._objectValues, { strict: isObject, error: ".* can only be applied to an object." })
-      .flatten()
+      .flatMap(flatten)
   }
 
   dotStar(input: unknown): Seq<unknown> {
@@ -605,7 +597,6 @@ export class ƒBase {
   }
 
   boxStar(input: unknown): Seq<unknown> {
-    // need the function so _checkStrict has a defined this
     return autoFlatMap(input, (i) => this._boxStar(i))
   }
 
@@ -620,7 +611,7 @@ export class ƒBase {
     throw new Error(`Object does not contain key '${member}'. In strict mode.`)
   }
 
-  member(input: unknown, member: string): SingleOrIterator<unknown> {
+  member(input: unknown, member: string): SingleOrSeq<unknown> {
     const mapƒ = (i: unknown) => this._member(i, member)
     return this._unwrapWith(input, mapƒ)
   }
@@ -628,10 +619,7 @@ export class ƒBase {
 
   private _maybeElement(array: Array<unknown>, pos: number): unknown {
     if (pos < array.length) {
-      const value = array[pos]
-      return Array.isArray(value)
-        ? [value]
-        : value
+      return array[pos]
     }
     if (this.lax) {
       return NO_VALUE
@@ -641,7 +629,7 @@ export class ƒBase {
 
   private _array(input: unknown, subscripts: any[]): Seq<any> {
     const array = this._toArray(input, {strict: Array.isArray, error: "Array accessors can only be applied to an array."})
-    return iterate(subscripts)
+    return Iterator.from(subscripts)
       .map((sub) => {
         if (isNumber(sub)) {
           return this._maybeElement(array, sub)
@@ -654,7 +642,7 @@ export class ƒBase {
         }
         throw new Error("array accessor must be numbers")
       })
-      .flatten()
+      .flatMap(flatten)
   }
 
   array(input: unknown, subscripts: unknown[]): Seq<any> {
@@ -676,7 +664,7 @@ export class ƒBase {
   range(from: unknown, to: unknown): Seq<number> {
     const start = mustBeNumber(from, "'from'")
     const end = mustBeNumber(to, "'to'")
-    return iterate(ƒBase._range(start, end))
+    return Iterator.from(ƒBase._range(start, end))
   }
 
 
@@ -685,7 +673,7 @@ export class ƒBase {
       const result = filterExp(input)
       // look for at least one Pred.TRUE in the iterator
       return isSeq(result)
-        ? result.includes(Pred.TRUE)
+        ? result.some((p) => p === Pred.TRUE)
         : result === Pred.TRUE
     } catch (e) {
       // filter silently consumes all errors
@@ -701,7 +689,7 @@ export class ƒBase {
     }
 
     const matched = isIterableInput(input)
-      ? iterate(input)
+      ? Iterator.from(input)
           .map(matches)
           .some(Boolean)
       : matches(input)
@@ -862,7 +850,7 @@ export class ƒBase {
    * @param seek  sought-after pred value
    * @param defaultPred return this if none found, or UNKNOWN if found
    */
-  private static _seekPred(preds:       SingleOrIterator<Pred>[],
+  private static _seekPred(preds:       SingleOrSeq<Pred>[],
                            seek:        Pred,
                            defaultPred: Pred): Pred {
     let hasUnknown = false
@@ -880,7 +868,7 @@ export class ƒBase {
       : defaultPred
   }
 
-  and(preds: SingleOrIterator<Pred>[]): Pred {
+  and(preds: SingleOrSeq<Pred>[]): Pred {
     return ƒBase._seekPred(preds, Pred.FALSE, Pred.TRUE)
   }
 
@@ -890,7 +878,7 @@ export class ƒBase {
   }
 
 
-  exists(wff: () => SingleOrIterator<unknown>): Pred {
+  exists(wff: () => SingleOrSeq<unknown>): Pred {
     try {
       const result = wff()
       let value
@@ -913,7 +901,7 @@ export class ƒBase {
     return toPred(input === Pred.UNKNOWN)
   }
 
-  isUnknown(input: SingleOrIterator<Pred>): SingleOrIterator<Pred> {
+  isUnknown(input: SingleOrSeq<Pred>): SingleOrSeq<Pred> {
     return this._unwrapWith(input, ƒBase._isUnknown)
   }
 
@@ -924,7 +912,7 @@ export class ƒBase {
       : Pred.UNKNOWN
   }
 
-  startsWith(input: unknown, start: string): SingleOrIterator<Pred> {
+  startsWith(input: unknown, start: string): SingleOrSeq<Pred> {
     return this._unwrapWith(input, (i) => ƒBase._startsWith(i, start))
   }
 
@@ -935,7 +923,7 @@ export class ƒBase {
       : Pred.UNKNOWN
   }
 
-  match(input: unknown, pattern: RegExp): SingleOrIterator<Pred> {
+  match(input: unknown, pattern: RegExp): SingleOrSeq<Pred> {
     return this._unwrapWith(input, (i) => ƒBase._match(i, pattern))
   }
 }

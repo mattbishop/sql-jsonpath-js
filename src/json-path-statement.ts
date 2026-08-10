@@ -1,10 +1,17 @@
 import {Lexer} from "chevrotain"
-import {iterate} from "iterare"
-import {IteratorWithOperators} from "iterare/lib/iterate.js"
 
 import {type CodegenContext, newCodegenVisitor} from "./codegen-visitor.ts"
 import {ƒBase} from "./ƒ-base.ts"
-import {DefaultOnEmptyIterator, DefaultOnErrorIterator, isIterableInput, noValueFilter, one, toInputIterator} from "./iterators.ts"
+import {
+  DefaultOnEmptyIterator,
+  DefaultOnErrorIterator,
+  isIterableInput,
+  isSeq,
+  noValueFilter,
+  one,
+  SingletonIterator,
+  toInputIterator
+} from "./iterators.ts"
 import type {Input, NamedVariables, SqlJsonPathStatement, ValuesConfig} from "./json-path.ts"
 import {JsonPathParser} from "./parser.ts"
 import {allTokens} from "./tokens.ts"
@@ -36,10 +43,10 @@ export function generateFunctionSource(text: string): CodegenContext {
 
 
 /** @internal */
-export type SJPFn = ($: unknown, $named?: NamedVariables) => IteratorWithOperators<unknown>
+export type SJPFn<T> = ($: unknown, $named?: NamedVariables) => IteratorObject<T>
 
 
-function createFunction({source, lax, scope}: CodegenContext): SJPFn {
+function createFunction<T>({source, lax, scope}: CodegenContext): SJPFn<T> {
   const fn = new Function("ƒ", "$", "$$", source)
   const ƒ = new ƒBase(lax, scope)
 
@@ -52,9 +59,9 @@ function createFunction({source, lax, scope}: CodegenContext): SJPFn {
       throw new Error(`no variable named '$${name}'`)
     }
     const result = fn(ƒ, $, $$)
-    const iter = result instanceof IteratorWithOperators
+    const iter = isSeq(result)
       ? result
-      : iterate([result])
+      : Iterator.from(new SingletonIterator(result))
     return iter.filter(noValueFilter)
   }
 }
@@ -70,27 +77,25 @@ export function createStatement(text: string): SqlJsonPathStatement {
     source:   text,
     fnSource: ctx.source,
 
-    exists(input, config = {}): boolean | IterableIterator<boolean> {
+    exists(input, config = {}): boolean | IteratorObject<boolean> {
       const {variables} = config
       // iterate through the inputs one at a time and test them against fn()
       // filter() will omit the exists == false elements, and the caller needs to know this
       const existsƒ = (i: unknown) => !fn(i, variables).next().done
-      const iterator = iterate(toInputIterator(input))
-            .map(existsƒ)
-
+      const iterator = toInputIterator(input)
+        .map(existsƒ)
       // return the shape that matches input
       return isIterableInput(input)
         ? iterator
         : one(iterator) ?? false
     },
 
-    values<T>(input: Input, config: ValuesConfig<T> = {}): IterableIterator<T> {
+    values<T>(input: Input, config: ValuesConfig<T> = {}): IteratorObject<T> {
       const {variables} = config
-      const valuesƒ = (i: unknown) => fn(i, variables)
-      const valuesIterator = iterate(toInputIterator(input))
-        .map(valuesƒ)
-        .flatten()
-      return defaultsIterator(valuesIterator, config) as IterableIterator<T>
+      const valuesƒ = (i: unknown) => fn(i, variables) as IteratorObject<T>
+      const valuesIterator = toInputIterator(input)
+        .flatMap(valuesƒ)
+      return Iterator.from(defaultsIterator(valuesIterator, config))
     }
   }
 }

@@ -1,12 +1,40 @@
-import {isIterable} from "iterare/lib/utils.js"
-
 import type {Input} from "./json-path.ts"
-import {NO_VALUE} from "./types.ts"
+import {type Mapƒ, NO_VALUE, type Seq, type SingleOrSeq} from "./types.ts"
 
 
 /** @internal */
 export function noValueFilter(v: unknown) {
   return v !== NO_VALUE
+}
+
+
+/** @internal */
+export function isSeq(input: unknown): input is Seq<unknown> {
+  return !Array.isArray(input) && typeof (input as Seq<unknown>)?.flatMap === "function"
+}
+
+
+/** @internal */
+export function toSeq(input: unknown): Seq<unknown> {
+  return isSeq(input)
+    ? input.flatMap(flatten)
+    : Iterator.from(Array.isArray(input) ? input : new SingletonIterator(input))
+}
+
+
+/** @internal */
+export function flatten<T>(value: T | IteratorObject<T>): IteratorObject<T> {
+  return isSeq(value)
+    ? value
+    : Iterator.from(new SingletonIterator(value))
+}
+
+
+/** @internal */
+export function isIterable(value: unknown): value is Iterable<unknown> {
+  return value !== null
+    && typeof value === "object"
+    && typeof (value as Iterable<unknown>)[Symbol.iterator] === "function"
 }
 
 
@@ -16,7 +44,7 @@ export function noValueFilter(v: unknown) {
  * @internal
  */
 export function isIterableInput<T>(input: Input<T>): input is Iterable<T> {
-  return typeof input !== "string" && !Array.isArray(input) && isIterable(input)
+  return !Array.isArray(input) && isIterable(input)
 }
 
 
@@ -24,10 +52,10 @@ export function isIterableInput<T>(input: Input<T>): input is Iterable<T> {
  * Returns an iterator of iterable input (see isIterableInput), and wraps other input in a singleton iterator.
  * @internal
  */
-export function toInputIterator(input: Input): Iterator<unknown> {
-  return isIterableInput(input)
-    ? input[Symbol.iterator]()
-    : new SingletonIterator(input)
+export function toInputIterator(input: Input): IteratorObject<unknown> {
+  return Iterator.from(isIterableInput(input)
+    ? input
+    : new SingletonIterator(input))
 }
 
 
@@ -135,7 +163,6 @@ export class DefaultOnErrorIterator<T> implements Iterator<T> {
   }
 }
 
-
 /**
  * Pulls one element from an iterator. If no elements are available, returns undefined.
  *
@@ -143,4 +170,36 @@ export class DefaultOnErrorIterator<T> implements Iterator<T> {
  */
 export function one<T>(iter: Iterator<T>): T | undefined {
   return iter.next().value
+}
+
+/**
+ *  Examines input and returns the next value if a Seq, or the input if not.
+ *
+ * @internal
+ */
+export function next<T>(input: SingleOrSeq<T>): T {
+  return isSeq(input)
+    ? one(input) as T
+    : input
+}
+
+/**
+ * Maps the input with the mapƒ function. If Seq, applies mapƒ to the sequence. If a single value,
+ * just applies mapƒ to value.
+ *  @internal
+ */
+export function autoMap<T>(input: SingleOrSeq<unknown>, mapƒ: Mapƒ<T>): SingleOrSeq<T> {
+  return isSeq(input)
+    ? input.map(mapƒ)
+    : mapƒ(input)
+}
+
+/**
+ * Similar to autoMap, applies mapƒ to input if it is a Seq, then flattens it. If single value, just applies mapƒ.
+ * @internal
+ */
+export function autoFlatMap<I extends SingleOrSeq<unknown>>(input: unknown, mapƒ: Mapƒ<I>): I {
+  return isSeq(input)
+    ? input.map(mapƒ).flatMap(flatten) as I
+    : mapƒ(input)
 }

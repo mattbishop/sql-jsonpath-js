@@ -1,9 +1,8 @@
-import {iterate} from "iterare"
-import {IteratorWithOperators} from "iterare/lib/iterate.js"
+// noinspection FallThroughInSwitchStatementJS
 
 import {ZonedTime} from "./json-path.ts"
-import {type Mapƒ, type NumBigInt, Pred, type Seq, type SingleOrIterator} from "./types.ts"
-
+import {type NumBigInt, Pred, type SingleOrSeq} from "./types.ts"
+import {next} from "./iterators.ts"
 
 
 /*
@@ -76,6 +75,7 @@ export function toNumber(input: unknown, method: string): number {
         value = Number.NaN
         break
       }
+      // fall through
     case "bigint":
       value = Number(input)
       break
@@ -115,25 +115,6 @@ export function isObject(input: unknown): input is Record<string, unknown> {
 }
 
 /** @internal */
-export function isSeq(input: unknown): input is Seq<unknown> {
-  return input instanceof IteratorWithOperators
-}
-
-/** @internal */
-export function toSeq(input: unknown): Seq<unknown> {
-  return isSeq(input)
-    ? input.flatten()
-    : iterate(Array.isArray(input) ? input : [input])
-}
-
-/** @internal */
-export function next<T>(input: SingleOrIterator<T>): T {
-  return isSeq(input)
-    ? input.next().value
-    : input
-}
-
-/** @internal */
 export function toPred(condition: boolean): Pred {
   return condition
     ? Pred.TRUE
@@ -141,22 +122,7 @@ export function toPred(condition: boolean): Pred {
 }
 
 /** @internal */
-export function autoMap<T>(input: SingleOrIterator<unknown>, mapƒ: Mapƒ<T>): SingleOrIterator<T> {
-  return isSeq(input)
-    ? input.map(mapƒ)
-    : mapƒ(input)
-}
-
-/** @internal */
-export function autoFlatMap<I extends Seq<unknown>>(input: unknown, mapƒ: Mapƒ<I>): I {
-  const mapped = autoMap(input, mapƒ) as I
-  return isSeq(input)
-    ? mapped.flatten() as I
-    : mapped
-}
-
-/** @internal */
-export function mustBeNumber(input: SingleOrIterator<unknown>, method: string): number {
+export function mustBeNumber(input: SingleOrSeq<unknown>, method: string): number {
   const num = next<unknown>(input)
   if (isNumber(num)) {
     return sqlNum(num) as number
@@ -165,7 +131,7 @@ export function mustBeNumber(input: SingleOrIterator<unknown>, method: string): 
 }
 
 /** @internal */
-export function mustBeNumberOrBigInt(input: SingleOrIterator<unknown>, method: string): NumBigInt {
+export function mustBeNumberOrBigInt(input: SingleOrSeq<unknown>, method: string): NumBigInt {
   const num = next<unknown>(input)
   if (isNumber(num)) {
     return sqlNum(num)

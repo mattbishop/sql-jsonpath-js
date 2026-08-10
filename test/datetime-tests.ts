@@ -363,7 +363,7 @@ describe("datetime tests", () => {
         "2024-01-16"
       ])
 
-      expect(Array.from(actual).map((value) => value.toString())).to.deep.equal([
+      expect(Array.from(actual).map((value) => String(value))).to.deep.equal([
         "2024-01-16"
       ])
     })
@@ -376,7 +376,7 @@ describe("datetime tests", () => {
         "2024-01-15T12:34:57"
       ])
 
-      expect(Array.from(actual).map((value) => value.toString())).to.deep.equal([
+      expect(Array.from(actual).map((value) => String(value))).to.deep.equal([
         "2024-01-15T12:34:56",
         "2024-01-15T12:34:57"
       ])
@@ -390,7 +390,7 @@ describe("datetime tests", () => {
         "2024-01-16T00:00:00"
       ])
 
-      expect(Array.from(actual).map((value) => value.toString())).to.deep.equal([
+      expect(Array.from(actual).map((value) => String(value))).to.deep.equal([
         "2024-01-15T00:00:00"
       ])
     })

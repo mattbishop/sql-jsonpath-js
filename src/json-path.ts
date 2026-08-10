@@ -73,7 +73,7 @@ export interface SqlJsonPathStatement {
    * @param config Contains default values for misses and errors as well as named variables to use in the
    * SQL JSONPath evaluation.
    */
-  exists(input: Input, config?: StatementConfig): boolean | IterableIterator<boolean>
+  exists(input: Input, config?: StatementConfig): boolean | IteratorObject<boolean>
 
   /**
    * Searches the JSON input for values that match the SQL JSONPath statement, returning the extracted values
@@ -84,7 +84,7 @@ export interface SqlJsonPathStatement {
    * @param config Contains default values for misses and errors as well as named variables to use in the
    * SQL JSONPath evaluation.
    */
-  values<T>(input: Input, config?: ValuesConfig<T>): IterableIterator<T>
+  values<T>(input: Input, config?: ValuesConfig<T>): IteratorObject<T>
 }
 
 

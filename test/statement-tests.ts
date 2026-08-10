@@ -1,11 +1,9 @@
 import {expect} from "chai"
-import {isIterator} from "iterare/lib/utils.js"
-import {iterate} from "iterare"
 import * as assert from "node:assert"
 import {after, describe, it} from "node:test"
 import {PGlite} from "@electric-sql/pglite"
 
-import {isIterableInput, ReplayableIterable} from "../src/iterators.ts"
+import {isIterableInput, isSeq, ReplayableIterable} from "../src/iterators.ts"
 import type {Input} from "../src/json-path.ts"
 
 // better for debugging issues
@@ -157,7 +155,7 @@ describe("Statement tests", () => {
       const statement = compile(src)
       const actual = statement.exists(data.values())
       expect(actual).to.not.be.a("boolean")
-      expect(isIterator(actual)).to.be.true
+      expect(isSeq(actual)).to.be.true
       await testCompareToPg(src, data)
     })
 
@@ -647,7 +645,7 @@ describe("Statement tests", () => {
 
       statement = compile('$ ? (exists(@[*].z)) ? (@.size() > 0)')
       const actualChain = statement.values(data)
-      expect(Array.from(actualChain)).to.deep.equal([{"z": true}, {"y": false}, {"z": 1}])
+      expect(Array.from(actualChain)).to.deep.equal([[{"z": true}, {"y": false}], [{"z": 1}]])
     })
   })
 
@@ -724,7 +722,8 @@ describe("Statement tests", () => {
       expect(Array.from(actual)).to.deep.equal([0, 2, 4, 6, 8])
     })
     it("*number exists", () => {
-      const actual = iterate(numberGen()).map(stmt.exists)
+      // @ts-ignore
+      const actual = numberGen().map(stmt.exists)
       expect(Array.from(actual)).to.deep.equal([true, false, true, false, true, false, true, false, true, false])
     })
   })
@@ -1707,7 +1706,7 @@ describe("Statement tests", () => {
       ]
 
 // exists() looks for matches and returns true or false for each data element.
-      const existsIterator = iterate(data).map(statement.exists)
+      const existsIterator = data.values().map(statement.exists)
       expect(Array.from(existsIterator)).to.deep.equal([true, true, false])
 
 // values()
@@ -1720,10 +1719,8 @@ describe("Statement tests", () => {
 
       const data = [5, 65, 322, 78]
 
-      const iteratedResult = iterate(data).map(statement.exists)
+      const iteratedResult = data.values().map(statement.exists)
       expect(Array.from(iteratedResult)).to.deep.equal([false, false, false, false])
-// data is an iterable, so statement iterates through the elements and applies the statement
-// [false, false, false, false]
 
       const singleResult = statement.exists(data)
       expect(singleResult).to.be.false
@@ -1786,7 +1783,7 @@ describe("Statement tests", () => {
         let aName = "Fred"
         const tester = (d: any) => stmt.exists(d, {variables: {aName}})
 
-        let actual = iterate(data).map(tester)
+        let actual = data.values().map(tester)
         // first
         expect(one(actual)).to.be.true
         expect(one(actual)).to.be.false
@@ -1796,7 +1793,7 @@ describe("Statement tests", () => {
         expect(actual.next().done).to.be.true
         // third
         aName = "Afu"
-        actual = iterate(data).map(tester)
+        actual = data.values().map(tester)
         expect(one(actual)).to.be.false
         expect(one(actual)).to.be.false
         expect(one(actual)).to.be.true
@@ -1805,7 +1802,7 @@ describe("Statement tests", () => {
         expect(actual.next().done).to.be.true
         // fourth
         aName = "Justin"
-        actual = iterate(data).map(tester)
+        actual = data.values().map(tester)
         expect(one(actual)).to.be.false
         expect(one(actual)).to.be.false
         expect(one(actual)).to.be.false

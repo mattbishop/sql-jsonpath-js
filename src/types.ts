@@ -1,22 +1,23 @@
-import {IteratorWithOperators} from "iterare/lib/iterate.js"
-
 import {ZonedTime} from "./json-path.ts"
 
 
 /** @internal */
 export type NumBigInt = number | bigint
 
-/** @internal */
-export type Seq<T> = IteratorWithOperators<T>
+/**
+ * Shorter version of the type for code clarity.
+ * @internal
+ */
+export type Seq<T> = IteratorObject<T>
 
 /** @internal */
-export type SingleOrIterator<T> = T | Seq<T>
+export type SingleOrSeq<T> = T | Seq<T>
 
 /** @internal */
 export type Mapƒ<T> = (input: any) => T
 
 /** @internal */
-export type Predƒ = Mapƒ<SingleOrIterator<Pred>>
+export type Predƒ = Mapƒ<SingleOrSeq<Pred>>
 
 
 /** @internal */
