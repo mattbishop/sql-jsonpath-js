@@ -1337,6 +1337,57 @@ describe("Statement tests", () => {
     })
   })
 
+
+  describe("floor()", () => {
+    it("matches sql for numeric values", async () => {
+      const src = '$.floor()'
+      const data = [0, 1, -1, 77.6, -440.33, 9.1, -1.7e-4]
+      await testValuesCompareToPg(src, data.values())
+    })
+
+    it("strictly applies floor() to iterator values", async () => {
+      const src = 'strict $.floor()'
+      const data = [1.1, 9.9, -100.7, -1.7e-4]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("matches sql errors for non-numeric values", async () => {
+      const src = '$.floor()'
+      const data = [null, "77.4", true, false, {}, []]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("applies floor() to iterator values", async () => {
+      const src = '$[*].floor()'
+      const data = [1.1, 9.9, -100.7, -1.7e-4]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("matches sql for filter predicates", async () => {
+      const src = '$[*] ? (@.floor() > 10)'
+      const data = [9.1, 10.0, 10.5, 11, -12.3, 5.9]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("accepts bigint input from .bigint()", async () => {
+      const src = '$.bigint().floor()'
+      const data = [0, 1, -1, 42, -42, 9007199254740991, -9007199254740990]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("accepts bigint input from .bigint() for iterator values", async () => {
+      const src = '$[*].bigint().floor()'
+      const data = ["100", -289967, "-1700", 42]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("filters on floor() over bigint values", async () => {
+      const src = '$[*] ? (@.bigint().floor() > 10)'
+      const data = ["9", "-10", "11", -12, "-20", 42]
+      await testValuesCompareToPg(src, data)
+    })
+  })
+
   describe("abs()", () => {
     it ("single values", async () => {
       const src = '$.abs()'
