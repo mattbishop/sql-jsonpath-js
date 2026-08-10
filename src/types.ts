@@ -1,4 +1,3 @@
-import {Temporal} from "@js-temporal/polyfill"
 import {IteratorWithOperators} from "iterare/lib/iterate.js"
 
 import {ZonedTime} from "./json-path.ts"

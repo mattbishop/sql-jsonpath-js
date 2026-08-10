@@ -1,6 +1,5 @@
 import {expect} from "chai"
 import {describe, it} from "node:test"
-import {Temporal} from "@js-temporal/polyfill"
 
 import {compile, one} from "../src/index.ts"
 import {ZonedTime} from "../src/json-path.ts"

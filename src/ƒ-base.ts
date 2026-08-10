@@ -1,6 +1,5 @@
 import {iterate} from "iterare"
 import {isIterable} from "iterare/lib/utils.js"
-import {Temporal} from "@js-temporal/polyfill"
 
 import {CLDR} from "./datetime-parser.ts"
 import {type KeyValue} from "./json-path.ts"
@@ -349,7 +348,7 @@ export class ƒBase {
     return this._unwrapWith(input, mapƒ)
   }
 
-  private static _timeRoundOptions(precision: number): Temporal.RoundTo<"second" | "millisecond" | "microsecond" | "nanosecond"> {
+  private static _timeRoundOptions(precision: number): Temporal.RoundingOptions<"second" | "millisecond" | "microsecond" | "nanosecond"> {
     const roundingMode = "halfExpand"
     if (precision > 9) {
       throw new Error(`time() precision must be an integer between 0 and 9, found ${precision}.`)
@@ -422,7 +421,7 @@ export class ƒBase {
   }
 
 
-  private static _timestampRoundOptions(precision: number): Temporal.RoundTo<"day" | "hour" | "minute" | "second" | "millisecond" | "microsecond" | "nanosecond"> {
+  private static _timestampRoundOptions(precision: number): Temporal.RoundingOptions<"day" | "hour" | "minute" | "second" | "millisecond" | "microsecond" | "nanosecond"> {
     if (precision > 9) {
       throw new Error(`timestamp() precision must be an integer between 0 and 9, found ${precision}.`)
     }
@@ -478,7 +477,7 @@ export class ƒBase {
     return this._unwrapWith(input, mapƒ)
   }
 
-  private static _timestampTzRoundOptions(precision: number): Temporal.RoundTo<"second" | "millisecond" | "microsecond" | "nanosecond"> {
+  private static _timestampTzRoundOptions(precision: number): Temporal.RoundingOptions<"second" | "millisecond" | "microsecond" | "nanosecond"> {
     if (precision > 9) {
       throw new Error(`timestamp_tz() precision must be an integer between 0 and 9, found ${precision}.`)
     }

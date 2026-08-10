@@ -1,5 +1,3 @@
-import {Temporal} from "@js-temporal/polyfill"
-
 /**
  * Declared variable values for SQL JSONPath evaluation.
  */
@@ -96,7 +94,7 @@ export interface SqlJsonPathStatement {
  */
 export class ZonedTime extends Temporal.PlainTime {
   static override from(input:     Temporal.PlainTime | Temporal.PlainTimeLike | string,
-                       options?:  Temporal.AssignmentOptions): ZonedTime {
+                       options?:  Temporal.OverflowOptions): ZonedTime {
     const time = typeof input === "string"
       ? Temporal.PlainTime.from(input, options)
       : input
@@ -110,7 +108,7 @@ export class ZonedTime extends Temporal.PlainTime {
     )
   }
 
-  toString(options?: Temporal.ToStringPrecisionOptions): string {
+  toString(options?: Temporal.PlainTimeToStringOptions): string {
     return `${super.toString(options)}Z`
   }
 }

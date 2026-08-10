@@ -1,5 +1,3 @@
-import {Temporal} from "@js-temporal/polyfill"
-
 import {ZonedTime} from "./json-path.ts"
 import {type TemporalParser, type TemporalType, TemporalTypes} from "./types.ts"
 
@@ -244,7 +242,7 @@ function createFormattedParser(template: string): StringToTemporal {
 
 
 function parseTemporalString(input: string): TemporalType {
-  const options: Temporal.AssignmentOptions = {overflow: "reject"}
+  const options: Temporal.OverflowOptions = {overflow: "reject"}
   switch (inferTemporalKind(input)) {
     case TemporalTypes.TIME:
       return Temporal.PlainTime.from(input, options)

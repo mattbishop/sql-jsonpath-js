@@ -1,6 +1,5 @@
 import {expect} from "chai"
 import {describe, it} from "node:test"
-import {Temporal} from "@js-temporal/polyfill"
 
 import {buildTemporalParser} from "../src/datetime-parser.ts"
 import {ZonedTime} from "../src/json-path.ts"
@@ -172,7 +171,7 @@ describe("Temporal parsing", () => {
     })
 
     it("rejects invalid temporal strings", () => {
-      expect(() => parse("not-a-date")).to.throw("invalid RFC 9557 string: not-a-date")
+      expect(() => parse("not-a-date")).to.throw("Temporal error: Invalid character while parsing year value.")
     })
 
     it("accepts lowercase z as a zone designator", () => {
@@ -214,7 +213,7 @@ describe("Temporal parsing", () => {
 
   describe("whitespace handling", () => {
     it("rejects values with surrounding whitespace", () => {
-      expect(() => parse(" 2024-01-15 ")).to.throw("invalid RFC 9557 string:  2024-01-15 ")
+      expect(() => parse(" 2024-01-15 ")).to.throw("Temporal error: Invalid character while parsing year value.")
     })
   })
 
@@ -226,7 +225,7 @@ describe("Temporal parsing", () => {
     })
 
     it("rejects an invalid leap day", () => {
-      expect(() => parse("2023-02-29")).to.throw("value out of range: 1 <= 29 <= 28")
+      expect(() => parse("2023-02-29")).to.throw("Temporal error: Parsed day value not in a valid range.")
     })
   })
 
@@ -246,18 +245,17 @@ describe("Temporal parsing", () => {
 
   describe("invalid time components", () => {
     it("rejects hour 24", () => {
-      expect(() => parse("24:00:00")).to.throw("value out of range: 0 <= 24 <= 23")
+      expect(() => parse("24:00:00")).to.throw("Temporal error: Invalid character while parsing hour value.")
     })
 
     it("rejects minute 60", () => {
-      expect(() => parse("12:60:00")).to.throw("value out of range: 0 <= 60 <= 59")
+      expect(() => parse("12:60:00")).to.throw("Temporal error: Invalid character while parsing minute/second value in (0, 59] range.")
     })
 
-/* This is not failing as it should, problem with temporal-polyfill?
-    it("rejects second 60", () => {
-      expect(() => parse("12:34:60")).to.throw("Cannot parse: 12:34:60")
+    // I think it should reject second 60, but it does not.
+    it("rejects second 61", () => {
+      expect(() => parse("12:34:61")).to.throw("Temporal error: Invalid character while parsing second value in (0, 60] range.")
     })
-*/
   })
 
   describe("invalid date-time formats", () => {
@@ -266,11 +264,11 @@ describe("Temporal parsing", () => {
     })
 
     it("rejects month 13", () => {
-      expect(() => parse("2024-13-01")).to.throw("invalid RFC 9557 string: 2024-13-01")
+      expect(() => parse("2024-13-01")).to.throw("Temporal error: Parsed month value not in a valid range.")
     })
 
     it("rejects day 32", () => {
-      expect(() => parse("2024-01-32")).to.throw("invalid RFC 9557 string: 2024-01-32")
+      expect(() => parse("2024-01-32")).to.throw("Temporal error: Parsed day value not in a valid range.")
     })
   })
 

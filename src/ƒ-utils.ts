@@ -1,4 +1,3 @@
-import {Temporal} from "@js-temporal/polyfill"
 import {iterate} from "iterare"
 import {IteratorWithOperators} from "iterare/lib/iterate.js"
 
