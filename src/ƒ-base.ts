@@ -4,6 +4,7 @@ import {autoFlatMap, autoMap, flatten, isIterable, isIterableInput, isSeq, next,
 import {
   isBigInt,
   isBoolean,
+  isFunction,
   isNumber,
   isObject,
   isString,
@@ -36,6 +37,7 @@ type StrictConfig = {
 
 
 const KV_INDEX = "KV-index"
+const CURRENT_ARRAY = "current-array"
 const EMPTY_SEQ = Iterator.from([])
 const BIGINT_MIN = -(2n ** 63n)
 const BIGINT_MAX = 2n ** 63n - 1n
@@ -96,6 +98,9 @@ export class ƒBase {
 
   // not a JSONPath function. Used to convert strings to numbers for math
   num(input: unknown): number {
+    if (isFunction(input)) {
+      input = input(this.scope.get(CURRENT_ARRAY))
+    }
     return mustBeNumber(input, "arithmetic")
   }
 
@@ -126,7 +131,6 @@ export class ƒBase {
   double(input: unknown): SingleOrSeq<number> {
     return this._unwrapWith(input, ƒBase._double)
   }
-
 
 
   private static _bigint(input: unknown): bigint {
@@ -618,7 +622,7 @@ export class ƒBase {
 
 
   private _maybeElement(array: Array<unknown>, pos: number): unknown {
-    if (pos < array.length) {
+    if (pos > -1 && pos < array.length) {
       return array[pos]
     }
     if (this.lax) {
@@ -627,15 +631,15 @@ export class ƒBase {
     throw new Error (`Array subscript [${pos}] is out of bounds. In 'strict' mode.`)
   }
 
-  private _array(input: unknown, subscripts: any[]): Seq<any> {
+  private _array(input: unknown, subscripts: unknown[]): Seq<unknown> {
     const array = this._toArray(input, {strict: Array.isArray, error: "Array accessors can only be applied to an array."})
     return Iterator.from(subscripts)
       .map((sub) => {
+        if (isFunction(sub)) {
+          sub = sub(array)
+        }
         if (isNumber(sub)) {
           return this._maybeElement(array, sub)
-        }
-        if (typeof sub === "function") {
-          return this._maybeElement(array, sub(array))
         }
         if (isSeq(sub)) {
           return sub.map((s) => this._maybeElement(array, s as number))
@@ -645,8 +649,14 @@ export class ƒBase {
       .flatMap(flatten)
   }
 
-  array(input: unknown, subscripts: unknown[]): Seq<any> {
-    return autoFlatMap(input, (i) => this._array(i, subscripts))
+  array(input: unknown): (subscripts: unknown[]) => Seq<unknown> {
+    const oldArray = this.scope.get(CURRENT_ARRAY)
+    this.scope.set(CURRENT_ARRAY, input)
+    return (subs) => {
+      const result = autoFlatMap(input, (arr) => this._array(arr, subs))
+      this.scope.set(CURRENT_ARRAY, oldArray)
+      return result
+    }
   }
 
 
@@ -661,10 +671,12 @@ export class ƒBase {
     }
   }
 
-  range(from: unknown, to: unknown): Seq<number> {
-    const start = mustBeNumber(from, "'from'")
-    const end = mustBeNumber(to, "'to'")
-    return Iterator.from(ƒBase._range(start, end))
+  range(from: unknown, to: unknown): (array: Array<unknown>) => Seq<number> {
+    return (array) => {
+      const start = isFunction(from) ? from(array) : from
+      const end = isFunction(to) ? to(array) : to
+      return Iterator.from(ƒBase._range(mustBeNumber(start, "'from'"), mustBeNumber(end, "'to'")))
+    }
   }
 
 

@@ -115,6 +115,11 @@ export function isObject(input: unknown): input is Record<string, unknown> {
 }
 
 /** @internal */
+export function isFunction(input: unknown): input is Function {
+  return typeof input === "function"
+}
+
+/** @internal */
 export function toPred(condition: boolean): Pred {
   return condition
     ? Pred.TRUE

@@ -433,27 +433,27 @@ describe("Codegen tests", () => {
     it("single elements", () => {
       // tests $.size() which is out of bounds, but in lax mode, ignores the access
       const ctx = generateFunctionSource('$[0,4,last,$.size()]')
-      expect(ctx.source).to.equal('return ƒ.array($,[0,4,ƒ.last,ƒ.size($)])')
+      expect(ctx.source).to.equal('return ƒ.array($)([0,4,ƒ.last,ƒ.size($)])')
     })
 
     it("out-of-bounds array access in strict mode", () => {
       const ctx = generateFunctionSource('strict $[100]')
-      expect(ctx.source).to.equal('return ƒ.array($,[100])')
+      expect(ctx.source).to.equal('return ƒ.array($)([100])')
     })
 
     it("non-arrays in lax mode", () => {
       const ctx = generateFunctionSource('$[last]')
-      expect(ctx.source).to.equal('return ƒ.array($,[ƒ.last])')
+      expect(ctx.source).to.equal('return ƒ.array($)([ƒ.last])')
     })
 
     it("non-arrays in strict mode", () => {
       const ctx = generateFunctionSource('strict $[last]')
-      expect(ctx.source).to.equal('return ƒ.array($,[ƒ.last])')
+      expect(ctx.source).to.equal('return ƒ.array($)([ƒ.last])')
     })
 
     it("range elements", () => {
       const ctx = generateFunctionSource('$[1 to 3]')
-      expect(ctx.source).to.equal('return ƒ.array($,[ƒ.range(1,3)])')
+      expect(ctx.source).to.equal('return ƒ.array($)([ƒ.range(1,3)])')
     })
 
     it("unwraps lax", () => {
@@ -463,7 +463,7 @@ describe("Codegen tests", () => {
 
     it("nested array unwrapping", () => {
       const ctx = generateFunctionSource('$.phones[last]')
-      expect(ctx.source).to.equal('return ƒ.array(ƒ.member($,"phones"),[ƒ.last])')
+      expect(ctx.source).to.equal('return ƒ.array(ƒ.member($,"phones"))([ƒ.last])')
     })
 
     it("does not unwrap strict", () => {
@@ -473,7 +473,7 @@ describe("Codegen tests", () => {
 
     it("nested elements", () => {
       const ctx = generateFunctionSource('$[0,$[last][1]]')
-      expect(ctx.source).to.equal('return ƒ.array($,[0,ƒ.array(ƒ.array($,[ƒ.last]),[1])])')
+      expect(ctx.source).to.equal('return ƒ.array($)([0,ƒ.array(ƒ.array($)([ƒ.last]))([1])])')
     })
   })
 
@@ -505,17 +505,17 @@ describe("Codegen tests", () => {
 
     it("can divide by a function", () => {
       const ctx = generateFunctionSource('$[0] / $.size()')
-      expect(ctx.source).to.equal('return ƒ.num(ƒ.array($,[0]))/ƒ.num(ƒ.size($))')
+      expect(ctx.source).to.equal('return ƒ.num(ƒ.array($)([0]))/ƒ.num(ƒ.size($))')
     })
 
     it("chain arithmetic statements", () => {
       const ctx = generateFunctionSource('$[0] / ($.size() + 2)')
-      expect(ctx.source).to.equal('return ƒ.num(ƒ.array($,[0]))/ƒ.num((ƒ.num(ƒ.size($))+2))')
+      expect(ctx.source).to.equal('return ƒ.num(ƒ.array($)([0]))/ƒ.num((ƒ.num(ƒ.size($))+2))')
     })
 
     it("chain arithmetic statements again", () => {
       const ctx = generateFunctionSource('$[0] / 5 * $.size() + 9 - 1')
-      expect(ctx.source).to.equal('return ƒ.num(ƒ.num(ƒ.array($,[0]))/5*ƒ.num(ƒ.size($)))+9-1')
+      expect(ctx.source).to.equal('return ƒ.num(ƒ.num(ƒ.array($)([0]))/5*ƒ.num(ƒ.size($)))+9-1')
     })
   })
 

@@ -1633,15 +1633,93 @@ describe("Statement tests", () => {
       expect(actualArray).to.deep.equal(["a", [66,77], "h"])
     })
 
+    it("supports duplicate and reordered subscripts", async () => {
+      const src = '$[2,0,2,last,1]'
+      const data = ["a", "b", "c", "d"]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("ignores out-of-bounds subscripts in lax mode", async () => {
+      const src = '$[100,0,-1,last,4]'
+      const data = ["a", "b", "c"]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("supports last minus offset subscripts", async () => {
+      const src = '$[last - 2,last - 1,last]'
+      const data = ["a", "b", "c", "d", "e"]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("ignores last offset subscripts outside the array in lax mode", async () => {
+      const src = '$[last - 10,last + 1,last]'
+      const data = ["a", "b", "c"]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("supports ranges ending at last", async () => {
+      const src = '$[1 to last]'
+      const data = ["a", "b", "c", "d"]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("supports ranges starting from a last offset", async () => {
+      const src = '$[last - 2 to last]'
+      const data = ["a", "b", "c", "d", "e"]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("supports ranges with computed bounds", async () => {
+      const src = '$[$.size() - 3 to $.size() - 1]'
+      const data = ["a", "b", "c", "d", "e"]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("returns no values for descending ranges", async () => {
+      const src = '$[3 to 1]'
+      const data = ["a", "b", "c", "d"]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("clips partially out-of-bounds ranges in lax mode", async () => {
+      const src = '$[-2 to 2,2 to 10]'
+      const data = ["a", "b", "c", "d"]
+      await testValuesCompareToPg(src, data)
+    })
+
     it("rejects out-of-bounds array access in strict mode", () => {
       const statement = compile('strict $[100]')
       expect(() => one(statement.values(["tea", "Cookies"]))).to.throw
+    })
+
+    it("rejects partially out-of-bounds subscript lists in strict mode", async () => {
+      const src = 'strict $[0,100,last]'
+      const data = ["a", "b", "c"]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("rejects partially out-of-bounds ranges in strict mode", async () => {
+      const src = 'strict $[1 to 100]'
+      const data = ["a", "b", "c"]
+      await testValuesCompareToPg(src, data)
     })
 
     it("auto-wraps non-arrays in lax mode", () => {
       const statement = compile('$[last]')
       const actual = one(statement.values("coffee"))
       expect(actual).to.equal("coffee")
+    })
+
+    it("applies lax array subscripts to auto-wrapped scalar values", async () => {
+      const src = '$[0,last,1]'
+      const data = "coffee"
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("applies lax ranges to auto-wrapped scalar values", async () => {
+      const src = '$[0 to last]'
+      const data = "coffee"
+      await testValuesCompareToPg(src, data)
     })
 
     it("rejects non-arrays in strict mode", () => {
