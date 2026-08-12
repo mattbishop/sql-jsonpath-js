@@ -12,7 +12,7 @@ import {
   SingletonIterator,
   toInputIterator
 } from "./iterators.ts"
-import type {Input, NamedVariables, SqlJsonPathStatement, ValuesConfig} from "./json-path.ts"
+import type {Input, NamedVariables, SqlJsonPathStatement, QueryConfig} from "./json-path.ts"
 import {JsonPathParser} from "./parser.ts"
 import {allTokens} from "./tokens.ts"
 
@@ -78,10 +78,10 @@ export function createStatement(text: string): SqlJsonPathStatement {
     fnSource: ctx.source,
 
     exists(input, config = {}): boolean | IteratorObject<boolean> {
-      const {variables} = config
+      const {vars} = config
       // iterate through the inputs one at a time and test them against fn()
       // filter() will omit the exists == false elements, and the caller needs to know this
-      const existsƒ = (i: unknown) => !fn(i, variables).next().done
+      const existsƒ = (i: unknown) => !fn(i, vars).next().done
       const iterator = toInputIterator(input)
         .map(existsƒ)
       // return the shape that matches input
@@ -90,18 +90,18 @@ export function createStatement(text: string): SqlJsonPathStatement {
         : one(iterator) ?? false
     },
 
-    values<T>(input: Input, config: ValuesConfig<T> = {}): IteratorObject<T> {
-      const {variables} = config
-      const valuesƒ = (i: unknown) => fn(i, variables) as IteratorObject<T>
-      const valuesIterator = toInputIterator(input)
-        .flatMap(valuesƒ)
-      return Iterator.from(defaultsIterator(valuesIterator, config))
+    query<T>(input: Input, config: QueryConfig<T> = {}): IteratorObject<T> {
+      const {vars} = config
+      const queryƒ = (i: unknown) => fn(i, vars) as IteratorObject<T>
+      const iterator = toInputIterator(input)
+        .flatMap(queryƒ)
+      return Iterator.from(defaultsIterator(iterator, config))
     }
   }
 }
 
 
-function defaultsIterator<T>(iterator: Iterator<T>, config: ValuesConfig<T>): Iterator<T> {
+function defaultsIterator<T>(iterator: Iterator<T>, config: QueryConfig<T>): Iterator<T> {
   const {defaultOnEmpty, defaultOnError} = config
   // test against undefined so statements can default to false, "", 0, and other truthy values.
   if (defaultOnError !== undefined) {

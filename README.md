@@ -14,7 +14,7 @@ This library includes TypeScript definitions, so TS developers do not need to in
 
 The UX is similar to JavaScript’s RegExp class where one first compiles a SQL/JSONPath string into a `SqlJsonPathStatement` and then use that statement to examine data objects. The statement can be reused.
 
-A SQL/JSONPath for JS (SJP) statement has two operations to work with JS values. One can use `statement.exists(value)` to test if the statement matches a value, while data can be extracted from a larger value using the `statement.values(value)` method.
+A SQL/JSONPath for JS (SJP) statement has two operations to work with JS values. One can use `statement.exists(value)` to test if the statement matches a value, while data can be extracted from a larger value using the `statement.query(value)` method.
 
 #### The `exists()` Method
 
@@ -37,40 +37,40 @@ console.info(statement.exists(noName))
 // false
 
 // It can also consume iterators of values and return an iterator with the result of each exists test.
-const existsIterator = [hasName, noName][Symbol.iterator]()
-console.info(Array.from(statement.exists(existsIterator)))
+const itemsIterator = [hasName, noName].values()
+console.info(Array.from(statement.exists(itemsIterator)))
 // [true, false]
 ```
 
-#### The `values()` Method
+#### The `query()` Method
 
-Inputs can be either iterators of data or single data elements, as the example below shows, but the result is an iterator. A utility function `one()` provides a simple way to extract a single result from this iterator.
+Inputs can be either iterators of data or single data elements, as the example below shows, but the result is an iterator. A utility function `one()` provides a simple way to extract a single result from the result iterator.
 
 ```javascript
 /// ... continuing with the statement and values declared in the exists() example
-// values()
-let valuesIterator = statement.values(hasName)
+// query()
+let valuesIterator = statement.query(hasName)
 console.info(sjp.one(valuesIterator))
 // 'scripty'
 
-valuesIterator = statement.values(noName)
+valuesIterator = statement.query(noName)
 console.info(sjp.one(valuesIterator))
 // null
 
 // Can pass in an array of values too:
 
-valuesIterator = statement.values([hasName, noName])
+valuesIterator = statement.query([hasName, noName])
 console.info(Array.from(valuesIterator))
 // ['scripty']
 ```
 
 #### Iterators
 
-SqlJsonPathStatement methods can consume iterables, generators or other iterable input. The statement will return an iterator of results for iterable inputs. These returned iterators are lazy, meaning they only advance through the data when `iterator.next()` is called.
+SqlJsonPathStatement methods can consume iterables, generators or other iterable input. The statement will return an IteratorObject of results. These returned iterators are lazy, meaning they only advance through the data when `iterator.next()` is called. They also have all the [Iterator Helper](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Iterator#iterator_helper_methods) methods like map(), fitler(), reduce(), etc. 
 
 This laziness means the statement can handle large, even limitless, amounts of data. The statement holds no accumulating state other than it’s position in the data. This design suits streaming data use cases and matches SQL’s result set and cursor concepts.
 
-Array input values are treated a single object to be examined. If one wants an array value to be treated as an iterable input, call it’s iterator symbol `[Symbol.iterator]()` to produce an iterator over the array:
+Array input values are treated a single object to be examined. If one wants an array value to be treated as an iterable input, call it’s  `.values()` method to produce an iterator over the array:
 
 ```javascript
 const statement = sjp.compile('$ ? (@.size() > 3)')
@@ -82,7 +82,7 @@ console.info(Array.from(singleResult))
 // input is a single value array, so statement examines 'data' as a single element
 // [true]
 
-const iteratedResult = statement.exists(data[Symbol.iterator]())
+const iteratedResult = statement.exists(data.values())
 console.info(Array.from(iteratedResult))
 // data is an interable, so statement iterates through the elements and applies the statement
 // [false, false, false, false]
@@ -94,7 +94,7 @@ A statement will return an empty iterator if no matches are found in the input d
 
 ```javascript
 const statement = sjp.compile('$ ? (@.startsWith("Z"))')
-const resultIterator = statement.values("A value that does not match", {defaultOnEmpty: "MISSING"})
+const resultIterator = statement.query("A value that does not match", {defaultOnEmpty: "MISSING"})
 console.info(sjp.one(resultIterator))
 // 'MISSING'
 ```
@@ -103,7 +103,7 @@ Similarly, if a statement match throws an error, as can happen in `strict` mode,
 
 ```javascript
 const statement = sjp.compile('strict $.name ? (@.startsWith("Z"))')
-const resultIterator = statement.values({noName: true}, {defaultOnError: "NO NAME FOUND"})
+const resultIterator = statement.query({noName: true}, {defaultOnError: "NO NAME FOUND"})
 console.info(sjp.one(resultIterator))
 // 'NO NAME FOUND'
 ```
@@ -116,18 +116,18 @@ SQL/JSONPath statements can include named variables that are supplied during exe
 
 ```javascript
 const statement = sjp.compile('strict $.name ? (@ == $inputName)')
-const result = statement.exists({name: "Jeremy"}, {variables: {inputName: "Jeremy"}})
+const result = statement.exists({name: "Jeremy"}, {vars: {inputName: "Jeremy"}})
 console.info(result)
 // true
 
-const anotherResult = statement.exists({name: "Mika"}, {variables: {inputName: "Lau"}})
+const anotherResult = statement.exists({name: "Mika"}, {vars: {inputName: "Lau"}})
 console.info(anotherResult)
 // false
 ```
 
 ### SqlJsonPathStatement API Reference
 
-The `compile(sjpText)` method parses the SQL/JSONPath text and compiles it into a reusable `SqlJsonPathStatement` object. The `compile` step is fast, but reusing compiled statements is much faster. One can use named Variables to reuse statements across different data sets and use cases.
+The `compile(sjpText)` method parses the SQL/JSONPath text and compiles it into a reusable `SqlJsonPathStatement` object. The `compile` step is fast, but reusing compiled statements is much faster. One can use named variables to reuse statements across different data sets and use cases.
 
 SJP has a `one(iterator)` convenience method to pull one value from the iterator. Useful for when code only expects a single value, or when the iterator is consumed outside a for..of loop.
 
@@ -135,28 +135,28 @@ SJP has a `one(iterator)` convenience method to pull one value from the iterator
 
 All statement methods share the same method parameters.
 
-| Param    | Details                                                                                                                                                                                               |
-|----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `input`  | The data to examine. Can be a single value, an array of values, an iterable collection, a generator or anything that supplies an `Iterable` or `Iterator`. Cannot consume `Async` iterables, however. |
-| `config` | Optional, configures the method call with named variables and default values.                                                                                                                         |
+| Param    | Details                                                                                                                                                                                                                                                                                                                                                  |
+|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `input`  | The data to examine. Can be a single value, an array of values, an iterable collection, a generator or anything that supplies an `Iterable` or `Iterator`. Cannot consume `Async` iterables, however. One should iterate over the async iterator and pass the value into a statement object to process it. The statement can be reused for this process. |
+| `config` | Optional, configures the method call with named variables and default values.                                                                                                                                                                                                                                                                            |
 
 ##### Config Object
 
-All methods can accept a config object to fulfill the statement or change its behaviour. Each field in the config object is optional, except for `variables` when a statement contains references to named variables.
+All methods can accept a config object to fulfill the statement or change its behaviour. Each field in the config object is optional, except for `vars` when a statement contains references to named variables.
 
-| Field            | Details                                                                                                                                                                                                                                                                                                                                                                                                                              |
-|------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `variables`      | An object containing the named variable values for this method call. Object keys match the named variables in the statement, which uses the associated value in evaluation. **Note:** Key names should not start with `$` as they do in the SQL/JSONPath text. For instance, `$ ? (@ == $thing)` has a named variable `$thing`. Pass `{thing: 2}` as `variables` to the statement to substitute `2` for `$thing` in the method call. |
-| `defaultOnEmpty` | An input element may not match the statement, which is considered an “empty” match. Normally, empty matches are filtered out of the result iterator. Use this field to emit a default value for these empty matches so that it will be seen in the iterator. Default values can be of any type, such as `"N/A"`,  `{}` or `0`.                                                                                                       |
-| `defaultOnError` | In strict mode, an input element may trigger a structural Error ([see Mode](#mode)). This property will change the method’s behaviour to return this default value instead of throwing an error. Default values can be of any type, such as `"MISSING"`,  `{}` or `false`.                                                                                                                                                           |
+| Field            | Details                                                                                                                                                                                                                                                                                                                                                                                                                                |
+|------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `vars`           | An object containing the named variable values for this method call. Object keys match the named variables in the statement, which uses the associated value in evaluation. **Note:** Key names should not start with `$` as they do in the SQL/JSONPath text. For instance, `$ ? (@ == $thing)` has a named variable `$thing`. Pass `{thing: 2}` as `vars` in the statement config to substitute `2` for `$thing` in the method call. |
+| `defaultOnEmpty` | An input element may not match the statement, which is considered an “empty” match. Normally, empty matches are filtered out of the result iterator. Use this field to emit a default value for these empty matches so that it will be seen in the iterator. Default values can be of any type, such as `"N/A"`,  `{}` or `0`.                                                                                                         |
+| `defaultOnError` | In strict mode, an input element may trigger a structural Error ([see Mode](#mode)). This property will change the method’s behaviour to return this default value instead of throwing an error. Default values can be of any type, such as `"MISSING"`,  `{}` or `false`.                                                                                                                                                             |
 
 #### Statement Methods
 
-##### `exists(input, config?) => boolean | IterableIterator<boolean>` 
+##### `exists(input, config?) => boolean | IteratorObject<boolean>` 
 
 Tests the statement against the input and emits `true` if the statement finds a match and `false` otherwise.
 
-##### `values(input, config?) => IterableIterator` 
+##### `query(input, config?) => IterableObject` 
 
 Scans the input elements and emits matched values from within the elements. This method extracts matches across all elements in the input into a single iterator result.
 
@@ -259,7 +259,7 @@ A value can be tested for existence, and string values can be tested for prefixe
 | Expression                                      | Description                                                                                                                |
 |-------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------|
 | `exists ()`                                     | A value exists for the given predicate                                                                                     |
-| `() is unknown`                                 | No value exists                                                                                                            |
+| `() is unknown`                                 | Predicate cannot be determined. For instance, `("me" == true)` is unknown as the type is not comparable.                   |
 | `starts with "<text>"`                          | Value starts with specified text                                                                                           |
 | `like_regex "regex-expression" flag? "<flags>"` | Uses Javascript’s [Regular Expressions](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions) |
 

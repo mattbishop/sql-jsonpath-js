@@ -11,14 +11,14 @@ export type StatementConfig = {
   /**
    * Variables to use in the SQL JSONPath evaluation.
    */
-  variables?:  NamedVariables
+  vars?:  NamedVariables
 }
 
 
 /**
- * Configuration object for the values() method.
+ * Configuration object for the query() method.
  */
-export type ValuesConfig<DEFAULT = unknown> = StatementConfig & {
+export type QueryConfig<DEFAULT = unknown> = StatementConfig & {
   /**
    * When an input does not match the SQL JSONPath statement, return this value instead.
    */
@@ -79,12 +79,12 @@ export interface SqlJsonPathStatement {
    * Searches the JSON input for values that match the SQL JSONPath statement, returning the extracted values
    * when found.
    *
-   * @template T The element type of the values sequence.
+   * @template T The element type of the returned query sequence.
    * @param input A single value or an iterator of values. Arrays are treated as a single value.
    * @param config Contains default values for misses and errors as well as named variables to use in the
    * SQL JSONPath evaluation.
    */
-  values<T>(input: Input, config?: ValuesConfig<T>): IteratorObject<T>
+  query<T>(input: Input, config?: QueryConfig<T>): IteratorObject<T>
 }
 
 

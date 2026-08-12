@@ -8,28 +8,28 @@ export type BenchmarkCase = {
   name: string
   statement: string
   input: BenchmarkInputFactory
-  operation?: "values" | "exists"
+  operation?: "query" | "exists"
   iterations?: number
-  warmupIterations?: number
+  warmup?: number
 }
 
 type BenchmarkResult = {
   name: string
   statement: string
-  operation: "values" | "exists"
+  operation: "query" | "exists"
   iterations: number
   totalMs: number
   averageMs: number
-  operationsPerSecond: number
+  opsPerSecond: number
   resultCount: number
 }
 
 const DEFAULT_ITERATIONS = 1000
 const DEFAULT_WARMUP_ITERATIONS = 50
 
-function consumeValues(statement: SqlJsonPathStatement, input: unknown): number {
+function consumeQuery(statement: SqlJsonPathStatement, input: unknown): number {
   let count = 0
-  for (const _value of statement.values(input)) {
+  for (const _value of statement.query(input)) {
     count++
   }
   return count
@@ -57,13 +57,13 @@ function runOperation(statement: SqlJsonPathStatement, benchmark: BenchmarkCase)
 
   return operation === "exists"
     ? consumeExists(statement, input)
-    : consumeValues(statement, input)
+    : consumeQuery(statement, input)
 }
 
 export function runBenchmark(benchmark: BenchmarkCase): BenchmarkResult {
-  const operation = benchmark.operation ?? "values"
+  const operation = benchmark.operation ?? "query"
   const iterations = benchmark.iterations ?? DEFAULT_ITERATIONS
-  const warmup = benchmark.warmupIterations ?? DEFAULT_WARMUP_ITERATIONS
+  const warmup = benchmark.warmup ?? DEFAULT_WARMUP_ITERATIONS
 
   const statement = compile(benchmark.statement)
 
@@ -88,7 +88,7 @@ export function runBenchmark(benchmark: BenchmarkCase): BenchmarkResult {
     iterations,
     totalMs,
     averageMs,
-    operationsPerSecond: 1000 / averageMs,
+    opsPerSecond: 1000 / averageMs,
     resultCount
   }
 }
@@ -104,7 +104,7 @@ export function printResults(results: BenchmarkResult[]) {
     iterations: result.iterations,
     "total ms": result.totalMs.toFixed(2),
     "avg ms": result.averageMs.toFixed(2),
-    "ops/sec": result.operationsPerSecond.toFixed(2),
+    "ops/sec": result.opsPerSecond.toFixed(2),
     "result count": result.resultCount
   }))
 
