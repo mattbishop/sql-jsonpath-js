@@ -1,7 +1,7 @@
 {
   "name": "sql-jsonpath-js",
-  "version": "2.0.0-SNAPSHOT",
-  "description": "JavaScript implementation of the SQL/JSONPath API from SQL2023.",
+  "version": "2.0.0",
+  "description": "JavaScript implementation of the SQL/JSONPath API from SQL:2023.",
   "type": "module",
   "engines": {
     "node": ">=26.x"

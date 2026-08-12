@@ -17,7 +17,12 @@ import {JsonPathParser} from "./parser.ts"
 import {allTokens} from "./tokens.ts"
 
 
-const jsonPathLexer = new Lexer(allTokens, {ensureOptimizations: true})
+const jsonPathLexer = new Lexer(allTokens, {
+  ensureOptimizations: true,
+  // turn off during development
+  positionTracking: "onlyOffset",
+  skipValidations: true
+})
 const parser = new JsonPathParser()
 const codegenVisitor = newCodegenVisitor(parser.getBaseCstVisitorConstructor())
 
