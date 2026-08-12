@@ -4,11 +4,35 @@ JavaScript implementation of the SQL/JSONPath dialect, from SQL2023 which provid
 
 ### Installation
 
-This library supports EcmaScript module loading (ESM).
+This library supports EcmaScript module loading (ESM). It requires Node 26 for native Temporal API support.
 
 `npm install sql-jsonpath-js`
 
 This library includes TypeScript definitions, so TS developers do not need to install separate type definitions.
+
+### What’s new in 2.0
+
+Version 2.0 is a major update that bring support for SQL:2023’s SQL/JSONPath. This version also resolves several issues with array handling, especially nested arrays.
+
+- **Renamed `values()` to `query()`** to better match SQL/JSONPath terminology. Use `statement.query(input)` to extract matching values from JSON data.
+- **Renamed `variables` to `vars`** in statement configuration, matching the database-style naming used for SQL/JSONPath named variables.
+- **Built-in Iterator Helper support.** Returned iterators support standard iterator helper methods such as `map()`, `filter()`, `flatMap()`, `reduce()`, and `toArray()`. See the docs for [IteratorObject](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Iterator#iterator_helper_methods) for details.
+- **Expanded SQL/JSONPath function support**, including numeric conversion and math helpers such as `.decimal()`, `.integer()`, `.bigint()`, `.ceiling()`, `.floor()`, and `.abs()`.
+- **Temporal and datetime support** using JavaScript’s built-in Temporal API, including `.datetime()`, `.date()`, `.time()`, `.time_tz()`, `.timestamp()`, and `.timestamp_tz()`.
+- **Improved array navigation**, including better support for nested arrays, array ranges, `last`, and arithmetic expressions in array accessors.
+- **Cleaner TypeScript surface area**, with internal implementation types hidden from the published API.
+
+#### Migrating from 1.x
+
+The main API changes are naming updates. The statement `values()` method has been renamed to `query()`. Also, the `variables` configuration element has been renamed to `vars`.
+
+```javascript
+// 1.x
+statement.values(input, { variables: { name: "Jeremy" } })
+
+// 2.x
+statement.query(input, { vars: { name: "Jeremy" } })
+```
 
 #### Usage
 
