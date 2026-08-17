@@ -12,7 +12,7 @@ This library includes TypeScript definitions, so TS developers do not need to in
 
 ### What’s new in 2.0
 
-Version 2.0 is a major update that bring support for SQL:2023’s SQL/JSONPath. This version also resolves several issues with array handling, especially nested arrays.
+Version 2.0 is a major update that brings support for SQL:2023’s SQL/JSONPath. This version also resolves several issues with array handling, especially nested arrays.
 
 - **Renamed `values()` to `query()`** to better match SQL/JSONPath terminology. Use `statement.query(input)` to extract matching values from JSON data.
 - **Renamed `variables` to `vars`** in statement configuration, matching the database-style naming used for SQL/JSONPath named variables.
