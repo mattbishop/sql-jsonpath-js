@@ -17,6 +17,7 @@ import {
   toPred
 } from "./ƒ-utils.ts"
 import {
+  CompOp,
   type MapWithArgsƒ,
   type Mapƒ,
   NO_VALUE,
@@ -740,7 +741,7 @@ export class ƒBase {
   }
 
 
-  private static _compare(compOp: string, left: any, right: any): Pred {
+  private static _compare(compOp: CompOp, left: any, right: any): Pred {
     // these are not comparable, even if both are NO_VALUE
     if (left === NO_VALUE || right === NO_VALUE) {
       return Pred.FALSE
@@ -768,25 +769,24 @@ export class ƒBase {
     // check that left and right can be compared
     if (typeLeft === typeRight) {
       switch (compOp) {
-        case "==" :
+        case CompOp.EQ :
           return toPred(left === right)
-        case "<>" :
-        case "!=" :
+        case CompOp.NEQ :
           return toPred(left !== right)
-        case ">" :
+        case CompOp.GT :
           return toPred(left > right)
-        case ">=" :
+        case CompOp.GTE :
           return toPred(left >= right)
-        case "<" :
+        case CompOp.LT :
           return toPred(left < right)
-        case "<=" :
+        case CompOp.LTE :
           return toPred(left <= right)
       }
     }
     return Pred.UNKNOWN
   }
 
-  private static _comparePrimitive(compOp: string, left: unknown, right: unknown): Pred | undefined {
+  private static _comparePrimitive(compOp: CompOp, left: unknown, right: unknown): Pred | undefined {
     let typeLeft = typeof left
     let typeRight = typeof right
 
@@ -813,23 +813,22 @@ export class ƒBase {
       }
 
       switch (compOp) {
-        case "==" :
+        case CompOp.EQ :
           // ==, not === so number and bigint can be compared
           return toPred(left == right)
-        case "<>" :
-        case "!=" :
-          return toPred(left !== right)
-        case ">" :
-          // @ts-ignore
+        case CompOp.NEQ :
+          return toPred(left != right)
+        case CompOp.GT :
+          //@ts-ignore
           return toPred(left > right)
-        case ">=" :
-          // @ts-ignore
+        case CompOp.GTE :
+          //@ts-ignore
           return toPred(left >= right)
-        case "<" :
-          // @ts-ignore
+        case CompOp.LT :
+          //@ts-ignore
           return toPred(left < right)
-        case "<=" :
-          // @ts-ignore
+        case CompOp.LTE :
+          //@ts-ignore
           return toPred(left <= right)
       }
     }
@@ -841,13 +840,12 @@ export class ƒBase {
     null != not_null  -> TRUE
     null <> not_null  -> TRUE
    */
-  private static _compareMaybeNull(compOp: string, typeLeft: string, typeRight: string): Pred | undefined {
+  private static _compareMaybeNull(compOp: CompOp, typeLeft: string, typeRight: string): Pred | undefined {
     if (typeLeft === "null" || typeRight === "null") {
       switch (compOp) {
-        case "==" :
+        case CompOp.EQ :
           return toPred(typeLeft === typeRight)
-        case "<>" :
-        case "!=" :
+        case CompOp.NEQ :
           return toPred(typeLeft !== typeRight)
         default:
           return Pred.UNKNOWN
@@ -890,21 +888,7 @@ export class ƒBase {
   }
 
 
-  compare(compOp: string, left: unknown, right: unknown): Pred {
-    if (!this.lax) {
-      if (Array.isArray(left)) {
-        throw new Error("In 'strict' mode! left side of comparison cannot be an array.")
-      }
-      if (Array.isArray(right)) {
-        throw new Error("In 'strict' mode! right side of comparison cannot be an array.")
-      }
-    }
-
-    // skip looping
-    if (!isIterable(left) && !isIterable(right)) {
-      return ƒBase._compare(compOp, left, right)
-    }
-
+  private static _compareLeftIterRightIter(compOp: CompOp, left: Iterable<unknown>, right: Iterable<unknown>) {
     const leftValues = toSeq(left).filter(noValueFilter)
     const rightValues = new ReplayableIterable(toSeq(right).filter(noValueFilter))
 
@@ -923,6 +907,69 @@ export class ƒBase {
     return hasUnknown
       ? Pred.UNKNOWN
       : Pred.FALSE
+  }
+
+  private static _compareLeftIterRight(compOp: CompOp, leftIn: Iterable<unknown>, right: unknown) {
+    const leftValues = toSeq(leftIn).filter(noValueFilter)
+
+    let hasUnknown = false
+    for (const left of leftValues) {
+      const result = ƒBase._compare(compOp, left, right)
+      if (result === Pred.TRUE) {
+        return Pred.TRUE
+      }
+      if (result === Pred.UNKNOWN) {
+        hasUnknown = true
+      }
+    }
+    return hasUnknown
+      ? Pred.UNKNOWN
+      : Pred.FALSE
+  }
+
+  private static _compareLeftRightIter(compOp: CompOp, left: unknown, right: Iterable<unknown>) {
+    const rightValues = toSeq(right).filter(noValueFilter)
+
+    let hasUnknown = false
+    for (const right of rightValues) {
+      const result = ƒBase._compare(compOp, left, right)
+      if (result === Pred.TRUE) {
+        return Pred.TRUE
+      }
+      if (result === Pred.UNKNOWN) {
+        hasUnknown = true
+      }
+    }
+    return hasUnknown
+      ? Pred.UNKNOWN
+      : Pred.FALSE
+  }
+
+
+  compare(compOp: CompOp, left: unknown, right: unknown): Pred {
+    if (!this.lax) {
+      if (Array.isArray(left)) {
+        throw new Error("In 'strict' mode! left side of comparison cannot be an array.")
+      }
+      if (Array.isArray(right)) {
+        throw new Error("In 'strict' mode! right side of comparison cannot be an array.")
+      }
+    }
+
+    const leftIterable = isIterable(left)
+    const rightIterable = isIterable(right)
+    // skip looping
+    if (!leftIterable && !rightIterable) {
+      return ƒBase._compare(compOp, left, right)
+    }
+
+    if (leftIterable && !rightIterable) {
+      return ƒBase._compareLeftIterRight(compOp, left, right)
+    } else if (!leftIterable && rightIterable) {
+      return ƒBase._compareLeftRightIter(compOp, left, right)
+    }
+
+    return ƒBase._compareLeftIterRightIter(compOp, left as Iterable<unknown>, right as Iterable<unknown>)
   }
 
 

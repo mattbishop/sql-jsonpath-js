@@ -38,6 +38,8 @@ export type CodegenContext = {
   scope:  Map<string, unknown>
 }
 
+const compOps = ["==", "!=", ">", ">=", "<", "<="]
+
 
 function maybeAppend(token: IToken[] | undefined, ctx: CodegenContext): CodegenContext {
   return token
@@ -439,9 +441,10 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
 
 
     comparison(node: ComparisonCstChildren, ctx: CodegenContext): CodegenContext {
-      const {CompOp: [{image: compOp}], wff} = node
+      const {CompOp: [{image: compStr}], wff} = node
       const rightCtx = this.visitNoSource(wff, ctx)
-      return {...ctx, source: `ƒ.compare("${compOp}",${ctx.source},${rightCtx.source})`}
+      const compOp = compOps.indexOf(compStr === "<>" ? "!=" : compStr)
+      return {...ctx, source: `ƒ.compare(${compOp},${ctx.source},${rightCtx.source})`}
     }
   }
 }

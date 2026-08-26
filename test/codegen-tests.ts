@@ -500,7 +500,7 @@ describe("Codegen tests", () => {
 
     it("can modulo an array of numbers", () => {
       const ctx = generateFunctionSource('$ ? (@ % 2 == 0)')
-      expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare("==",ƒ.num(v)%2,0))')
+      expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare(0,ƒ.num(v)%2,0))')
     })
 
     it("can divide by a function", () => {
@@ -523,34 +523,34 @@ describe("Codegen tests", () => {
     describe("lax compare", () => {
       it("can filter comparison predicates", () => {
         const ctx = generateFunctionSource('$ ? (@ == 1)')
-        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare("==",v,1))')
+        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare(0,v,1))')
       })
 
       it("can filter comparison ! predicates", () => {
         const ctx = generateFunctionSource('$ ? (!(@ == 1))')
-        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.not(ƒ.compare("==",v,1)))')
+        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.not(ƒ.compare(0,v,1)))')
       })
 
       it("can filter comparison predicate iterators", () => {
         const ctx = generateFunctionSource('$ ? (@[*] == 1)')
-        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare("==",ƒ.boxStar(v),1))')
+        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare(0,ƒ.boxStar(v),1))')
       })
 
       it("can filter value accessor predicates", () => {
         const ctx = generateFunctionSource('$ ? (@.sleepy == true)')
-        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare("==",ƒ.member(v,"sleepy"),true))')
+        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare(0,ƒ.member(v,"sleepy"),true))')
       })
     })
 
     describe("strict filter", () => {
       it("filter does not unwrap arrays in strict mode, and does not throw errors", () => {
         const ctx = generateFunctionSource('strict $ ? (@.sleepy == true)')
-        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare("==",ƒ.member(v,"sleepy"),true))')
+        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare(0,ƒ.member(v,"sleepy"),true))')
       })
 
       it("can filter predicate", () => {
         const ctx = generateFunctionSource('strict $ ? (@ == 1)')
-        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare("==",v,1))')
+        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare(0,v,1))')
       })
     })
 
@@ -579,23 +579,23 @@ describe("Codegen tests", () => {
     describe("'is unknown'", () => {
       it("can filter 'is unknown' predicates", () => {
         const ctx = generateFunctionSource('$ ? ((@.sleepy == true) is unknown)')
-        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.isUnknown(ƒ.compare("==",ƒ.member(v,"sleepy"),true)))')
+        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.isUnknown(ƒ.compare(0,ƒ.member(v,"sleepy"),true)))')
       })
 
       it("can filter 'is unknown' predicate iterators", () => {
         const ctx = generateFunctionSource('$ ? ((@[*] == true) is unknown)')
-        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.isUnknown(ƒ.compare("==",ƒ.boxStar(v),true)))')
+        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.isUnknown(ƒ.compare(0,ƒ.boxStar(v),true)))')
       })
     })
 
     it("can filter not 'is unknown' predicate iterators", () => {
       const ctx = generateFunctionSource('$ ? (!((@[*] == true) is unknown))')
-      expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.not(ƒ.isUnknown(ƒ.compare("==",ƒ.boxStar(v),true))))')
+      expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.not(ƒ.isUnknown(ƒ.compare(0,ƒ.boxStar(v),true))))')
     })
 
     it("can filter multiple predicates with && and ||", () => {
       const ctx = generateFunctionSource('$ ? ((@.a==1 || @.b==2 || @.b==3) && @.c=="hi")')
-      expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.and([(ƒ.or([ƒ.compare("==",ƒ.member(v,"a"),1),ƒ.compare("==",ƒ.member(v,"b"),2),ƒ.compare("==",ƒ.member(v,"b"),3)])),ƒ.compare("==",ƒ.member(v,"c"),"hi")]))')
+      expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.and([(ƒ.or([ƒ.compare(0,ƒ.member(v,"a"),1),ƒ.compare(0,ƒ.member(v,"b"),2),ƒ.compare(0,ƒ.member(v,"b"),3)])),ƒ.compare(0,ƒ.member(v,"c"),"hi")]))')
     })
 
     describe("starts with", () => {
@@ -641,10 +641,10 @@ describe("Codegen tests", () => {
       expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.exists(()=>(ƒ.member(ƒ.boxStar(v),"z"))))')
 
       ctx = generateFunctionSource('$ ? (@.size() > 0)')
-      expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare(">",ƒ.size(v),0))')
+      expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare(2,ƒ.size(v),0))')
 
       ctx = generateFunctionSource('$ ? (exists(@[*].z)) ? (@.size() > 0)')
-      expect(ctx.source).to.equal('return ƒ.filter(ƒ.filter($,v=>ƒ.exists(()=>(ƒ.member(ƒ.boxStar(v),"z")))),v=>ƒ.compare(">",ƒ.size(v),0))')
+      expect(ctx.source).to.equal('return ƒ.filter(ƒ.filter($,v=>ƒ.exists(()=>(ƒ.member(ƒ.boxStar(v),"z")))),v=>ƒ.compare(2,ƒ.size(v),0))')
     })
   })
 })

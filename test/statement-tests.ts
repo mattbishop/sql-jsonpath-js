@@ -440,6 +440,12 @@ describe("Statement tests", () => {
         await testValuesCompareToPg(src, data)
       })
 
+      it("uses loose inequality for number and bigint comparison", async () => {
+        const src = '$[*] ? (@.bigint() != 1)'
+        const data = ["1", "2", "3"]
+        await testValuesCompareToPg(src, data)
+      })
+
       it("supports less-than-or-equal comparison", async () => {
         const src = '$ ? (@ <= 2)'
         const data = [1, 2, 3]

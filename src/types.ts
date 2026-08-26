@@ -33,6 +33,15 @@ export enum Pred {
   UNKNOWN = "U"
 }
 
+/** @internal */
+export enum CompOp {
+  EQ,
+  NEQ,
+  GT,
+  GTE,
+  LT,
+  LTE
+}
 
 /** @internal */
 export enum TemporalTypes {
