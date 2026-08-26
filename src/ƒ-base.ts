@@ -746,6 +746,11 @@ export class ƒBase {
       return Pred.FALSE
     }
 
+    const primComp = ƒBase._comparePrimitive(compOp, left, right)
+    if (primComp) {
+      return primComp
+    }
+
     let typeLeft = sqlType(left)
     let typeRight = sqlType(right)
 
@@ -759,19 +764,12 @@ export class ƒBase {
       right = ƒBase._toTemporalComparable(right)
       typeLeft = typeRight = "temporal"
     }
-    if (typeLeft === "bigint") {
-      typeLeft = "number"
-    }
-    if (typeRight === "bigint") {
-      typeRight = "number"
-    }
 
     // check that left and right can be compared
     if (typeLeft === typeRight) {
       switch (compOp) {
         case "==" :
-          // use ==, not === so that number and bigint will compare
-          return toPred(left == right)
+          return toPred(left === right)
         case "<>" :
         case "!=" :
           return toPred(left !== right)
@@ -786,6 +784,55 @@ export class ƒBase {
       }
     }
     return Pred.UNKNOWN
+  }
+
+  private static _comparePrimitive(compOp: string, left: unknown, right: unknown): Pred | undefined {
+    let typeLeft = typeof left
+    let typeRight = typeof right
+
+    if (   (typeLeft === "number" && !Number.isFinite(left))
+        || (typeRight === "number" && !Number.isFinite(right))) {
+      return Pred.UNKNOWN
+    }
+
+    if (typeLeft === "bigint") {
+      typeLeft = "number"
+    }
+    if (typeRight === "bigint") {
+      typeRight = "number"
+    }
+
+    if (typeLeft === typeRight) {
+      switch (typeLeft) {
+        case "number":
+        case "string":
+        case "boolean":
+          break
+        default:
+          return undefined
+      }
+
+      switch (compOp) {
+        case "==" :
+          // ==, not === so number and bigint can be compared
+          return toPred(left == right)
+        case "<>" :
+        case "!=" :
+          return toPred(left !== right)
+        case ">" :
+          // @ts-ignore
+          return toPred(left > right)
+        case ">=" :
+          // @ts-ignore
+          return toPred(left >= right)
+        case "<" :
+          // @ts-ignore
+          return toPred(left < right)
+        case "<=" :
+          // @ts-ignore
+          return toPred(left <= right)
+      }
+    }
   }
 
   /*
@@ -860,6 +907,7 @@ export class ƒBase {
 
     const leftValues = toSeq(left).filter(noValueFilter)
     const rightValues = new ReplayableIterable(toSeq(right).filter(noValueFilter))
+
     let hasUnknown = false
     for (const l of leftValues) {
       for (const r of rightValues) {
