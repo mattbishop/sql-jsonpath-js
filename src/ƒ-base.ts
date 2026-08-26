@@ -314,11 +314,21 @@ export class ƒBase {
       return input
     }
     if (isString(input)) {
-      if (/^(?:true|t|1|yes|y|on)$/i.test(input)) {
-        return true
-      }
-      if (/^(?:false|f|0|no|n|off)$/i.test(input)) {
-        return false
+      switch (input.toLowerCase()) {
+        case "true":
+        case "t":
+        case "1":
+        case "yes":
+        case "y":
+        case "on":
+          return true
+        case "false":
+        case "f":
+        case "0":
+        case "no":
+        case "n":
+        case "off":
+          return false
       }
     }
     else if ((isNumber(input) && Number.isInteger(input)) || isBigInt(input)) {
