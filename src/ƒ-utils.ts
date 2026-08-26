@@ -1,5 +1,3 @@
-// noinspection FallThroughInSwitchStatementJS
-
 import {ZonedTime} from "./json-path.ts"
 import {type NumBigInt, Pred, type SingleOrSeq} from "./types.ts"
 import {next} from "./iterators.ts"
