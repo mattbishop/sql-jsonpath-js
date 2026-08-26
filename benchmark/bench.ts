@@ -52,7 +52,7 @@ function consumeExists(statement: SqlJsonPathStatement, input: unknown): number 
 }
 
 function runOperation(statement: SqlJsonPathStatement, benchmark: BenchmarkCase): number {
-  const operation = benchmark.operation ?? "values"
+  const operation = benchmark.operation ?? "query"
   const input = benchmark.input()
 
   return operation === "exists"
