@@ -17,6 +17,7 @@ import {
   toPred
 } from "./ƒ-utils.ts"
 import {
+  type MapWithArgsƒ,
   type Mapƒ,
   NO_VALUE,
   type NumBigInt,
@@ -38,7 +39,6 @@ type StrictConfig = {
 
 const KV_INDEX = "KV-index"
 const CURRENT_ARRAY = "current-array"
-const EMPTY_SEQ = Iterator.from([])
 const BIGINT_MIN = -(2n ** 63n)
 const BIGINT_MAX = 2n ** 63n - 1n
 const INTEGER_MIN = -(2 ** 31)
@@ -89,10 +89,42 @@ export class ƒBase {
     }
     this._checkStrict(input, strict || {strict: (input) => !Array.isArray(input), error: "Cannot unwrap non-array input."})
     return isIterable(input)
-      ? Iterator.from(input)
-          .map(mapƒ)
-          .filter(noValueFilter)
+      ? Iterator.from(ƒBase._mapWith(input, mapƒ))
       : mapƒ(input)
+  }
+
+  private static *_mapWith<T>(iterable:  Iterable<unknown>,
+                              mapƒ:      Mapƒ<T>): Generator<T> {
+    for (const element of iterable) {
+      const mapped = mapƒ(element)
+      if (mapped !== NO_VALUE) {
+        yield mapped
+      }
+    }
+  }
+
+
+  private _unwrapWithArgs<T, A extends unknown[]>(input:    unknown,
+                                                  mapƒ:     MapWithArgsƒ<T, A>,
+                                                  ...args:  A): SingleOrSeq<T> {
+    if (input === NO_VALUE) {
+      return NO_VALUE as T
+    }
+    this._checkStrict(input, {strict: (input) => !Array.isArray(input), error: "Cannot unwrap non-array input."})
+    return isIterable(input)
+      ? Iterator.from(ƒBase._mapWithArgs(input, mapƒ, args))
+      : mapƒ(input, ...args)
+  }
+
+  private static *_mapWithArgs<T, A extends unknown[]>(iterable:  Iterable<unknown>,
+                                                       mapƒ:      MapWithArgsƒ<T, A>,
+                                                       args:      A): Generator<T> {
+    for (const element of iterable) {
+      const mapped = mapƒ(element, ...args)
+      if (mapped !== NO_VALUE) {
+        yield mapped
+      }
+    }
   }
 
 
@@ -247,8 +279,7 @@ export class ƒBase {
   }
 
   decimal(input: unknown, precision?: number, scale?: number): SingleOrSeq<number> {
-    const mapƒ = (v: unknown) => ƒBase._decimal(v, precision, scale)
-    return this._unwrapWith(input, mapƒ)
+    return this._unwrapWithArgs(input, ƒBase._decimal, precision, scale)
   }
 
 
@@ -340,8 +371,7 @@ export class ƒBase {
 
   date(input: unknown): SingleOrSeq<Temporal.PlainDate> {
     const parser = this.scope.get(CLDR) as TemporalParser
-    const mapƒ = (v: unknown) => ƒBase._date(v, parser)
-    return this._unwrapWith(input, mapƒ)
+    return this._unwrapWithArgs(input, ƒBase._date, parser)
   }
 
   private static _timeRoundOptions(precision: number): Temporal.RoundingOptions<"second" | "millisecond" | "microsecond" | "nanosecond"> {
@@ -377,7 +407,7 @@ export class ƒBase {
     if (isString(input)) {
       let time = parser.toTime(input)
       if (precision !== undefined) {
-        time = time.round(this._timeRoundOptions(precision))
+        time = time.round(ƒBase._timeRoundOptions(precision))
       }
       return time
     }
@@ -390,8 +420,7 @@ export class ƒBase {
   // ERROR: cannot convert value from timestamptz to time without time zone usage
   time(input: unknown, precision?: number): SingleOrSeq<Temporal.PlainTime> {
     const parser = this.scope.get(CLDR) as TemporalParser
-    const mapƒ = (v: unknown) => ƒBase._time(v, parser, precision)
-    return this._unwrapWith(input, mapƒ)
+    return this._unwrapWithArgs(input, ƒBase._time, parser, precision)
   }
 
 
@@ -399,7 +428,7 @@ export class ƒBase {
     if (isString(input)) {
       let time = parser.toTimeTz(input)
       if (precision !== undefined) {
-        time = time.round(this._timeRoundOptions(precision))
+        time = time.round(ƒBase._timeRoundOptions(precision))
       }
       return time
     }
@@ -412,8 +441,7 @@ export class ƒBase {
   // It converts to UTC time and returns that
   time_tz(input: unknown, precision?: number): SingleOrSeq<Temporal.PlainTime> {
     const parser = this.scope.get(CLDR) as TemporalParser
-    const mapƒ =  (v: unknown) => ƒBase._time_tz(v, parser, precision)
-    return this._unwrapWith(input, mapƒ)
+    return this._unwrapWithArgs(input, ƒBase._time_tz, parser, precision)
   }
 
 
@@ -460,7 +488,7 @@ export class ƒBase {
     if (isString(input)) {
       let timestamp = parser.toTimestamp(input)
       if (precision !== undefined) {
-        timestamp = timestamp.round(this._timestampRoundOptions(precision))
+        timestamp = timestamp.round(ƒBase._timestampRoundOptions(precision))
       }
       return timestamp
     }
@@ -469,8 +497,7 @@ export class ƒBase {
 
   timestamp(input: unknown, precision?: number): SingleOrSeq<Temporal.PlainDateTime> {
     const parser = this.scope.get(CLDR) as TemporalParser
-    const mapƒ = (v: unknown) => ƒBase._timestamp(v, parser, precision)
-    return this._unwrapWith(input, mapƒ)
+    return this._unwrapWithArgs(input, ƒBase._timestamp, parser, precision)
   }
 
   private static _timestampTzRoundOptions(precision: number): Temporal.RoundingOptions<"second" | "millisecond" | "microsecond" | "nanosecond"> {
@@ -507,7 +534,7 @@ export class ƒBase {
     if (isString(input)) {
       let timestamp = parser.toTimestampTz(input)
       if (precision !== undefined) {
-        timestamp = timestamp.round(this._timestampTzRoundOptions(precision))
+        timestamp = timestamp.round(ƒBase._timestampTzRoundOptions(precision))
       }
       return timestamp
     }
@@ -516,8 +543,7 @@ export class ƒBase {
 
   timestamp_tz(input: unknown, precision?: number): SingleOrSeq<Temporal.Instant> {
     const parser = this.scope.get(CLDR) as TemporalParser
-    const mapƒ = (v: unknown) => ƒBase._timestamp_tz(v, parser, precision)
-    return this._unwrapWith(input, mapƒ)
+    return this._unwrapWithArgs(input, ƒBase._timestamp_tz, parser, precision)
   }
 
 
@@ -554,8 +580,7 @@ export class ƒBase {
 
   datetime(input: unknown, template: string): SingleOrSeq<TemporalType> {
     const parser = this.scope.get(template ?? CLDR) as TemporalParser
-    const mapƒ = (v: unknown) => ƒBase._datetime(v, parser)
-    return this._unwrapWith(input, mapƒ)
+    return this._unwrapWithArgs(input, ƒBase._datetime, parser)
   }
 
 
@@ -611,19 +636,18 @@ export class ƒBase {
   }
 
 
-  private _member(obj: unknown, member: string): unknown {
+  private _member(obj: unknown, member: string, lax: boolean): unknown {
     if (isObject(obj) && Object.hasOwn(obj, member)) {
       return obj[member]
     }
-    if (this.lax) {
+    if (lax) {
       return NO_VALUE
     }
     throw new Error(`Object does not contain key '${member}'. In strict mode.`)
   }
 
   member(input: unknown, member: string): SingleOrSeq<unknown> {
-    const mapƒ = (i: unknown) => this._member(i, member)
-    return this._unwrapWith(input, mapƒ)
+    return this._unwrapWithArgs(input, this._member, member, this.lax)
   }
 
 
@@ -931,7 +955,7 @@ export class ƒBase {
   }
 
   startsWith(input: unknown, start: string): SingleOrSeq<Pred> {
-    return this._unwrapWith(input, (i) => ƒBase._startsWith(i, start))
+    return this._unwrapWithArgs(input, ƒBase._startsWith, start)
   }
 
 
@@ -942,6 +966,6 @@ export class ƒBase {
   }
 
   match(input: unknown, pattern: RegExp): SingleOrSeq<Pred> {
-    return this._unwrapWith(input, (i) => ƒBase._match(i, pattern))
+    return this._unwrapWithArgs(input, ƒBase._match, pattern)
   }
 }

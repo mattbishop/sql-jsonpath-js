@@ -17,8 +17,14 @@ export type SingleOrSeq<T> = T | Seq<T>
 export type Mapƒ<T> = (input: any) => T
 
 /** @internal */
+export type MapWithArgsƒ<T, A extends unknown[]> = (input: unknown, ...args: A) => T
+
+/** @internal */
 export type Predƒ = Mapƒ<SingleOrSeq<Pred>>
 
+
+/** @internal */
+export const NO_VALUE = Symbol.for("No Value")
 
 /** @internal */
 export enum Pred {
@@ -62,7 +68,3 @@ export interface TemporalParser {
 
   toTemporal(input: string): TemporalType
 }
-
-
-/** @internal */
-export const NO_VALUE = Symbol.for("No Value")
