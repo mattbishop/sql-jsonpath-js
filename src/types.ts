@@ -62,6 +62,11 @@ export type TemporalType =
   | Temporal.PlainTime
   | ZonedTime
 
+/** @internal */
+export type TimeRoundOptions = Temporal.RoundingOptions<"second" | "millisecond" | "microsecond" | "nanosecond">
+
+/** @internal */
+export type TimestampRoundOptions = TimeRoundOptions | Temporal.RoundingOptions<"day" | "hour" | "minute">
 
 /** @internal */
 export interface TemporalParser {

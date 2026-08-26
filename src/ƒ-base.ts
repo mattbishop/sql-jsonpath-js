@@ -1,4 +1,4 @@
-import {CLDR} from "./datetime-parser.ts"
+import {CLDR, timeRoundOptions, timestampRoundOptions} from "./datetime.ts"
 import {type KeyValue} from "./json-path.ts"
 import {autoFlatMap, autoMap, flatten, isIterable, isIterableInput, isSeq, next, noValueFilter, ReplayableIterable, toSeq} from "./iterators.ts"
 import {
@@ -28,7 +28,9 @@ import {
   type SingleOrSeq,
   type TemporalParser,
   type TemporalType,
-  TemporalTypes
+  TemporalTypes,
+  type TimeRoundOptions,
+  type TimestampRoundOptions
 } from "./types.ts"
 
 
@@ -375,40 +377,12 @@ export class ƒBase {
     return this._unwrapWithArgs(input, ƒBase._date, parser)
   }
 
-  private static _timeRoundOptions(precision: number): Temporal.RoundingOptions<"second" | "millisecond" | "microsecond" | "nanosecond"> {
-    const roundingMode = "halfExpand"
-    if (precision > 9) {
-      throw new Error(`time() precision must be an integer between 0 and 9, found ${precision}.`)
-    }
-    if (precision === 0) {
-      return { smallestUnit: "second", roundingMode }
-    }
-    if (precision <= 3) {
-      return {
-        smallestUnit: "millisecond",
-        roundingIncrement: 10 ** (3 - precision),
-        roundingMode
-      }
-    }
-    if (precision <= 6) {
-      return {
-        smallestUnit: "microsecond",
-        roundingIncrement: 10 ** (6 - precision),
-        roundingMode
-      }
-    }
-    return {
-      smallestUnit: "nanosecond",
-      roundingIncrement: 10 ** (9 - precision),
-      roundingMode
-    }
-  }
 
-  private static _time(input: unknown, parser: TemporalParser, precision?: number): Temporal.PlainTime {
+  private static _time(input: unknown, parser: TemporalParser, roundOpts?: TimeRoundOptions): Temporal.PlainTime {
     if (isString(input)) {
       let time = parser.toTime(input)
-      if (precision !== undefined) {
-        time = time.round(ƒBase._timeRoundOptions(precision))
+      if (roundOpts) {
+        time = time.round(roundOpts)
       }
       return time
     }
@@ -421,15 +395,16 @@ export class ƒBase {
   // ERROR: cannot convert value from timestamptz to time without time zone usage
   time(input: unknown, precision?: number): SingleOrSeq<Temporal.PlainTime> {
     const parser = this.scope.get(CLDR) as TemporalParser
-    return this._unwrapWithArgs(input, ƒBase._time, parser, precision)
+    const roundOpts = timeRoundOptions(precision)
+    return this._unwrapWithArgs(input, ƒBase._time, parser, roundOpts)
   }
 
 
-  private static _time_tz(input: unknown, parser: TemporalParser, precision?: number): Temporal.PlainTime {
+  private static _time_tz(input: unknown, parser: TemporalParser, roundOpts?: TimeRoundOptions): Temporal.PlainTime {
     if (isString(input)) {
       let time = parser.toTimeTz(input)
-      if (precision !== undefined) {
-        time = time.round(ƒBase._timeRoundOptions(precision))
+      if (roundOpts) {
+        time = time.round(roundOpts)
       }
       return time
     }
@@ -442,54 +417,16 @@ export class ƒBase {
   // It converts to UTC time and returns that
   time_tz(input: unknown, precision?: number): SingleOrSeq<Temporal.PlainTime> {
     const parser = this.scope.get(CLDR) as TemporalParser
-    return this._unwrapWithArgs(input, ƒBase._time_tz, parser, precision)
+    const roundOpts = timeRoundOptions(precision)
+    return this._unwrapWithArgs(input, ƒBase._time_tz, parser, roundOpts)
   }
 
 
-  private static _timestampRoundOptions(precision: number): Temporal.RoundingOptions<"day" | "hour" | "minute" | "second" | "millisecond" | "microsecond" | "nanosecond"> {
-    if (precision > 9) {
-      throw new Error(`timestamp() precision must be an integer between 0 and 9, found ${precision}.`)
-    }
-    const roundingMode = "halfExpand"
-    if (precision === 0) {
-      return { smallestUnit: "day", roundingMode }
-    }
-    if (precision <= 2) {
-      return {
-        smallestUnit: "hour",
-        roundingIncrement: 10 ** (2 - precision),
-        roundingMode
-      }
-    }
-    if (precision <= 4) {
-      return {
-        smallestUnit: "minute",
-        roundingIncrement: 10 ** (4 - precision),
-        roundingMode
-      }
-    }
-    if (precision <= 6) {
-      return {
-        smallestUnit: "second",
-        roundingIncrement: 10 ** (6 - precision),
-        roundingMode
-      }
-    }
-    if (precision === 7) {
-      return { smallestUnit: "millisecond", roundingMode }
-    }
-    if (precision === 8) {
-      return { smallestUnit: "microsecond", roundingMode }
-    }
-    return { smallestUnit: "nanosecond", roundingMode }
-  }
-
-
-  private static _timestamp(input: unknown, parser: TemporalParser, precision?: number): Temporal.PlainDateTime {
+  private static _timestamp(input: unknown, parser: TemporalParser, roundOpts?: TimestampRoundOptions): Temporal.PlainDateTime {
     if (isString(input)) {
       let timestamp = parser.toTimestamp(input)
-      if (precision !== undefined) {
-        timestamp = timestamp.round(ƒBase._timestampRoundOptions(precision))
+      if (roundOpts) {
+        timestamp = timestamp.round(roundOpts)
       }
       return timestamp
     }
@@ -498,44 +435,16 @@ export class ƒBase {
 
   timestamp(input: unknown, precision?: number): SingleOrSeq<Temporal.PlainDateTime> {
     const parser = this.scope.get(CLDR) as TemporalParser
-    return this._unwrapWithArgs(input, ƒBase._timestamp, parser, precision)
-  }
-
-  private static _timestampTzRoundOptions(precision: number): Temporal.RoundingOptions<"second" | "millisecond" | "microsecond" | "nanosecond"> {
-    if (precision > 9) {
-      throw new Error(`timestamp_tz() precision must be an integer between 0 and 9, found ${precision}.`)
-    }
-    const roundingMode = "halfExpand"
-    if (precision === 0) {
-      return { smallestUnit: "second", roundingMode }
-    }
-    if (precision <= 3) {
-      return {
-        smallestUnit: "millisecond",
-        roundingIncrement: 10 ** (3 - precision),
-        roundingMode
-      }
-    }
-    if (precision <= 6) {
-      return {
-        smallestUnit: "microsecond",
-        roundingIncrement: 10 ** (6 - precision),
-        roundingMode
-      }
-    }
-    return {
-      smallestUnit: "nanosecond",
-      roundingIncrement: 10 ** (9 - precision),
-      roundingMode
-    }
+    const roundOpts = timestampRoundOptions(precision)
+    return this._unwrapWithArgs(input, ƒBase._timestamp, parser, roundOpts)
   }
 
 
-  private static _timestamp_tz(input: unknown, parser: TemporalParser, precision?: number): Temporal.Instant {
+  private static _timestamp_tz(input: unknown, parser: TemporalParser, roundOpts?: TimeRoundOptions): Temporal.Instant {
     if (isString(input)) {
       let timestamp = parser.toTimestampTz(input)
-      if (precision !== undefined) {
-        timestamp = timestamp.round(ƒBase._timestampTzRoundOptions(precision))
+      if (roundOpts) {
+        timestamp = timestamp.round(roundOpts)
       }
       return timestamp
     }
@@ -544,7 +453,8 @@ export class ƒBase {
 
   timestamp_tz(input: unknown, precision?: number): SingleOrSeq<Temporal.Instant> {
     const parser = this.scope.get(CLDR) as TemporalParser
-    return this._unwrapWithArgs(input, ƒBase._timestamp_tz, parser, precision)
+    const roundOpts = timeRoundOptions(precision)
+    return this._unwrapWithArgs(input, ƒBase._timestamp_tz, parser, roundOpts)
   }
 
 

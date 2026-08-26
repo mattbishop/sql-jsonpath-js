@@ -1,7 +1,7 @@
 import {expect} from "chai"
 import {describe, it} from "node:test"
 
-import {buildTemporalParser} from "../src/datetime-parser.ts"
+import {buildTemporalParser} from "../src/datetime.ts"
 import {ZonedTime} from "../src/json-path.ts"
 
 

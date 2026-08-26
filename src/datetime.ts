@@ -1,5 +1,5 @@
 import {ZonedTime} from "./json-path.ts"
-import {type TemporalParser, type TemporalType, TemporalTypes} from "./types.ts"
+import {type TemporalParser, type TemporalType, TemporalTypes, type TimeRoundOptions, type TimestampRoundOptions} from "./types.ts"
 
 
 /**
@@ -9,6 +9,7 @@ import {type TemporalParser, type TemporalType, TemporalTypes} from "./types.ts"
 export const CLDR = "CLDR"
 
 type StringToTemporal = (input: string) => TemporalType
+
 
 /**
  * Creates a function that parses an input string into a Temporal type. The input strings
@@ -304,3 +305,97 @@ function inferTemporalKind(input: string): TemporalTypes | undefined {
   }
 }
 
+
+const troCache: TimeRoundOptions[] = []
+
+export function timeRoundOptions(precision?: number): TimeRoundOptions | undefined {
+  if (precision !== undefined) {
+    let tro = troCache[precision]
+    if (!tro) {
+      tro = _timeRoundOptions(precision)
+      troCache[precision] = tro
+    }
+    return tro
+  }
+}
+
+function _timeRoundOptions(precision: number): TimeRoundOptions {
+  if (precision > 9) {
+    throw new Error(`time/timestamp_tz() precision must be an integer between 0 and 9, found ${precision}.`)
+  }
+  const roundingMode = "halfExpand"
+  if (precision === 0) {
+    return { smallestUnit: "second", roundingMode }
+  }
+  if (precision <= 3) {
+    return {
+      smallestUnit: "millisecond",
+      roundingIncrement: 10 ** (3 - precision),
+      roundingMode
+    }
+  }
+  if (precision <= 6) {
+    return {
+      smallestUnit: "microsecond",
+      roundingIncrement: 10 ** (6 - precision),
+      roundingMode
+    }
+  }
+  return {
+    smallestUnit: "nanosecond",
+    roundingIncrement: 10 ** (9 - precision),
+    roundingMode
+  }
+}
+
+
+const tsroCache: TimestampRoundOptions[] = []
+
+export function timestampRoundOptions(precision?: number): TimestampRoundOptions | undefined {
+  if (precision !== undefined) {
+    let tsro = tsroCache[precision]
+    if (!tsro) {
+      tsro = _timestampRoundOptions(precision)
+      tsroCache[precision] = tsro
+    }
+    return tsro
+  }
+}
+
+function _timestampRoundOptions(precision: number): TimestampRoundOptions {
+  if (precision > 9) {
+  throw new Error(`timestamp() precision must be an integer between 0 and 9, found ${precision}.`)
+  }
+  const roundingMode = "halfExpand"
+  if (precision === 0) {
+    return { smallestUnit: "day", roundingMode }
+  }
+  if (precision <= 2) {
+    return {
+      smallestUnit: "hour",
+      roundingIncrement: 10 ** (2 - precision),
+      roundingMode
+    }
+  }
+  if (precision <= 4) {
+    return {
+      smallestUnit: "minute",
+      roundingIncrement: 10 ** (4 - precision),
+      roundingMode
+    }
+  }
+  if (precision <= 6) {
+    return {
+      smallestUnit: "second",
+      roundingIncrement: 10 ** (6 - precision),
+      roundingMode
+    }
+  }
+  if (precision === 7) {
+    return { smallestUnit: "millisecond", roundingMode }
+  }
+  if (precision === 8) {
+    return { smallestUnit: "microsecond", roundingMode }
+  }
+  return { smallestUnit: "nanosecond", roundingMode }
+}

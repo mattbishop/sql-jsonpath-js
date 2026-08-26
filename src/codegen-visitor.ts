@@ -28,7 +28,7 @@ import type {
   VariableCstChildren,
   WffCstChildren
 } from "./sql_jsonpath_cst.ts"
-import {buildTemporalParser, CLDR} from "./datetime-parser.ts"
+import {buildTemporalParser, CLDR} from "./datetime.ts"
 
 
 /** @internal */
