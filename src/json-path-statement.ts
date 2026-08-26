@@ -50,19 +50,23 @@ export function generateFunctionSource(text: string): CodegenContext {
 /** @internal */
 export type SJPFn<T> = ($: unknown, $named?: NamedVariables) => IteratorObject<T>
 
+const EMPTY$$ = (name: string) => { throw new Error(`no variable named '$${name}'`) }
 
 function createFunction<T>({source, lax, scope}: CodegenContext): SJPFn<T> {
   const fn = new Function("ƒ", "$", "$$", source)
   const ƒ = new ƒBase(lax, scope)
 
-  return ($, $named = {}) => {
-    const $$ = (name: string): unknown => {
-      if ($named.hasOwnProperty(name)) {
-        return $named[name]
+  return ($, $named?) => {
+    const $$ = !$named
+      ? EMPTY$$
+      : (name: string): unknown => {
+        if (Object.hasOwn($named, name)) {
+          return $named[name]
+        }
+        // thrown for both LAX and STRICT modes
+        throw new Error(`no variable named '$${name}'`)
       }
-      // thrown for both LAX and STRICT modes
-      throw new Error(`no variable named '$${name}'`)
-    }
+
     const result = fn(ƒ, $, $$)
     const iter = isSeq(result)
       ? result
