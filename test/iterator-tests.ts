@@ -135,13 +135,24 @@ describe("iterators", () => {
       })
     })
 
-    it("returns the default value when the wrapped iterator is empty", () => {
+    it("emits the default value once when the wrapped iterator is empty", () => {
       const iterator = new DefaultOnEmptyIterator("default", [][Symbol.iterator]())
 
       expect(iterator.next()).to.deep.equal({
-        done: true,
+        done: false,
         value: "default"
       })
+
+      expect(iterator.next()).to.deep.equal({
+        done: true,
+        value: undefined
+      })
+    })
+
+    it("includes the default value when consumed by Array.from", () => {
+      const iterator = new DefaultOnEmptyIterator("default", [][Symbol.iterator]())
+
+      expect(Array.from(Iterator.from(iterator))).to.deep.equal(["default"])
     })
   })
 

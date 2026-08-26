@@ -138,7 +138,7 @@ export class DefaultOnEmptyIterator<T> implements Iterator<T> {
       this.started = true
       const first = this.iterator.next()
       return first.done
-        ? {value: this.defaultValue, done: true}
+        ? {value: this.defaultValue, done: false}
         : first
     }
     return this.iterator.next()
