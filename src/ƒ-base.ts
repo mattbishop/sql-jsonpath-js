@@ -559,9 +559,11 @@ export class ƒBase {
   }
 
 
-  private static _toKV(obj: Record<string, unknown>, id: number): Seq<KeyValue> {
-    return Iterator.from(Object.keys(obj))
-      .map((key) => ({id, key, value: obj[key]}))
+  private static *_toKV(obj: Record<string, unknown>, id: number): Generator<KeyValue> {
+    for (const key in obj)
+      if (Object.hasOwn(obj, key)) {
+        yield {id, key, value: obj[key]}
+      }
   }
 
   keyvalue(input: unknown): Seq<KeyValue> {
@@ -578,10 +580,14 @@ export class ƒBase {
       .flatMap<KeyValue>(flatten)
   }
 
-  private static _objectValues(input: unknown): Seq<unknown> {
-    return isObject(input)
-      ? Iterator.from(Object.values(input))
-      : EMPTY_SEQ
+  private static *_objectValues(input: unknown): Generator<unknown> {
+    if (isObject(input)) {
+      for (const key in input) {
+        if (Object.hasOwn(input, key)) {
+          yield input[key]
+        }
+      }
+    }
   }
 
   private _dotStar(input: unknown): Seq<unknown> {
@@ -606,7 +612,7 @@ export class ƒBase {
 
 
   private _member(obj: unknown, member: string): unknown {
-    if (isObject(obj) && obj.hasOwnProperty(member)) {
+    if (isObject(obj) && Object.hasOwn(obj, member)) {
       return obj[member]
     }
     if (this.lax) {

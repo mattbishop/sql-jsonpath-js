@@ -111,7 +111,14 @@ export function isBoolean(input: unknown): input is boolean {
 
 /** @internal */
 export function isObject(input: unknown): input is Record<string, unknown> {
-  return sqlType(input) === "object"
+  return input !== null
+    && typeof input === "object"
+    && !Array.isArray(input)
+    && !(input instanceof Temporal.Instant)
+    && !(input instanceof Temporal.PlainDateTime)
+    && !(input instanceof ZonedTime)
+    && !(input instanceof Temporal.PlainTime)
+    && !(input instanceof Temporal.PlainDate)
 }
 
 /** @internal */
