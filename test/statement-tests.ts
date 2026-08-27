@@ -64,8 +64,10 @@ async function testValuesCompareToPg(statement: string, data: Input<any>, vars?:
     try {
       // pgLite doesn't return bigint from JSONPath, so convert to number for comparison.
       // Number will not be exact for larger values, but it will match pg, which is the point of this test
-      actual = Array.from(stmt.query(datum, {vars: vars}))
+      const result = stmt.query(datum, {vars: vars})
+      actual = result
         .map((v) => typeof v === "bigint" ? Number(v) : v)
+        .toArray()
     } catch (e) {
       actual = e as Error
     }

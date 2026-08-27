@@ -644,20 +644,38 @@ export class ƒBase {
     }
   }
 
-  filter(input: unknown, filterExp: Predƒ): Seq<unknown> {
+  filter(input: unknown, filterExp: Predƒ): SingleOrSeq<unknown> {
     const matches = (v: unknown) => ƒBase._matchesFilter(v, filterExp)
 
     if (this.lax) {
-      return toSeq(input).filter(matches)
+      // Lax mode auto-unwraps arrays/sequences, so the filter keeps the
+      // individual values that match the predicate.
+      if (Array.isArray(input)) {
+        return Iterator.from(input)
+          .filter(matches)
+      }
+      if (isSeq(input)) {
+        return input
+          .flatMap(flatten)
+          .filter(matches)
+      }
+      // scalar value
+      return matches(input)
+        ? input
+        : Iterator.from([])
     }
 
+    // Strict mode preserves the current input shape. The predicate decides
+    // whether the whole input survives.
     const matched = isIterableInput(input)
       ? Iterator.from(input)
           .map(matches)
           .some(Boolean)
       : matches(input)
 
-    return toSeq(matched ? [input] : [])
+    return matched
+      ? input
+      : Iterator.from([])
   }
 
 

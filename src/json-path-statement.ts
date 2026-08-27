@@ -5,11 +5,10 @@ import {ƒBase} from "./ƒ-base.ts"
 import {
   DefaultOnEmptyIterator,
   DefaultOnErrorIterator,
+  flatten,
   isIterableInput,
   isSeq,
   noValueFilter,
-  one,
-  SingletonIterator,
   toInputIterator
 } from "./iterators.ts"
 import type {Input, NamedVariables, SqlJsonPathStatement, QueryConfig} from "./json-path.ts"
@@ -48,7 +47,7 @@ export function generateFunctionSource(text: string): CodegenContext {
 
 
 /** @internal */
-export type SJPFn<T> = ($: unknown, $named?: NamedVariables) => IteratorObject<T>
+export type SJPFn<T> = ($: unknown, $named?: NamedVariables) => T | IteratorObject<T>
 
 const EMPTY$$ = (name: string) => { throw new Error(`no variable named '$${name}'`) }
 
@@ -67,11 +66,7 @@ function createFunction<T>({source, lax, scope}: CodegenContext): SJPFn<T> {
         throw new Error(`no variable named '$${name}'`)
       }
 
-    const result = fn(ƒ, $, $$)
-    const iter = isSeq(result)
-      ? result
-      : Iterator.from(new SingletonIterator(result))
-    return iter.filter(noValueFilter)
+    return fn(ƒ, $, $$)
   }
 }
 
@@ -90,23 +85,37 @@ export function createStatement(text: string): SqlJsonPathStatement {
       const {vars} = config
       // iterate through the inputs one at a time and test them against fn()
       // filter() will omit the exists == false elements, and the caller needs to know this
-      const existsƒ = (i: unknown) => !fn(i, vars).next().done
-      const iterator = toInputIterator(input)
-        .map(existsƒ)
-      // return the shape that matches input
-      return isIterableInput(input)
-        ? iterator
-        : one(iterator) ?? false
+      const existsƒ = (i: unknown) => hasValue(fn(i, vars))
+      if (isIterableInput(input)) {
+        return Iterator.from(input)
+          .map(existsƒ)
+      }
+      // single input requires single output
+      return existsƒ(input)
     },
 
     query<T>(input: Input, config: QueryConfig<T> = {}): IteratorObject<T> {
       const {vars} = config
       const queryƒ = (i: unknown) => fn(i, vars) as IteratorObject<T>
       const iterator = toInputIterator(input)
-        .flatMap(queryƒ)
+        .map(queryƒ)
+        .flatMap(flatten)
+        .filter(noValueFilter)
       return Iterator.from(defaultsIterator(iterator, config))
     }
   }
+}
+
+function hasValue(input: unknown): boolean {
+  if (!isSeq(input)) {
+    return noValueFilter(input)
+  }
+  for (const value of input) {
+    if (noValueFilter(value)) {
+      return true
+    }
+  }
+  return false
 }
 
 
