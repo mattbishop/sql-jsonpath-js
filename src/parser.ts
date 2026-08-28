@@ -377,8 +377,8 @@ export class JsonPathParser extends CstParser {
   <JSON comparison predicate> ::=
           <JSON path wff> <JSON comp op> <JSON path wff>
 
-  // todo how do I test this?
   NOTE 489 — Comparison operators are not left associative, unlike ECMAScript Language Specification 5.1 Edition.
+  Means '@ < 2 > 3' is not allowed in SQL/JSONPath
  */
   comparison = this.RULE("comparison", () => {
     // wff handled in nonDelPred

@@ -477,6 +477,16 @@ describe("Statement tests", () => {
         const data = [null, true, 100, "null"]
         await testValuesCompareToPg(src, data)
       })
+
+      it("rejects chained comparison operators like Postgres", async () => {
+        const src = '$ ? (@ < 2 < 3)'
+        const data = 1
+
+        expect(() => compile(src)).to.throw
+
+        const pgActual = await pgValues(src, data)
+        expect(pgActual).to.be.instanceOf(Error)
+      })
     })
 
     describe("'exists'", () => {
