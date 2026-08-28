@@ -1,4 +1,4 @@
-import {CstParser} from "chevrotain"
+import {CstParser, type IOrAlt} from "chevrotain"
 
 import {
   allTokens,
@@ -39,6 +39,9 @@ import {
 } from "./tokens.ts"
 
 
+type ORCache = IOrAlt<any>[] | null
+
+
 /** @internal */
 export class JsonPathParser extends CstParser {
   constructor() {
@@ -67,14 +70,14 @@ export class JsonPathParser extends CstParser {
             <JSON path literal>
           | <JSON path variable>
           | <left paren> <JSON path wff> <right paren>
-
    */
+  $pp: ORCache = null
   pathPrimary = this.RULE("primary", () => {
-    this.OR([
+    this.OR(this.$pp ?? (this.$pp = [
       { ALT: () => this.SUBRULE(this.pathLiteral) },
       { ALT: () => this.SUBRULE(this.pathVariable) },
       { ALT: () => this.SUBRULE(this.scopedWff) }
-    ])
+    ]))
   })
 
 
@@ -91,13 +94,14 @@ export class JsonPathParser extends CstParser {
   /*
     Same as ECMAScript Literals; they are grouped together here for clarity
    */
+  $pl: ORCache = null
   pathLiteral = this.RULE("literal", () => {
-    this.OR([
+    this.OR(this.$pl ?? (this.$pl = [
       { ALT: () => this.CONSUME(NumberLiteral) },
       { ALT: () => this.CONSUME(StringLiteral) },
       { ALT: () => this.CONSUME(BooleanLiteral) },
       { ALT: () => this.CONSUME(NullLiteral) },
-    ])
+    ]))
   })
 
 
@@ -108,13 +112,14 @@ export class JsonPathParser extends CstParser {
           | <at sign>
           | <JSON last subscript>
    */
+  $pv: ORCache = null
   pathVariable = this.RULE("variable", () => {
-    this.OR([
+    this.OR(this.$pv ?? (this.$pv = [
       { ALT: () => this.CONSUME(ContextVariable) },
       { ALT: () => this.CONSUME(NamedVariable) },
       { ALT: () => this.CONSUME(FilterValue) },
       { ALT: () => this.CONSUME(Last) }
-    ])
+    ]))
   })
 
 
@@ -140,15 +145,16 @@ export class JsonPathParser extends CstParser {
           | <JSON filter expression>
           | <JSON item method>
    */
+  $ac: ORCache = null
   accessor = this.RULE("accessor", () => {
-    this.OR([
+    this.OR(this.$ac ?? (this.$ac = [
       { ALT: () => this.CONSUME(Member) },
       { ALT: () => this.CONSUME(WildcardMember) },
       { ALT: () => this.SUBRULE(this.arrayAccessor) },
       { ALT: () => this.CONSUME(WildcardArray) },
       { ALT: () => this.SUBRULE(this.filterExpression) },
       { ALT: () => this.SUBRULE(this.itemMethod) }
-    ])
+    ]))
   })
 
 
@@ -186,7 +192,7 @@ export class JsonPathParser extends CstParser {
   /*
     <JSON filter expression> ::=
           <question mark> <left paren> <JSON path predicate> <right paren>
- */
+   */
   filterExpression = this.RULE("filter", () => {
     this.CONSUME(FilterStart)
     this.SUBRULE(this.predicate)
@@ -219,13 +225,14 @@ export class JsonPathParser extends CstParser {
           | timestamp <left paren> [ <timestamp precision> ] <right paren>
           | timestamp_tz <left paren> [ <timestamp precision> ] <right paren>
    */
+  $im: ORCache = null
   itemMethod = this.RULE("method", () => {
-    this.OR([
+    this.OR(this.$im ?? (this.$im = [
       { ALT: () => this.CONSUME(ItemMethod) },
       { ALT: () => this.CONSUME(DecimalMethod) },
       { ALT: () => this.CONSUME(DatetimeMethod) },
       { ALT: () => this.CONSUME(TimeStampTzMethod) }
-    ])
+    ]))
   })
 
 
@@ -235,16 +242,17 @@ export class JsonPathParser extends CstParser {
           | <plus sign> <JSON unary expression>
           | <minus sign> <JSON unary expression>
  */
+  $ue: ORCache = null
   unaryExpression = this.RULE("unary", () => {
     // this supports expressions like '-$.count' where the operator comes first.
-    this.OR([
+    this.OR(this.$ue ?? (this.$ue = [
       { ALT: () => this.SUBRULE(this.accessorExpression) },
       { ALT: () => {
           this.CONSUME(UnaryOperator)
           this.SUBRULE(this.unaryExpression)
         }
       }
-    ])
+    ]))
   })
 
 
@@ -270,7 +278,8 @@ export class JsonPathParser extends CstParser {
     <JSON additive expression> ::=
             <JSON multiplicative expression>
           | <JSON additive expression> <plus sign> <JSON multiplicative expression>
-          | <JSON additive expression> <minus sign> <JSON multiplicative expression>   */
+          | <JSON additive expression> <minus sign> <JSON multiplicative expression>
+   */
   wff = this.RULE("wff", () => {
     this.SUBRULE(this.multiplicativeExpression, { LABEL: "left" })
     this.MANY(() => {
@@ -285,12 +294,13 @@ export class JsonPathParser extends CstParser {
             <JSON delimited predicate>
           | <JSON non-delimited predicate>
    */
+  $pp2: ORCache = null
   predicatePrimary = this.RULE("predPrimary", () => {
-    this.OR([
+    this.OR(this.$pp2 ?? (this.$pp2 = [
       // consider GATE
       { ALT: () => this.SUBRULE(this.delimitedPredicate) },
       { ALT: () => this.SUBRULE(this.nonDelimitedPredicate), IGNORE_AMBIGUITIES: true }
-    ])
+    ]))
   })
 
 
@@ -299,11 +309,12 @@ export class JsonPathParser extends CstParser {
             <JSON exists path predicate>
           | <left paren> <JSON path predicate> <right paren>
    */
+  $dp: ORCache = null
   delimitedPredicate = this.RULE("delPred", () => {
-    this.OR([
+    this.OR(this.$dp ?? (this.$dp = [
       { ALT: () => this.SUBRULE(this.exists) },
       { ALT: () => this.SUBRULE(this.scopedPredicate) }
-    ])
+    ]))
   })
 
 
@@ -331,6 +342,7 @@ export class JsonPathParser extends CstParser {
           | <JSON starts with predicate>
           | <JSON unknown predicate>
    */
+  $np: ORCache = null
   nonDelimitedPredicate = this.RULE("nonDelPred", () => {
 /*  this OR matches the BNF exactly, but breaks Chevrotain Ambiguous Alternatives rules.
     this.OR([
@@ -343,11 +355,11 @@ export class JsonPathParser extends CstParser {
     factored out shared wff SUBRULE from three of the matches
 */
     this.SUBRULE(this.wff)
-    this.OR([
+    this.OR(this.$np ?? (this.$np = [
       { ALT: () => this.SUBRULE(this.comparison) },
       { ALT: () => this.SUBRULE(this.likeRegex) },
       { ALT: () => this.SUBRULE(this.startsWith) }
-    ])
+    ]))
   })
 
 
@@ -406,13 +418,14 @@ export class JsonPathParser extends CstParser {
     <JSON starts with initial> ::=
             <JSON path wff>
    */
+  $sw: ORCache = null
   startsWith = this.RULE("startsWith", () => {
     // wff handled in nonDelPred
     this.CONSUME(StartsWith)
-    this.OR([
+    this.OR(this.$sw ?? (this.$sw = [
       { ALT: () => this.CONSUME(StringLiteral, { LABEL: "Initial" }) },
       { ALT: () => this.CONSUME(NamedVariable) }
-    ])
+    ]))
   })
 
 
@@ -421,15 +434,16 @@ export class JsonPathParser extends CstParser {
             <JSON predicate primary>
           | <exclamation mark> <JSON delimited predicate>
    */
+  $ng: ORCache = null
   negation = this.RULE("neg", () => {
-    this.OR([
+    this.OR(this.$ng ?? (this.$ng = [
       { ALT: () => this.SUBRULE(this.predicatePrimary) },
       { ALT: () => {
           this.CONSUME(NotOperator)
           this.SUBRULE(this.delimitedPredicate)
         }
       }
-    ])
+    ]))
   })
 
 
