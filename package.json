@@ -1,6 +1,6 @@
 {
   "name": "sql-jsonpath-js",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "JavaScript implementation of the SQL/JSONPath API from SQL:2023.",
   "keywords": [
     "sql",
