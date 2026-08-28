@@ -1481,7 +1481,7 @@ describe("Statement tests", () => {
         const objectValue = statement.query({"a": 1, "b": {c: "2"}})
         expect(Array.from(objectValue)).to.deep.equal([1, {c: "2"}])
 
-        const arrayValue = statement.query([{"a": 1, e: [], q: null, g: undefined}, 77, {"b": {c: "2"}}, true, [], "cats"])
+        const arrayValue = statement.query([{"a": 1, "e": [], "q": null, "g": undefined}, 77, {"b": {c: "2"}}, true, [], "cats"])
         expect(Array.from(arrayValue)).to.deep.equal([1, [], null, undefined, {c: "2"}])
 
         expect(Array.from(statement.query(undefined))).to.be.empty

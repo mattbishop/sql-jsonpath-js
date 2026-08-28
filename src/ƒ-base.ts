@@ -546,13 +546,15 @@ export class ƒBase {
   }
 
 
-  private _boxStar(input: unknown): Seq<unknown> {
-    // [*] is not the same as unwrap, which always turns the array into a seq in lax mode.
+  private _boxStar(input: unknown): SingleOrSeq<unknown> {
+    // [*] is not the same as unwrap. [*] always turns the array into a seq.
     this._checkStrict(input, {strict: Array.isArray, error: "[*] can only be applied to an array."})
-    return toSeq(input)
+    return Array.isArray(input)
+      ? Iterator.from(input)
+      : input
   }
 
-  boxStar(input: unknown): Seq<unknown> {
+  boxStar(input: unknown): SingleOrSeq<unknown> {
     return autoFlatMap(input, (i) => this._boxStar(i))
   }
 
