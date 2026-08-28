@@ -70,7 +70,50 @@ function* createBookIterator(count: number): Generator<Book> {
   }
 }
 
+
+type Event = {
+  id: number
+  createdAt: string
+  formattedCreatedAt: string
+  createdAtTz: string
+  formattedCreatedAtTz: string
+}
+
+function createEvents(count: number): Event[] {
+  return Array.from({length: count}, (_, index) => createEvent(index))
+}
+
+function createEvent(index: number): Event {
+  const day = String((index % 28) + 1).padStart(2, "0")
+  const hour = String(index % 24).padStart(2, "0")
+  const minute = String(index % 60).padStart(2, "0")
+  const second = String((index * 7) % 60).padStart(2, "0")
+  const fraction = String(index % 1_000_000_000).padStart(9, "0")
+
+  return {
+    id: index,
+    createdAt: `2026-08-${day}T${hour}:${minute}:${second}.${fraction}`,
+    formattedCreatedAt: `2026-08-${day} ${hour}:${minute}:${second}.${fraction}`,
+    createdAtTz: `2026-08-${day}T${hour}:${minute}:${second}.${fraction}-03:30`,
+    formattedCreatedAtTz: `2026-08-${day} ${hour}:${minute}:${second}.${fraction} -03:30`
+  }
+}
+
+function createEventLog(eventCount: number) {
+  return {
+    events: createEvents(eventCount)
+  }
+}
+
+function* createEventIterator(count: number): Generator<Event> {
+  for (let i = 0; i < count; i++) {
+    yield createEvent(i)
+  }
+}
+
+
 const ITERATIONS = Number(process.env.BENCH_ITERATIONS ?? 10_000)
+
 
 const benchmarks: BenchmarkCase[] = [
   {
@@ -108,6 +151,48 @@ const benchmarks: BenchmarkCase[] = [
     statement: '$ ? (@.category == "technical")',
     operation: "exists",
     input: () => createBookIterator(1000),
+    iterations: ITERATIONS
+  },
+  {
+    name: "datetime ISO timestamp projection",
+    statement: "$.events[*].createdAt.timestamp()",
+    input: () => createEventLog(100),
+    iterations: ITERATIONS
+  },
+  {
+    name: "datetime ISO timestamp precision projection",
+    statement: "$.events[*].createdAt.timestamp(6)",
+    input: () => createEventLog(100),
+    iterations: ITERATIONS
+  },
+  {
+    name: "datetime formatted timestamp projection",
+    statement: '$.events[*].formattedCreatedAt.datetime("YYYY-MM-DD HH24:MI:SS.FF9")',
+    input: () => createEventLog(100),
+    iterations: ITERATIONS
+  },
+  {
+    name: "datetime ISO timestamp_tz projection",
+    statement: "$.events[*].createdAtTz.timestamp_tz()",
+    input: () => createEventLog(100),
+    iterations: ITERATIONS
+  },
+  {
+    name: "datetime ISO timestamp_tz precision projection",
+    statement: "$.events[*].createdAtTz.timestamp_tz(6)",
+    input: () => createEventLog(100),
+    iterations: ITERATIONS
+  },
+  {
+    name: "datetime formatted timestamp_tz projection",
+    statement: '$.events[*].formattedCreatedAtTz.datetime("YYYY-MM-DD HH24:MI:SS.FF9 TZH:TZM")',
+    input: () => createEventLog(100),
+    iterations: ITERATIONS
+  },
+  {
+    name: "datetime formatted timestamp filter",
+    statement: '$.events[*].formattedCreatedAt ? (@.datetime("YYYY-MM-DD HH24:MI:SS.FF9") > "2026-08-15T00:00:00".timestamp())',
+    input: () => createEventLog(100),
     iterations: ITERATIONS
   }
 ]
