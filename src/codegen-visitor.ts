@@ -263,20 +263,18 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
         const [{payload: [, template]}] = DatetimeMethod
         let templateParam = ""
         const parser = buildTemporalParser(template)
-        if (template === undefined) {
-          ctx.scope.set(CLDR, parser)
-        } else {
+        if (template) {
           ctx.scope.set(template, parser)
           templateParam = `,"${template}"`
+        } else {
+          ctx.scope.set(CLDR, parser)
         }
         source = `ƒ.datetime(${primary}${templateParam})`
       } else if (TimeStampTzMethod) {
         ctx.scope.set(CLDR, buildTemporalParser())
         // page 735 of the 2023 spec
         const [{payload: [methodName, precision]}] = TimeStampTzMethod
-        const precisionStr = precision !== undefined
-          ? `,${precision}`
-          : ""
+        const precisionStr = precision === undefined ? "" : `,${precision}`
         source = `ƒ.${methodName}(${primary}${precisionStr})`
       }
       return {...ctx, source}
