@@ -10,6 +10,7 @@ export const CLDR = "CLDR"
 
 type StringToTemporal = (input: string) => TemporalType
 
+const parserCache: Map<string, TemporalParser> = new Map()
 
 /**
  * Creates a function that parses an input string into a Temporal type. The input strings
@@ -19,19 +20,31 @@ type StringToTemporal = (input: string) => TemporalType
  * @param template a SQL:2023 template string for parsing input into Temporal values, or "CLDR" for CLDR spec strings.
  */
 export function buildTemporalParser(template?: string): TemporalParser {
-  const parser = template === undefined
-    ? parseTemporalString
-    : createFormattedParser(template)
+  const key = template ?? CLDR
+  let temporalParser = parserCache.get(key)
+  if (!temporalParser) {
+    const parser = template
+      ? createFormattedParser(template)
+      : parseTemporalString
 
-  return {
-    toTemporal:     (i) => parser(i),
-    toDate:         (i) => _toDate(parser, i),
-    toTime:         (i) => _toTime(parser, i),
-    toTimeTz:       (i) => _toTimeTz(parser, i),
-    toTimestamp:    (i) => _toTimestamp(parser, i),
-    toTimestampTz:  (i) => _toTimestampTz(parser, i)
+    temporalParser = {
+      toTemporal: (i) => parser(i),
+      toDate: (i) => _toDate(parser, i),
+      toTime: (i) => _toTime(parser, i),
+      toTimeTz: (i) => _toTimeTz(parser, i),
+      toTimestamp: (i) => _toTimestamp(parser, i),
+      toTimestampTz: (i) => _toTimestampTz(parser, i)
+    }
+
+    // flush the cache if it caches a lot of templates.
+    if (parserCache.size > 1000) {
+      parserCache.clear()
+    }
+    parserCache.set(key, temporalParser)
   }
+  return temporalParser
 }
+
 
 function _toDate(parser: StringToTemporal, input: string): Temporal.PlainDate {
   const value = parser(input)
@@ -127,6 +140,12 @@ const FIELD_TO_REGEX: Record<string, string> = {
   "FF9":    "(?<ff>\\d{9})"
 }
 
+const POW10 = [1, 10, 100, 1_000, 10_000, 100_000, 1_000_000, 10_000_000, 100_000_000, 1_000_000_000]
+
+const REJECT_OVERFLOW: Temporal.OverflowOptions = {overflow: "reject"}
+const USE_OFFSET_REJECT_OVERFLOW: Temporal.ZonedDateTimeFromOptions = {offset: "use", overflow: "reject"}
+
+
 // Matches standard tokens or single delimiters
 const templateTokenizer = /(A\.M\.|P\.M\.|HH12|HH24|HH|YYYY|YYY|YY|Y|MM|DDD|DD|MI|SSSSS|SS|TZH|TZM|FF[1-9]|RRRR|RR)|([-.\/,';: ])/g
 
@@ -146,9 +165,9 @@ function createFormattedParser(template: string): StringToTemporal {
       fields.add(field)
       regexPattern += FIELD_TO_REGEX[field]
       lastWasDelim = false
-      hasYear = hasYear || /^[YR]/.test(field)
-      hasMonthDay = hasMonthDay || /^MM|^D/.test(field)
-      hasTime = hasTime || /^[APFHST]/.test(field)
+      hasYear = hasYear || "YR".indexOf(field[0]) > -1
+      hasMonthDay = hasMonthDay || field.startsWith("MM") || field.startsWith("D")
+      hasTime = hasTime || "APFHST".indexOf(field[0]) > -1
     } else if (delim) {
       if (lastWasDelim) {
         throw new Error("Rule 2: Consecutive delimiters")
@@ -162,7 +181,7 @@ function createFormattedParser(template: string): StringToTemporal {
   const parserRegex = new RegExp(`^${regexPattern}$`)
 
   return (value: string) => {
-    const match = value.match(parserRegex)
+    const match = parserRegex.exec(value)
     if (!match || !match.groups) {
       throw new Error(`Value "${value}" does not match template "${template}"`)
     }
@@ -196,66 +215,63 @@ function createFormattedParser(template: string): StringToTemporal {
     }
 
     if (g.ff) {
-      nanosecond = parseInt(g.ff.padEnd(9, "0"), 10)
+      nanosecond = Number(g.ff) * POW10[9 - g.ff.length]
       millisecond = Math.floor(nanosecond / 1_000_000)
       microsecond = Math.floor((nanosecond % 1_000_000) / 1_000)
       nanosecond = nanosecond % 1_000
     }
 
-    const dateArgs = { year, month, day, hour, minute, second, millisecond, microsecond, nanosecond }
 
     const hasDate = hasYear || hasMonthDay
     const offset = fields.has("TZH") && `${g.tzh}:${g.tzm || "00"}`
-    const overflow = "reject"
     if (hasDate && hasTime) {
       if (offset) {
         return Temporal.ZonedDateTime.from({
-            ...dateArgs,
+            year, month, day, hour, minute, second, millisecond, microsecond, nanosecond,
             timeZone: "Etc/UTC",  // timeZone is required but will probably not match the offset
             offset
-          }, {
-            offset: "use",        // in the case of conflict between offset and timeZone, use the offset value
-            overflow
-          }
+          },
+          USE_OFFSET_REJECT_OVERFLOW
         ).toInstant()
       } else {
-         return Temporal.PlainDateTime.from(dateArgs, {overflow})
+         return Temporal.PlainDateTime.from(
+           {year, month, day, hour, minute, second, millisecond, microsecond, nanosecond},
+           REJECT_OVERFLOW)
       }
     }
     if (hasDate) {
-      return Temporal.PlainDate.from({year, month, day}, {overflow})
+      return Temporal.PlainDate.from({year, month, day}, REJECT_OVERFLOW)
     }
     if (offset) {
       const zdt = Temporal.ZonedDateTime.from({
-          ...dateArgs,
+          year, month, day, hour, minute, second, millisecond, microsecond, nanosecond,
           timeZone: "Etc/UTC",  // timeZone is required but will probably not match the offset
           offset
-        }, {
-          offset: "use",        // in the case of conflict between offset and timeZone, use the offset value
-          overflow
-        }
+        },
+        USE_OFFSET_REJECT_OVERFLOW
       )
       return ZonedTime.from(zdt)
     }
-    return Temporal.PlainTime.from({hour, minute, second, millisecond, microsecond, nanosecond}, {overflow})
+    return Temporal.PlainTime.from(
+      {hour, minute, second, millisecond, microsecond, nanosecond},
+      REJECT_OVERFLOW)
   }
 }
 
 
 function parseTemporalString(input: string): TemporalType {
-  const options: Temporal.OverflowOptions = {overflow: "reject"}
   switch (inferTemporalKind(input)) {
     case TemporalTypes.TIME:
-      return Temporal.PlainTime.from(input, options)
+      return Temporal.PlainTime.from(input, REJECT_OVERFLOW)
     case TemporalTypes.TIME_TZ:
       // Instant wants a date portion
       const instant = Temporal.Instant.from(`1970-01-01T${input}`)
       // apply effect of timezone to time
-      return ZonedTime.from(instant.toZonedDateTimeISO("UTC"), options)
+      return ZonedTime.from(instant.toZonedDateTimeISO("UTC"), REJECT_OVERFLOW)
     case TemporalTypes.DATE:
-      return Temporal.PlainDate.from(input, options)
+      return Temporal.PlainDate.from(input, REJECT_OVERFLOW)
     case TemporalTypes.TIMESTAMP:
-      return Temporal.PlainDateTime.from(input, options)
+      return Temporal.PlainDateTime.from(input, REJECT_OVERFLOW)
     case TemporalTypes.TIMESTAMP_TZ:
       return Temporal.Instant.from(input)
     default:
@@ -306,7 +322,9 @@ function inferTemporalKind(input: string): TemporalTypes | undefined {
 }
 
 
+// Only has max 9 values
 const troCache: TimeRoundOptions[] = []
+const roundingMode = "halfExpand"
 
 export function timeRoundOptions(precision?: number): TimeRoundOptions | undefined {
   if (precision !== undefined) {
@@ -319,11 +337,11 @@ export function timeRoundOptions(precision?: number): TimeRoundOptions | undefin
   }
 }
 
+
 function _timeRoundOptions(precision: number): TimeRoundOptions {
   if (precision > 9) {
     throw new Error(`time/timestamp_tz() precision must be an integer between 0 and 9, found ${precision}.`)
   }
-  const roundingMode = "halfExpand"
   if (precision === 0) {
     return { smallestUnit: "second", roundingMode }
   }
@@ -349,6 +367,7 @@ function _timeRoundOptions(precision: number): TimeRoundOptions {
 }
 
 
+// Only has max 9 values
 const tsroCache: TimestampRoundOptions[] = []
 
 export function timestampRoundOptions(precision?: number): TimestampRoundOptions | undefined {
@@ -366,7 +385,6 @@ function _timestampRoundOptions(precision: number): TimestampRoundOptions {
   if (precision > 9) {
   throw new Error(`timestamp() precision must be an integer between 0 and 9, found ${precision}.`)
   }
-  const roundingMode = "halfExpand"
   if (precision === 0) {
     return { smallestUnit: "day", roundingMode }
   }
