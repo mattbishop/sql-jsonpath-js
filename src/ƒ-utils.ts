@@ -125,6 +125,11 @@ export function isFunction(input: unknown): input is Function {
 }
 
 /** @internal */
+export function isNotArray(input: unknown): boolean {
+  return !Array.isArray(input)
+}
+
+/** @internal */
 export function toPred(condition: boolean): Pred {
   return condition
     ? Pred.TRUE

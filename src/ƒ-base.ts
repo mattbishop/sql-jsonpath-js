@@ -5,6 +5,7 @@ import {
   isBigInt,
   isBoolean,
   isFunction,
+  isNotArray,
   isNumber,
   isObject,
   isString,
@@ -76,8 +77,11 @@ export class ƒBase {
       return input
     }
     if (isSeq(input)) {
-      return input.map((v) => Array.isArray(v) ? v : [v])
-        .toArray()
+      const array = []
+      for (const element of input) {
+        array.push(Array.isArray(element) ? element : [element])
+      }
+      return array
     }
     return [input]
   }
@@ -90,7 +94,7 @@ export class ƒBase {
     if (input === NO_VALUE) {
       return NO_VALUE as T
     }
-    this._checkStrict(input, strict || {strict: (input) => !Array.isArray(input), error: "Cannot unwrap non-array input."})
+    this._checkStrict(input, strict ?? {strict: isNotArray, error: "Cannot unwrap non-array input."})
     return isIterable(input)
       ? Iterator.from(ƒBase._mapWith(input, mapƒ))
       : mapƒ(input)
@@ -113,7 +117,7 @@ export class ƒBase {
     if (input === NO_VALUE) {
       return NO_VALUE as T
     }
-    this._checkStrict(input, {strict: (input) => !Array.isArray(input), error: "Cannot unwrap non-array input."})
+    this._checkStrict(input, {strict: isNotArray, error: "Cannot unwrap non-array input."})
     return isIterable(input)
       ? Iterator.from(ƒBase._mapWithArgs(input, mapƒ, args))
       : mapƒ(input, ...args)
@@ -669,11 +673,17 @@ export class ƒBase {
 
     // Strict mode preserves the current input shape. The predicate decides
     // whether the whole input survives.
-    const matched = isIterableInput(input)
-      ? Iterator.from(input)
-          .map(matches)
-          .some(Boolean)
-      : matches(input)
+    let matched
+    if (isIterableInput(input)) {
+      for (const element of input) {
+        if (matches(element)) {
+          matched = true
+          break
+        }
+      }
+    } else {
+      matched = matches(input)
+    }
 
     return matched
       ? input
@@ -811,10 +821,12 @@ export class ƒBase {
         && (typeLeft === "date" || typeLeft.startsWith("time"))) {
       return true
     }
-    const leftIsComparable = typeLeft === TemporalTypes.DATE
+    const leftIsComparable =
+         typeLeft === TemporalTypes.DATE
       || typeLeft === TemporalTypes.TIMESTAMP
 
-    const rightIsComparable = typeRight === TemporalTypes.DATE
+    const rightIsComparable =
+         typeRight === TemporalTypes.DATE
       || typeRight === TemporalTypes.TIMESTAMP
 
     return leftIsComparable && rightIsComparable
