@@ -326,6 +326,7 @@ function inferTemporalKind(input: string): TemporalTypes | undefined {
 const troCache: TimeRoundOptions[] = []
 const roundingMode = "halfExpand"
 
+/** @internal */
 export function timeRoundOptions(precision?: number): TimeRoundOptions | undefined {
   if (precision !== undefined) {
     let tro = troCache[precision]
@@ -370,6 +371,7 @@ function _timeRoundOptions(precision: number): TimeRoundOptions {
 // Only has max 9 values
 const tsroCache: TimestampRoundOptions[] = []
 
+/** @internal */
 export function timestampRoundOptions(precision?: number): TimestampRoundOptions | undefined {
   if (precision !== undefined) {
     let tsro = tsroCache[precision]
