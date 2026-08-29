@@ -310,6 +310,12 @@ describe("Statement tests", () => {
 
   describe("filter", () => {
     describe("lax compare", () => {
+      it("filters array values returned from member navigation", async () => {
+        const src = '$.a ? (@ > 2)'
+        const data = {a: [1, 2, 3, 4]}
+        await testValuesCompareToPg(src, data)
+      })
+
       it("can filter comparison predicates", async () => {
         await testValuesCompareToPg('$ ? (@ == 1)', 1)
       })
