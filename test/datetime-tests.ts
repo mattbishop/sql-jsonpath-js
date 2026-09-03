@@ -317,6 +317,12 @@ describe("datetime tests", () => {
         expect(one(actualDate)).to.deep.equal(Temporal.Instant.from("1900-02-21 03:35:19+06"))
       })
 
+      it("datetime with lower-case template", () => {
+        const statement = compile('$.datetime("mm-dd/yyyy;hh.mi:sstzh")')
+        const actualDate = statement.query("02-21/1900;03.35:19+06")
+        expect(one(actualDate)).to.deep.equal(Temporal.Instant.from("1900-02-21 03:35:19+06"))
+      })
+
       it("datetime", () => {
         const statement = compile('$.datetime("MM-DD/YYYY;HH.MI:SS")')
         const actualDate = statement.query("02-21/1900;03.35:19")

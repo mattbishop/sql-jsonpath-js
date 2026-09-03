@@ -155,7 +155,7 @@ function createFormattedParser(template: string): StringToTemporal {
   let hasYear = false, hasMonthDay = false, hasTime = false
 
   let lastWasDelim = false
-  for (const match of template.matchAll(templateTokenizer)) {
+  for (const match of template.toUpperCase().matchAll(templateTokenizer)) {
     const [_, field, delim] = match
 
     if (field) {
