@@ -24,26 +24,29 @@ export function sqlType(input: unknown): string {
   if (input === null || input === undefined) {
     return "null"
   }
-  if (Array.isArray(input)) {
-    return "array"
+  const type = typeof input
+  if (type === "object") {
+    if (Array.isArray(input)) {
+      return "array"
+    }
+    // input instanceof Date would fit here, if we used it
+    if (input instanceof Temporal.Instant) {
+      return "timestamp with time zone"
+    }
+    if (input instanceof Temporal.PlainDateTime) {
+      return "timestamp without time zone"
+    }
+    if (input instanceof ZonedTime) {
+      return "time with time zone"
+    }
+    if (input instanceof Temporal.PlainTime) {
+      return "time without time zone"
+    }
+    if (input instanceof Temporal.PlainDate) {
+      return "date"
+    }
   }
-  // input instanceof Date would fit here, if we used it
-  if (input instanceof Temporal.Instant) {
-    return "timestamp with time zone"
-  }
-  if (input instanceof Temporal.PlainDateTime) {
-    return "timestamp without time zone"
-  }
-  if (input instanceof ZonedTime) {
-    return "time with time zone"
-  }
-  if (input instanceof Temporal.PlainTime) {
-    return "time without time zone"
-  }
-  if (input instanceof Temporal.PlainDate) {
-    return "date"
-  }
-  return typeof input
+  return type
 }
 
 // SQL does not support IEEE 754 signed zero

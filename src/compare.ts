@@ -9,46 +9,47 @@ export function compareValues(lax: boolean, compOp: CompOp, left: unknown, right
 
   // skip looping
   if (!leftIterable && !rightIterable) {
-    return comparePair(compOp, left, right)
+    return comparePair(compOp, left, sqlType(left), right, sqlType(right))
   }
 
+
+  let typeLeft = sqlType(left)
+  let typeRight = sqlType(right)
+
   if (!lax) {
-    if (Array.isArray(left)) {
+    if (typeLeft === "array") {
       throw new Error("In 'strict' mode! left side of comparison cannot be an array.")
     }
-    if (Array.isArray(right)) {
+    if (typeRight === "array") {
       throw new Error("In 'strict' mode! right side of comparison cannot be an array.")
     }
   }
 
   if (leftIterable && !rightIterable) {
-    return compareLeftIterRight(lax, compOp, left as Iterable<unknown>, right)
+    return compareLeftIterRight(lax, compOp, left as Iterable<unknown>, right, typeRight)
   }
   if (!leftIterable && rightIterable) {
-    return compareLeftRightIter(lax, compOp, left, right as Iterable<unknown>)
+    return compareLeftRightIter(lax, compOp, left, typeLeft, right as Iterable<unknown>)
   }
 
   return compareLeftIterRightIter(lax, compOp, left as Iterable<unknown>, right as Iterable<unknown>)
 }
 
 
-function comparePair(compOp: CompOp, left: any, right: any): Pred {
+function comparePair(compOp: CompOp, left: any, typeLeft: string, right: any, typeRight: string): Pred {
   // these are not comparable, even if both are NO_VALUE
   if (left === NO_VALUE || right === NO_VALUE) {
     return Pred.FALSE
   }
 
-  const primComp = comparePrimitive(compOp, left, right)
-  if (primComp) {
-    return primComp
-  }
-
-  let typeLeft = sqlType(left)
-  let typeRight = sqlType(right)
-
   const nullComp = compareMaybeNull(compOp, typeLeft, typeRight)
   if (nullComp) {
     return nullComp
+  }
+
+  const primComp = comparePrimitive(compOp, left, typeLeft, right, typeRight)
+  if (primComp) {
+    return primComp
   }
 
   if (areTemporalComparable(typeLeft, typeRight)) {
@@ -77,10 +78,11 @@ function comparePair(compOp: CompOp, left: any, right: any): Pred {
   return Pred.UNKNOWN
 }
 
-function comparePrimitive(compOp: CompOp, left: unknown, right: unknown): Pred | undefined {
-  let typeLeft = typeof left
-  let typeRight = typeof right
-
+function comparePrimitive(compOp:     CompOp,
+                          left:       unknown,
+                          typeLeft:   string,
+                          right:      unknown,
+                          typeRight:  string): Pred | undefined {
   if (   (typeLeft === "number" && !Number.isFinite(left))
       || (typeRight === "number" && !Number.isFinite(right))) {
     return Pred.UNKNOWN
@@ -187,14 +189,19 @@ function toTemporalComparable(temporal: Temporal.PlainDate | Temporal.PlainDateT
   that approach to be slower than separate loop functions.
  */
 
-function compareLeftIterRightIter(lax: boolean, compOp: CompOp, left: Iterable<unknown>, right: Iterable<unknown>) {
+function compareLeftIterRightIter(lax: boolean,
+                                  compOp: CompOp,
+                                  left: Iterable<unknown>,
+                                  right: Iterable<unknown>) {
   const leftValues = toSeq(left).filter(noValueFilter)
   const rightValues = new ReplayableIterable(toSeq(right).filter(noValueFilter))
 
   let hasUnknown = false
   for (const l of leftValues) {
+    const typeLeft = sqlType(left)
     for (const r of rightValues) {
-      const result = comparePair(compOp, l, r)
+      const typeRight = sqlType(right)
+      const result = comparePair(compOp, l, typeLeft, r, typeRight)
       if (result === Pred.TRUE) {
         return Pred.TRUE
       }
@@ -211,12 +218,17 @@ function compareLeftIterRightIter(lax: boolean, compOp: CompOp, left: Iterable<u
     : Pred.FALSE
 }
 
-function compareLeftIterRight(lax: boolean, compOp: CompOp, leftIn: Iterable<unknown>, right: unknown) {
+function compareLeftIterRight(lax:        boolean,
+                              compOp:     CompOp,
+                              leftIn:     Iterable<unknown>,
+                              right:      unknown,
+                              rightType:  string) {
   const leftValues = toSeq(leftIn).filter(noValueFilter)
 
   let hasUnknown = false
   for (const left of leftValues) {
-    const result = comparePair(compOp, left, right)
+    const leftType = sqlType(left)
+    const result = comparePair(compOp, left, leftType, right, rightType)
     if (result === Pred.TRUE) {
       return Pred.TRUE
     }
@@ -232,12 +244,17 @@ function compareLeftIterRight(lax: boolean, compOp: CompOp, leftIn: Iterable<unk
     : Pred.FALSE
 }
 
-function compareLeftRightIter(lax: boolean, compOp: CompOp, left: unknown, right: Iterable<unknown>) {
+function compareLeftRightIter(lax:      boolean,
+                              compOp:   CompOp,
+                              left:     unknown,
+                              typeLeft: string,
+                              right:    Iterable<unknown>) {
   const rightValues = toSeq(right).filter(noValueFilter)
 
   let hasUnknown = false
   for (const right of rightValues) {
-    const result = comparePair(compOp, left, right)
+    const typeRight = sqlType(right)
+    const result = comparePair(compOp, left, typeLeft, right, typeRight)
     if (result === Pred.TRUE) {
       return Pred.TRUE
     }
