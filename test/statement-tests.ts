@@ -487,11 +487,53 @@ describe("Statement tests", () => {
       it("rejects chained comparison operators like Postgres", async () => {
         const src = '$ ? (@ < 2 < 3)'
         const data = 1
-
         expect(() => compile(src)).to.throw
-
         const pgActual = await pgValues(src, data)
         expect(pgActual).to.be.instanceOf(Error)
+      })
+
+      it("compares scalar values", async () => {
+        const src = '$ ? (@ > 2)'
+        const data = [1, 2, 3, 4]
+        await testValuesCompareToPg(src, data)
+      })
+
+      it("compares left sequence values to a scalar right value", async () => {
+        const src = '$ ? (@[*] == 2)'
+        const data = [[1], [1, 2], [3, 4], [2, 5]]
+        await testValuesCompareToPg(src, data)
+      })
+
+      it("compares scalar left values to right sequence values", async () => {
+        const src = '$ ? (@ == $targets[*])'
+        const data = [1, 2, 3, 4]
+        const vars = {targets: [2, 4, 6]}
+        await testValuesCompareToPg(src, data, vars)
+      })
+
+      it("compares sequence values on both sides", async () => {
+        const src = '$ ? (@[*] == $targets[*])'
+        const data = [[1, 3], [2, 9], [5, 7], [8, 4]]
+        const vars = {targets: [2, 4, 6]}
+        await testValuesCompareToPg(src, data, vars)
+      })
+
+      it("preserves unknown when sequence comparisons have no true result", async () => {
+        const src = '$ ? ((@[*] == true) is unknown)'
+        const data = [[1, "yes"], [false, "no"], [null, "maybe"]]
+        await testValuesCompareToPg(src, data)
+      })
+
+      it("strict mode does not auto-unwrap arrays for direct comparison", async () => {
+        const src = 'strict $ ? (@ == 2)'
+        const data = [1, 2, 3]
+        await testValuesCompareToPg(src, data)
+      })
+
+      it("strict mode compares explicitly unwrapped arrays", async () => {
+        const src = 'strict $ ? (@[*] == 2)'
+        const data = [1, 2, 3]
+        await testValuesCompareToPg(src, data)
       })
     })
 
@@ -1850,6 +1892,11 @@ describe("Statement tests", () => {
       expect(one(actualNumber)).to.equal(16)
     })
 
+    it("returns null for missing members", async () => {
+      const src = '$.b + 2'
+      const data = {a: 12}
+      await testExistsCompareToPg(src, data)
+    })
   })
 
   describe("README samples", () => {

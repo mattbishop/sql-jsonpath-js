@@ -1,6 +1,6 @@
 import {CLDR, timeRoundOptions, timestampRoundOptions} from "./datetime.ts"
 import {type KeyValue} from "./json-path.ts"
-import {autoFlatMap, autoMap, flatten, isIterable, isIterableInput, isSeq, next, noValueFilter, ReplayableIterable, toSeq} from "./iterators.ts"
+import {autoFlatMap, autoMap, flatten, isIterable, isIterableInput, isSeq, next} from "./iterators.ts"
 import {
   isBigInt,
   isBoolean,
@@ -29,10 +29,10 @@ import {
   type SingleOrSeq,
   type TemporalParser,
   type TemporalType,
-  TemporalTypes,
   type TimeRoundOptions,
   type TimestampRoundOptions
 } from "./types.ts"
+import {compareValues} from "./compare.ts"
 
 
 type StrictConfig = {
@@ -694,237 +694,8 @@ export class ƒBase {
   }
 
 
-  private static _compare(compOp: CompOp, left: any, right: any): Pred {
-    // these are not comparable, even if both are NO_VALUE
-    if (left === NO_VALUE || right === NO_VALUE) {
-      return Pred.FALSE
-    }
-
-    const primComp = ƒBase._comparePrimitive(compOp, left, right)
-    if (primComp) {
-      return primComp
-    }
-
-    let typeLeft = sqlType(left)
-    let typeRight = sqlType(right)
-
-    const nullComp = ƒBase._compareMaybeNull(compOp, typeLeft, typeRight)
-    if (nullComp) {
-      return nullComp
-    }
-
-    if (this._areTemporalComparable(typeLeft, typeRight)) {
-      left = ƒBase._toTemporalComparable(left)
-      right = ƒBase._toTemporalComparable(right)
-      typeLeft = typeRight = "temporal"
-    }
-
-    // check that left and right can be compared
-    if (typeLeft === typeRight) {
-      switch (compOp) {
-        case CompOp.EQ :
-          return toPred(left === right)
-        case CompOp.NEQ :
-          return toPred(left !== right)
-        case CompOp.GT :
-          return toPred(left > right)
-        case CompOp.GTE :
-          return toPred(left >= right)
-        case CompOp.LT :
-          return toPred(left < right)
-        case CompOp.LTE :
-          return toPred(left <= right)
-      }
-    }
-    return Pred.UNKNOWN
-  }
-
-  private static _comparePrimitive(compOp: CompOp, left: unknown, right: unknown): Pred | undefined {
-    let typeLeft = typeof left
-    let typeRight = typeof right
-
-    if (   (typeLeft === "number" && !Number.isFinite(left))
-        || (typeRight === "number" && !Number.isFinite(right))) {
-      return Pred.UNKNOWN
-    }
-
-    if (typeLeft === "bigint") {
-      typeLeft = "number"
-    }
-    if (typeRight === "bigint") {
-      typeRight = "number"
-    }
-
-    if (typeLeft === typeRight) {
-      switch (typeLeft) {
-        case "number":
-        case "string":
-        case "boolean":
-          break
-        default:
-          return undefined
-      }
-
-      switch (compOp) {
-        case CompOp.EQ :
-          // ==, not === so number and bigint can be compared
-          return toPred(left == right)
-        case CompOp.NEQ :
-          return toPred(left != right)
-        case CompOp.GT :
-          //@ts-ignore
-          return toPred(left > right)
-        case CompOp.GTE :
-          //@ts-ignore
-          return toPred(left >= right)
-        case CompOp.LT :
-          //@ts-ignore
-          return toPred(left < right)
-        case CompOp.LTE :
-          //@ts-ignore
-          return toPred(left <= right)
-      }
-    }
-  }
-
-  /*
-    null / not_null comparison rules
-    null == not_null  -> FALSE
-    null != not_null  -> TRUE
-    null <> not_null  -> TRUE
-   */
-  private static _compareMaybeNull(compOp: CompOp, typeLeft: string, typeRight: string): Pred | undefined {
-    if (typeLeft === "null" || typeRight === "null") {
-      switch (compOp) {
-        case CompOp.EQ :
-          return toPred(typeLeft === typeRight)
-        case CompOp.NEQ :
-          return toPred(typeLeft !== typeRight)
-        default:
-          return Pred.UNKNOWN
-      }
-    }
-  }
-
-
-  /*
-      COMPARABLE:
-      * date and timestamp
-      * date and datetime
-      * datetime and timestamp
-
-      NOT COMPARABLE:
-      * date and timestamp_tz
-      * date and time
-      * date and time_tz
-      * time and time_tz
-  */
-  private static _areTemporalComparable(typeLeft: string, typeRight: string): boolean {
-    if (typeLeft === typeRight
-        && (typeLeft === "date" || typeLeft.startsWith("time"))) {
-      return true
-    }
-    const leftIsComparable =
-         typeLeft === TemporalTypes.DATE
-      || typeLeft === TemporalTypes.TIMESTAMP
-
-    const rightIsComparable =
-         typeRight === TemporalTypes.DATE
-      || typeRight === TemporalTypes.TIMESTAMP
-
-    return leftIsComparable && rightIsComparable
-  }
-
-  private static _toTemporalComparable(temporal: Temporal.PlainDate | Temporal.PlainDateTime): string {
-    if (temporal instanceof Temporal.PlainDate) {
-      temporal = Temporal.PlainDateTime.from(temporal)
-    }
-    return temporal.toString()
-  }
-
-
-  private static _compareLeftIterRightIter(compOp: CompOp, left: Iterable<unknown>, right: Iterable<unknown>) {
-    const leftValues = toSeq(left).filter(noValueFilter)
-    const rightValues = new ReplayableIterable(toSeq(right).filter(noValueFilter))
-
-    let hasUnknown = false
-    for (const l of leftValues) {
-      for (const r of rightValues) {
-        const result = ƒBase._compare(compOp, l, r)
-        if (result === Pred.TRUE) {
-          return Pred.TRUE
-        }
-        if (result === Pred.UNKNOWN) {
-          hasUnknown = true
-        }
-      }
-    }
-    return hasUnknown
-      ? Pred.UNKNOWN
-      : Pred.FALSE
-  }
-
-  private static _compareLeftIterRight(compOp: CompOp, leftIn: Iterable<unknown>, right: unknown) {
-    const leftValues = toSeq(leftIn).filter(noValueFilter)
-
-    let hasUnknown = false
-    for (const left of leftValues) {
-      const result = ƒBase._compare(compOp, left, right)
-      if (result === Pred.TRUE) {
-        return Pred.TRUE
-      }
-      if (result === Pred.UNKNOWN) {
-        hasUnknown = true
-      }
-    }
-    return hasUnknown
-      ? Pred.UNKNOWN
-      : Pred.FALSE
-  }
-
-  private static _compareLeftRightIter(compOp: CompOp, left: unknown, right: Iterable<unknown>) {
-    const rightValues = toSeq(right).filter(noValueFilter)
-
-    let hasUnknown = false
-    for (const right of rightValues) {
-      const result = ƒBase._compare(compOp, left, right)
-      if (result === Pred.TRUE) {
-        return Pred.TRUE
-      }
-      if (result === Pred.UNKNOWN) {
-        hasUnknown = true
-      }
-    }
-    return hasUnknown
-      ? Pred.UNKNOWN
-      : Pred.FALSE
-  }
-
-
   compare(compOp: CompOp, left: unknown, right: unknown): Pred {
-    if (!this.lax) {
-      if (Array.isArray(left)) {
-        throw new Error("In 'strict' mode! left side of comparison cannot be an array.")
-      }
-      if (Array.isArray(right)) {
-        throw new Error("In 'strict' mode! right side of comparison cannot be an array.")
-      }
-    }
-
-    const leftIterable = isIterable(left)
-    const rightIterable = isIterable(right)
-    // skip looping
-    if (!leftIterable && !rightIterable) {
-      return ƒBase._compare(compOp, left, right)
-    }
-
-    if (leftIterable && !rightIterable) {
-      return ƒBase._compareLeftIterRight(compOp, left, right)
-    } else if (!leftIterable && rightIterable) {
-      return ƒBase._compareLeftRightIter(compOp, left, right)
-    }
-
-    return ƒBase._compareLeftIterRightIter(compOp, left as Iterable<unknown>, right as Iterable<unknown>)
+    return compareValues(this.lax, compOp, left, right)
   }
 
 
