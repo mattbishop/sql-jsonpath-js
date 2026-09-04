@@ -1716,6 +1716,11 @@ describe("Statement tests", () => {
       expect(() => one(statement.query(["tea", "Cookies"]))).to.throw
     })
 
+    it("rejects subscript larger than integer max array access", () => {
+      const statement = compile('$[10000000000000000]')
+      expect(one(statement.query([1]))).to.be.undefined
+    })
+
     it("rejects partially out-of-bounds subscript lists in strict mode", async () => {
       const src = 'strict $[0,100,last]'
       const data = ["a", "b", "c"]
