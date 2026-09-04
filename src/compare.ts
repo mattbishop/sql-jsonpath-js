@@ -4,6 +4,14 @@ import {CompOp, NO_VALUE, Pred, TemporalTypes} from "./types.ts"
 
 
 export function compareValues(lax: boolean, compOp: CompOp, left: unknown, right: unknown): Pred {
+  const leftIterable = isIterable(left)
+  const rightIterable = isIterable(right)
+
+  // skip looping
+  if (!leftIterable && !rightIterable) {
+    return comparePair(compOp, left, right)
+  }
+
   if (!lax) {
     if (Array.isArray(left)) {
       throw new Error("In 'strict' mode! left side of comparison cannot be an array.")
@@ -11,13 +19,6 @@ export function compareValues(lax: boolean, compOp: CompOp, left: unknown, right
     if (Array.isArray(right)) {
       throw new Error("In 'strict' mode! right side of comparison cannot be an array.")
     }
-  }
-
-  const leftIterable = isIterable(left)
-  const rightIterable = isIterable(right)
-  // skip looping
-  if (!leftIterable && !rightIterable) {
-    return comparePair(compOp, left, right)
   }
 
   if (leftIterable && !rightIterable) {
@@ -157,16 +158,16 @@ function compareMaybeNull(compOp: CompOp, typeLeft: string, typeRight: string): 
     * time and time_tz
 */
 function areTemporalComparable(typeLeft: string, typeRight: string): boolean {
-  if (typeLeft === typeRight
-    && (typeLeft === "date" || typeLeft.startsWith("time"))) {
+  if (   typeLeft === typeRight
+      && (typeLeft === "date" || typeLeft.startsWith("time"))) {
     return true
   }
   const leftIsComparable =
-    typeLeft === TemporalTypes.DATE
+       typeLeft === TemporalTypes.DATE
     || typeLeft === TemporalTypes.TIMESTAMP
 
   const rightIsComparable =
-    typeRight === TemporalTypes.DATE
+       typeRight === TemporalTypes.DATE
     || typeRight === TemporalTypes.TIMESTAMP
 
   return leftIsComparable && rightIsComparable
@@ -178,6 +179,13 @@ function toTemporalComparable(temporal: Temporal.PlainDate | Temporal.PlainDateT
   }
   return temporal.toString()
 }
+
+
+/*
+  These next three functions look very similar, and while they could be boiled into a single
+  function by wrapping the scalar value in a Singleton Iterator, performance benchmarking found
+  that approach to be slower than separate loop functions.
+ */
 
 function compareLeftIterRightIter(lax: boolean, compOp: CompOp, left: Iterable<unknown>, right: Iterable<unknown>) {
   const leftValues = toSeq(left).filter(noValueFilter)

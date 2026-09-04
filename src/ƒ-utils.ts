@@ -21,11 +21,11 @@ import {next} from "./iterators.ts"
  */
 /** @internal */
 export function sqlType(input: unknown): string {
-  if (Array.isArray(input)) {
-    return "array"
-  }
   if (input === null || input === undefined) {
     return "null"
+  }
+  if (Array.isArray(input)) {
+    return "array"
   }
   // input instanceof Date would fit here, if we used it
   if (input instanceof Temporal.Instant) {
