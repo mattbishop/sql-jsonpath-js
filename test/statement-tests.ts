@@ -518,6 +518,12 @@ describe("Statement tests", () => {
         await testValuesCompareToPg(src, data, vars)
       })
 
+      it("lax mode sequence comparison matches when one side contains an incomparable string", async () => {
+        const src = 'lax $ ? (@.a[*] >= @.b[*])'
+        const data = {a: [1, 2, 3], b: [3, 4, "5"]}
+        await testCompareToPg(src, data)
+      })
+
       it("preserves unknown when sequence comparisons have no true result", async () => {
         const src = '$ ? ((@[*] == true) is unknown)'
         const data = [[1, "yes"], [false, "no"], [null, "maybe"]]
@@ -534,6 +540,13 @@ describe("Statement tests", () => {
         const src = 'strict $ ? (@[*] == 2)'
         const data = [1, 2, 3]
         await testValuesCompareToPg(src, data)
+      })
+
+      it("strict mode sequence comparison does not match when one side contains an incomparable string", async () => {
+        const src = 'strict $ ? (@.a[*] >= @.b[*])'
+        const data = {a: [1, 2, 3], b: [3, 4, "5"]}
+        await testValuesCompareToPg(src, data)
+        await testExistsCompareToPg(src, data)
       })
     })
 

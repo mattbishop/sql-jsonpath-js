@@ -189,19 +189,19 @@ function toTemporalComparable(temporal: Temporal.PlainDate | Temporal.PlainDateT
   that approach to be slower than separate loop functions.
  */
 
-function compareLeftIterRightIter(lax: boolean,
-                                  compOp: CompOp,
-                                  left: Iterable<unknown>,
-                                  right: Iterable<unknown>) {
-  const leftValues = toSeq(left).filter(noValueFilter)
-  const rightValues = new ReplayableIterable(toSeq(right).filter(noValueFilter))
+function compareLeftIterRightIter(lax:      boolean,
+                                  compOp:   CompOp,
+                                  leftIn:   Iterable<unknown>,
+                                  rightIn:  Iterable<unknown>) {
+  const leftValues = toSeq(leftIn).filter(noValueFilter)
+  const rightValues = new ReplayableIterable(toSeq(rightIn).filter(noValueFilter))
 
   let hasUnknown = false
-  for (const l of leftValues) {
+  for (const left of leftValues) {
     const typeLeft = sqlType(left)
-    for (const r of rightValues) {
+    for (const right of rightValues) {
       const typeRight = sqlType(right)
-      const result = comparePair(compOp, l, typeLeft, r, typeRight)
+      const result = comparePair(compOp, left, typeLeft, right, typeRight)
       if (result === Pred.TRUE) {
         return Pred.TRUE
       }
@@ -248,8 +248,8 @@ function compareLeftRightIter(lax:      boolean,
                               compOp:   CompOp,
                               left:     unknown,
                               typeLeft: string,
-                              right:    Iterable<unknown>) {
-  const rightValues = toSeq(right).filter(noValueFilter)
+                              rightIn:  Iterable<unknown>) {
+  const rightValues = toSeq(rightIn).filter(noValueFilter)
 
   let hasUnknown = false
   for (const right of rightValues) {
