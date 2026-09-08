@@ -77,6 +77,7 @@ export class ƒBase {
       return input
     }
     if (isSeq(input)) {
+      //faster than input.map()
       const array = []
       for (const element of input) {
         array.push(Array.isArray(element) ? element : [element])

@@ -107,15 +107,9 @@ export function createStatement(text: string): SqlJsonPathStatement {
 }
 
 function hasValue(input: unknown): boolean {
-  if (!isSeq(input)) {
-    return noValueFilter(input)
-  }
-  for (const value of input) {
-    if (noValueFilter(value)) {
-      return true
-    }
-  }
-  return false
+  return isSeq(input)
+    ? input.some(noValueFilter)
+    : noValueFilter(input)
 }
 
 

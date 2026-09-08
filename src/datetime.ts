@@ -21,6 +21,7 @@ const parserCache: Map<string, TemporalParser> = new Map()
  */
 export function buildTemporalParser(template?: string): TemporalParser {
   const key = template ?? CLDR
+  // don't use Map.getOrInsertComputed() because it can clear the map while creating new entry
   let temporalParser = parserCache.get(key)
   if (!temporalParser) {
     const parser = template
@@ -28,12 +29,12 @@ export function buildTemporalParser(template?: string): TemporalParser {
       : parseTemporalString
 
     temporalParser = {
-      toTemporal: (i) => parser(i),
-      toDate: (i) => _toDate(parser, i),
-      toTime: (i) => _toTime(parser, i),
-      toTimeTz: (i) => _toTimeTz(parser, i),
-      toTimestamp: (i) => _toTimestamp(parser, i),
-      toTimestampTz: (i) => _toTimestampTz(parser, i)
+      toTemporal:     (i) => parser(i),
+      toDate:         (i) => _toDate(parser, i),
+      toTime:         (i) => _toTime(parser, i),
+      toTimeTz:       (i) => _toTimeTz(parser, i),
+      toTimestamp:    (i) => _toTimestamp(parser, i),
+      toTimestampTz:  (i) => _toTimestampTz(parser, i)
     }
 
     // flush the cache if it caches a lot of templates.
