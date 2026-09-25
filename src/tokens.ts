@@ -12,13 +12,13 @@ import {
           strict | lax
  */
 /** @internal */
-export const Mode                   = createToken({name: "Mode", pattern: /strict|lax/})
+export const Mode             = createToken({name: "Mode", pattern: /strict|lax/})
 /*
   <JSON path context variable> ::=
           <dollar sign>
  */
 /** @internal */
-export const ContextVariable        = createToken({name: "ContextVariable", pattern: "$"})
+export const ContextVariable  = createToken({name: "ContextVariable", pattern: "$"})
 /*
   Named Variables match SQL standard for alias names.
 
@@ -26,23 +26,23 @@ export const ContextVariable        = createToken({name: "ContextVariable", patt
           <dollar sign> <JSON path identifier>
  */
 /** @internal */
-export const NamedVariable          = createToken({name: "NamedVariable", pattern: /\$(?:[a-zA-Z][\w#@$]{0,126})/})
+export const NamedVariable    = createToken({name: "NamedVariable", pattern: /\$(?:[a-zA-Z][\w#@$]{0,126})/})
 /*
   <JSON wildcard member accessor> ::=
           <period> <asterisk>
  */
 /** @internal */
-export const WildcardMember         = createToken({name: "WildcardMember", pattern: /\.\s*\*/})
+export const WildcardMember   = createToken({name: "WildcardMember", pattern: /\.\s*\*/})
 
 /** @internal */
-export const DatetimeMethod = createRegexToken({
+export const DatetimeMethod   = createRegexToken({
   name:             "DatetimeMethod",
   pattern:          /\.\s*datetime\s*\(\s*("([-.\/,';: \da-zA-Z]*)")?\s*\)/y,
   start_chars_hint: ["."]
 })
 
 /** @internal */
-export const TimeStampTzMethod = createRegexToken({
+export const TimeStampTzMethod  = createRegexToken({
   name:             "TimeStampTzMethod",
   pattern:          /\.\s*(timestamp_tz|timestamp|time_tz|time)\s*\(\s*(\d+)?\s*\)/y,
   start_chars_hint: ["."]
@@ -52,7 +52,7 @@ export const TimeStampTzMethod = createRegexToken({
   decimal <left paren> [ <precision> [ <comma> <scale> ] ] <right paren>
  */
 /** @internal */
-export const DecimalMethod = createRegexToken({
+export const DecimalMethod    = createRegexToken({
   name:             "DecimalMethod",
   pattern:          /\.\s*decimal\s*\(\s*(?:(\d+)\s*(?:,\s*(\d+)\s*)?)?\)/y,
   start_chars_hint: ["."]
@@ -85,7 +85,7 @@ export const DecimalMethod = createRegexToken({
           | timestamp_tz <left paren> [ <timestamp precision> ] <right paren>
  */
 /** @internal */
-export const ItemMethod = createRegexToken({
+export const ItemMethod       = createRegexToken({
   name:             "ItemMethod",
   pattern:          /\.\s*(type|size|double|ceiling|floor|abs|date|keyvalue|bigint|boolean|integer|number|string)\s*\(\s*\)/y,
   start_chars_hint: ["."]
@@ -97,7 +97,7 @@ export const ItemMethod = createRegexToken({
           | <period> <JSON path string literal>
  */
 /** @internal */
-export const Member = createRegexToken({
+export const Member           = createRegexToken({
   name:             "Member",
   // quoted string pattern identical to StringLiteral
   pattern:          /\.\s*(?:(\p{ID_Start}\p{ID_Continue}{0,126})|"((?:[^"\\\p{Cc}]+|(?:\\(?:["\\/bfnrt]|u[a-fA-F\d]{4}))){1,127})")/uy,
@@ -167,24 +167,24 @@ export const StringLiteral    = createRegexToken({
 })
 
 /** @internal */
-export const UnaryOperator          = createToken({name: "UnaryOp", pattern: /[+-]/})
+export const UnaryOperator    = createToken({name: "UnaryOp", pattern: /[+-]/})
 /** @internal */
-export const BinaryOperator         = createToken({name: "BinaryOp", pattern: /[*\/%]/})
+export const BinaryOperator   = createToken({name: "BinaryOp", pattern: /[*\/%]/})
 /** @internal */
-export const AndOperator            = createToken({name: "AndOp", pattern: "&&"})
+export const AndOperator      = createToken({name: "AndOp", pattern: "&&"})
 /** @internal */
-export const OrOperator             = createToken({name: "OrOp", pattern: "||"})
+export const OrOperator       = createToken({name: "OrOp", pattern: "||"})
 /** @internal */
-export const NotOperator            = createToken({name: "NotOp", pattern: "!"})
+export const NotOperator      = createToken({name: "NotOp", pattern: "!"})
 /** @internal */
-export const ComparisonOperator     = createToken({name: "CompOp", pattern: /==|!=|>=|<=|<>|<|>/})
+export const CompOperator     = createToken({name: "CompOp", pattern: /==|!=|>=|<=|<>|<|>/})
 /** @internal */
-export const LeftParen              = createToken({name: "LeftParen", pattern: "("})
+export const LeftParen        = createToken({name: "LeftParen", pattern: "("})
 /** @internal */
-export const RightParen             = createToken({name: "RightParen", pattern: ")"})
+export const RightParen       = createToken({name: "RightParen", pattern: ")"})
 
 /** @internal */
-export const WhiteSpace = createToken({
+export const WhiteSpace       = createToken({
   name: "WhiteSpace",
   pattern: /\s+/,
   group: Lexer.SKIPPED
@@ -217,7 +217,7 @@ export const allTokens = [
   WildcardArray,
   LeftBracket,
   RightBracket,
-  ComparisonOperator,
+  CompOperator,
   NotOperator,
   NamedVariable,
   ContextVariable,

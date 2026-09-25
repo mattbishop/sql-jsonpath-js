@@ -6,7 +6,7 @@ import {
   BinaryOperator,
   BooleanLiteral,
   Comma,
-  ComparisonOperator,
+  CompOperator,
   ContextVariable,
   DatetimeMethod,
   DecimalMethod,
@@ -267,7 +267,7 @@ export class JsonPathParser extends CstParser {
     this.SUBRULE(this.unaryExpression, { LABEL: "left" })
     this.MANY(() => {
       this.CONSUME(BinaryOperator)
-      this.SUBRULE(this.multiplicativeExpression, { LABEL: "right" })
+      this.SUBRULE2(this.unaryExpression, { LABEL: "right" })
     })
   })
 
@@ -382,7 +382,7 @@ export class JsonPathParser extends CstParser {
  */
   comparison = this.RULE("comparison", () => {
     // wff handled in nonDelPred
-    this.CONSUME(ComparisonOperator)
+    this.CONSUME(CompOperator)
     this.SUBRULE(this.wff)
   })
 

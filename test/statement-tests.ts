@@ -45,7 +45,7 @@ async function testExistsCompareToPg(statement: string, data: Input<any>, vars?:
       actual = e as Error
     }
     if (actual instanceof Error) {
-      expect(pgActual instanceof Error, `pgActual not an Error, but actual is: ${actual.message}`).to.be.true
+      expect(pgActual instanceof Error, `pgActual: ${JSON.stringify(pgActual)}, but actual is Error: ${actual.message}`).to.be.true
       console.info(`actual: ${actual.message}, pgActual: ${(pgActual as Error).message}`)
     } else {
       expect(actual).to.equal(pgActual)
@@ -1899,10 +1899,39 @@ describe("Statement tests", () => {
       expect(one(actualNumber)).to.equal(5)
     })
 
-    it("chain arithmetic statements again", () => {
-      const statement = compile('$[0] / 5 * $.size() + 9 - 1')
-      const actualNumber = statement.query([20, 3])
-      expect(one(actualNumber)).to.equal(16)
+    it("chain arithmetic statements again", async () => {
+      const src = '$[0] / 5 * $.size() + 9 - 1'
+      const data = [20, 3]
+
+      await testExistsCompareToPg(src, data)
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("omits arithmetic results when either operand is missing", async () => {
+      const data = {value: 10}
+
+      await testCompareToPg('$.missing + 2', data)
+      await testCompareToPg('2 + $.missing', data)
+      await testCompareToPg('($.missing + 2) * 10', data)
+    })
+
+    it("omits only missing arithmetic pairs for sequence operands", async () => {
+      await testValuesCompareToPg('$.items[*].value + 1', {
+        items: [
+          {value: 10},
+          {missing: true},
+          {value: 30}
+        ]
+      })
+
+      await testValuesCompareToPg('$.values[*].value + $.offset', {
+        offset: 10,
+        values: [
+          {value: 1},
+          {missing: true},
+          {value: 3}
+        ]
+      })
     })
 
     it("returns null for missing members", async () => {
@@ -1910,26 +1939,32 @@ describe("Statement tests", () => {
       const data = {a: 12}
       await testExistsCompareToPg(src, data)
     })
+
+    it("exists suppresses item errors from unary minus and matches later numeric values", async () => {
+      const src = '-$[*]'
+      const data = ["1", 2, 0, 3]
+      await testCompareToPg(src, data)
+    })
   })
 
   describe("README samples", () => {
     it("Usage section", () => {
       const statement = compile('$.name')
 
-// data is an iterable of object values.
+      // data is an iterable of object values.
       const data = [
         { name: "scripty" },
         { name: "readme" },
         { noName: true }
       ]
 
-// exists() looks for matches and returns true or false for each data element.
+      // exists() looks for matches and returns true or false for each data element.
       const existsIterator = data.values().map(statement.exists)
       expect(Array.from(existsIterator)).to.deep.equal([true, true, false])
 
-// values()
-      const valuesIterator = statement.query(data.values())
-      expect(Array.from(valuesIterator)).to.deep.equal(['scripty', 'readme'])
+    // query()
+      const queryIterator = statement.query(data.values())
+      expect(Array.from(queryIterator)).to.deep.equal(['scripty', 'readme'])
     })
 
     it("Iterators section", () => {

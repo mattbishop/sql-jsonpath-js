@@ -1,6 +1,6 @@
 import {CLDR, timeRoundOptions, timestampRoundOptions} from "./datetime.ts"
 import {type KeyValue} from "./json-path.ts"
-import {autoFlatMap, autoMap, flatten, isIterable, isIterableInput, isSeq, next} from "./iterators.ts"
+import {autoFlatMap, autoMap, flatten, isIterable, isIterableInput, isSeq, next, ReplayableIterable} from "./iterators.ts"
 import {
   isBigInt,
   isBoolean,
@@ -21,6 +21,7 @@ import {
   CompOp,
   type MapWithArgsƒ,
   type Mapƒ,
+  type Maybe,
   NO_VALUE,
   type NumBigInt,
   Pred,
@@ -51,6 +52,12 @@ const INTEGER_MAX = 2 ** 31 - 1
 
 /** @internal */
 export class ƒBase {
+
+  /**
+    Indicates if the current statement execution is a query() or exists() call.
+   */
+  inQuery = true
+
 
   constructor(private readonly lax:   boolean,
               private readonly scope: Map<string, unknown>) { }
@@ -91,57 +98,140 @@ export class ƒBase {
    * Unwraps array input into an iterator and applies the mapƒ to the iterator, or to the single value.
    * In strict mode, the non-array input will throw an error if the input is not an array and fails the strict test.
    */
-  private _unwrapWith<T>(input: unknown, mapƒ: Mapƒ<T>, strict?: StrictConfig): SingleOrSeq<T> {
+  private _unwrapWith<T>(input: unknown, mapƒ: Mapƒ<T>, filter: boolean, strict?: StrictConfig): SingleOrSeq<T> {
     if (input === NO_VALUE) {
       return NO_VALUE as T
     }
     this._checkStrict(input, strict ?? {strict: isNotArray, error: "Cannot unwrap non-array input."})
     return isIterable(input)
-      ? Iterator.from(ƒBase._mapWith(input, mapƒ))
+      ? Iterator.from(ƒBase._mapWith(input, mapƒ, filter))
       : mapƒ(input)
   }
 
-  private static *_mapWith<T>(iterable:  Iterable<unknown>,
-                              mapƒ:      Mapƒ<T>): Generator<T> {
+  private static *_mapWith<T>(iterable: Iterable<unknown>,
+                              mapƒ:     Mapƒ<T>,
+                              filter:  boolean): Generator<T> {
     for (const element of iterable) {
-      const mapped = mapƒ(element)
-      if (mapped !== NO_VALUE) {
-        yield mapped
+      if (element === NO_VALUE && filter) {
+        continue
       }
+      const mapped = mapƒ(element)
+      if (mapped === NO_VALUE && filter) {
+        continue
+      }
+      yield mapped
     }
   }
 
 
   private _unwrapWithArgs<T, A extends unknown[]>(input:    unknown,
                                                   mapƒ:     MapWithArgsƒ<T, A>,
+                                                  filter:   boolean,
                                                   ...args:  A): SingleOrSeq<T> {
     if (input === NO_VALUE) {
       return NO_VALUE as T
     }
     this._checkStrict(input, {strict: isNotArray, error: "Cannot unwrap non-array input."})
     return isIterable(input)
-      ? Iterator.from(ƒBase._mapWithArgs(input, mapƒ, args))
+      ? Iterator.from(ƒBase._mapWithArgs(input, mapƒ, filter, args))
       : mapƒ(input, ...args)
   }
 
   private static *_mapWithArgs<T, A extends unknown[]>(iterable:  Iterable<unknown>,
                                                        mapƒ:      MapWithArgsƒ<T, A>,
+                                                       filter:    boolean,
                                                        args:      A): Generator<T> {
     for (const element of iterable) {
-      const mapped = mapƒ(element, ...args)
-      if (mapped !== NO_VALUE) {
-        yield mapped
+      if (element === NO_VALUE && filter) {
+        continue
       }
+      const mapped = mapƒ(element, ...args)
+      if (mapped === NO_VALUE && filter) {
+        continue
+      }
+      yield mapped
     }
   }
 
 
+  private static _num(input: unknown): Maybe<number> {
+    return mustBeNumber(input, "arithmetic")
+  }
+
   // not a JSONPath function. Used to convert strings to numbers for math
-  num(input: unknown): number {
+  num(input: unknown): SingleOrSeq<Maybe<number>> {
     if (isFunction(input)) {
       input = input(this.scope.get(CURRENT_ARRAY))
     }
-    return mustBeNumber(input, "arithmetic")
+    return autoMap(input, ƒBase._num)
+  }
+
+
+  calc(op: string, leftIn: unknown, rightIn: unknown): SingleOrSeq<Maybe<number>> {
+    // is this the same as compare()?
+    const left = this.num(leftIn)
+    const right = this.num(rightIn)
+
+    const leftIterable = isSeq(left)
+    const rightIterable = isSeq(right)
+
+    if (!leftIterable && !rightIterable) {
+      return ƒBase._calcPair(op, left, right)
+    }
+    if (leftIterable && !rightIterable) {
+      return left.map((l) => ƒBase._calcPair(op, l, right))
+    }
+    if (!leftIterable && rightIterable) {
+      return right.map((r) => ƒBase._calcPair(op, left, r))
+    }
+    //both are iterable
+    const rightValues = new ReplayableIterable((right as Seq<number>))
+    return (left as Seq<number>)
+      .flatMap((l) => Iterator.from(rightValues)
+        .map((r) => ƒBase._calcPair(op, l, r)))
+  }
+
+  private static _calcPair(op: string, left: Maybe<number>, right: Maybe<number>): number {
+    if (left === NO_VALUE) {
+      throw new Error(`left operand of jsonpath operator ${op} is not a single numeric value`)
+    }
+    if (right === NO_VALUE) {
+      throw new Error(`right operand of jsonpath operator ${op} is not a single numeric value`)
+    }
+
+    switch (op) {
+      case "+":
+        return left + right
+      case "-":
+        return left - right
+      case "/":
+        return left / right
+      case "*":
+        return left * right
+      case "%":
+        return left % right
+      default:
+        throw new Error(`${op} is not a valid calc operation`)
+    }
+  }
+
+
+  private static _neg(input: unknown, suppress: boolean): Maybe<number> {
+    const num = mustBeNumber(input, "negation", suppress)
+    return num === NO_VALUE ? num : sqlNum(-num)
+  }
+
+  neg(input: unknown): SingleOrSeq<Maybe<number>> {
+    return this._unwrapWithArgs(input, ƒBase._neg, !this.inQuery, !this.inQuery)
+  }
+
+
+  private static _pos(input: unknown, suppress: boolean): Maybe<number> {
+    return mustBeNumber(input, "positive", suppress)
+  }
+
+  pos(input: unknown): SingleOrSeq<Maybe<number>> {
+    return this._unwrapWithArgs(input, ƒBase._pos, !this.inQuery, !this.inQuery)
   }
 
 
@@ -151,7 +241,7 @@ export class ƒBase {
   }
 
 
-  private static _size(value: unknown) {
+  private static _size(value: unknown): number {
     return Array.isArray(value)
       ? value.length
       : 1
@@ -169,7 +259,7 @@ export class ƒBase {
   }
 
   double(input: unknown): SingleOrSeq<number> {
-    return this._unwrapWith(input, ƒBase._double)
+    return this._unwrapWith(input, ƒBase._double, !this.inQuery)
   }
 
 
@@ -196,7 +286,7 @@ export class ƒBase {
   }
 
   bigint(input: unknown): SingleOrSeq<bigint> {
-    return this._unwrapWith(input, ƒBase._bigint)
+    return this._unwrapWith(input, ƒBase._bigint, !this.inQuery)
   }
 
 
@@ -228,7 +318,7 @@ export class ƒBase {
   }
 
   integer(input: unknown): SingleOrSeq<number> {
-    return this._unwrapWith(input, ƒBase._integer)
+    return this._unwrapWith(input, ƒBase._integer, !this.inQuery)
   }
 
 
@@ -237,7 +327,7 @@ export class ƒBase {
   }
 
   number(input: unknown): SingleOrSeq<number> {
-    return this._unwrapWith(input, ƒBase._number)
+    return this._unwrapWith(input, ƒBase._number, !this.inQuery)
   }
 
 
@@ -287,7 +377,7 @@ export class ƒBase {
   }
 
   decimal(input: unknown, precision?: number, scale?: number): SingleOrSeq<number> {
-    return this._unwrapWithArgs(input, ƒBase._decimal, precision, scale)
+    return this._unwrapWithArgs(input, ƒBase._decimal, true, precision, scale)
   }
 
 
@@ -310,7 +400,7 @@ export class ƒBase {
   }
 
   string(input: unknown): SingleOrSeq<string> {
-    return this._unwrapWith(input, ƒBase._string)
+    return this._unwrapWith(input, ƒBase._string, !this.inQuery)
   }
 
 
@@ -343,7 +433,7 @@ export class ƒBase {
   }
 
   boolean(input: unknown): SingleOrSeq<boolean> {
-    return this._unwrapWith(input, ƒBase._boolean)
+    return this._unwrapWith(input, ƒBase._boolean, true)
   }
 
   private static _ceiling(input: unknown): NumBigInt {
@@ -354,7 +444,7 @@ export class ƒBase {
   }
 
   ceiling(input: unknown): SingleOrSeq<NumBigInt> {
-    return this._unwrapWith(input, ƒBase._ceiling)
+    return this._unwrapWith(input, ƒBase._ceiling, !this.inQuery)
   }
 
 
@@ -366,7 +456,7 @@ export class ƒBase {
   }
 
   floor(input: unknown): SingleOrSeq<NumBigInt> {
-    return this._unwrapWith(input, ƒBase._floor)
+    return this._unwrapWith(input, ƒBase._floor, !this.inQuery)
   }
 
 
@@ -376,7 +466,7 @@ export class ƒBase {
   }
 
   abs(input: unknown): SingleOrSeq<NumBigInt> {
-    return this._unwrapWith(input, ƒBase._abs)
+    return this._unwrapWith(input, ƒBase._abs, !this.inQuery)
   }
 
 
@@ -389,7 +479,7 @@ export class ƒBase {
 
   date(input: unknown): SingleOrSeq<Temporal.PlainDate> {
     const parser = this.scope.get(CLDR) as TemporalParser
-    return this._unwrapWithArgs(input, ƒBase._date, parser)
+    return this._unwrapWithArgs(input, ƒBase._date, !this.inQuery, parser)
   }
 
 
@@ -411,7 +501,7 @@ export class ƒBase {
   time(input: unknown, precision?: number): SingleOrSeq<Temporal.PlainTime> {
     const parser = this.scope.get(CLDR) as TemporalParser
     const roundOpts = timeRoundOptions(precision)
-    return this._unwrapWithArgs(input, ƒBase._time, parser, roundOpts)
+    return this._unwrapWithArgs(input, ƒBase._time, !this.inQuery, parser, roundOpts)
   }
 
 
@@ -433,7 +523,7 @@ export class ƒBase {
   time_tz(input: unknown, precision?: number): SingleOrSeq<Temporal.PlainTime> {
     const parser = this.scope.get(CLDR) as TemporalParser
     const roundOpts = timeRoundOptions(precision)
-    return this._unwrapWithArgs(input, ƒBase._time_tz, parser, roundOpts)
+    return this._unwrapWithArgs(input, ƒBase._time_tz, !this.inQuery, parser, roundOpts)
   }
 
 
@@ -451,7 +541,7 @@ export class ƒBase {
   timestamp(input: unknown, precision?: number): SingleOrSeq<Temporal.PlainDateTime> {
     const parser = this.scope.get(CLDR) as TemporalParser
     const roundOpts = timestampRoundOptions(precision)
-    return this._unwrapWithArgs(input, ƒBase._timestamp, parser, roundOpts)
+    return this._unwrapWithArgs(input, ƒBase._timestamp, !this.inQuery, parser, roundOpts)
   }
 
 
@@ -469,7 +559,7 @@ export class ƒBase {
   timestamp_tz(input: unknown, precision?: number): SingleOrSeq<Temporal.Instant> {
     const parser = this.scope.get(CLDR) as TemporalParser
     const roundOpts = timeRoundOptions(precision)
-    return this._unwrapWithArgs(input, ƒBase._timestamp_tz, parser, roundOpts)
+    return this._unwrapWithArgs(input, ƒBase._timestamp_tz, !this.inQuery, parser, roundOpts)
   }
 
 
@@ -506,7 +596,7 @@ export class ƒBase {
 
   datetime(input: unknown, template: string): SingleOrSeq<TemporalType> {
     const parser = this.scope.get(template ?? CLDR) as TemporalParser
-    return this._unwrapWithArgs(input, ƒBase._datetime, parser)
+    return this._unwrapWithArgs(input, ƒBase._datetime, !this.inQuery, parser)
   }
 
 
@@ -527,7 +617,7 @@ export class ƒBase {
       }
       throw new Error(`keyvalue() input must be an object, found ${JSON.stringify(row)}.`)
     }
-    return this._unwrapWith(input, mapƒ, { strict: isObject, error: "keyvalue() can only be applied to an object." })
+    return this._unwrapWith(input, mapƒ, !this.inQuery, { strict: isObject, error: "keyvalue() can only be applied to an object." })
       .flatMap<KeyValue>(flatten)
   }
 
@@ -542,7 +632,7 @@ export class ƒBase {
   }
 
   private _dotStar(input: unknown): Seq<unknown> {
-    return this._unwrapWith(input, ƒBase._objectValues, { strict: isObject, error: ".* can only be applied to an object." })
+    return this._unwrapWith(input, ƒBase._objectValues, !this.inQuery, { strict: isObject, error: ".* can only be applied to an object." })
       .flatMap(flatten)
   }
 
@@ -575,7 +665,7 @@ export class ƒBase {
   }
 
   member(input: unknown, member: string): SingleOrSeq<unknown> {
-    return this._unwrapWithArgs(input, this._member, member, this.lax)
+    return this._unwrapWithArgs(input, this._member, !this.inQuery, member, this.lax)
   }
 
 
@@ -636,7 +726,9 @@ export class ƒBase {
     return (array) => {
       const start = isFunction(from) ? from(array) : from
       const end = isFunction(to) ? to(array) : to
-      return Iterator.from(ƒBase._range(mustBeNumber(start, "'from'"), mustBeNumber(end, "'to'")))
+      return Iterator.from(ƒBase._range(
+        mustBeNumber(start, "'from'") as number,
+        mustBeNumber(end, "'to'") as number))
     }
   }
 
@@ -766,7 +858,7 @@ export class ƒBase {
   }
 
   isUnknown(input: SingleOrSeq<Pred>): SingleOrSeq<Pred> {
-    return this._unwrapWith(input, ƒBase._isUnknown)
+    return this._unwrapWith(input, ƒBase._isUnknown, !this.inQuery)
   }
 
 
@@ -777,7 +869,7 @@ export class ƒBase {
   }
 
   startsWith(input: unknown, start: string): SingleOrSeq<Pred> {
-    return this._unwrapWithArgs(input, ƒBase._startsWith, start)
+    return this._unwrapWithArgs(input, ƒBase._startsWith, !this.inQuery, start)
   }
 
 
@@ -788,6 +880,6 @@ export class ƒBase {
   }
 
   match(input: unknown, pattern: RegExp): SingleOrSeq<Pred> {
-    return this._unwrapWithArgs(input, ƒBase._match, pattern)
+    return this._unwrapWithArgs(input, ƒBase._match, !this.inQuery, pattern)
   }
 }

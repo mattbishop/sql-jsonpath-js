@@ -480,42 +480,42 @@ describe("Codegen tests", () => {
   describe("arithmetic", () => {
     it("can negate a value", () => {
       const ctx = generateFunctionSource('-$.x')
-      expect(ctx.source).to.equal('return -ƒ.num(ƒ.member($,"x"))')
+      expect(ctx.source).to.equal('return ƒ.neg(ƒ.member($,"x"))')
     })
 
     it("can triple-negate a value", () => {
       const ctx = generateFunctionSource('---30')
-      expect(ctx.source).to.equal('return -ƒ.num(-(-30))')
+      expect(ctx.source).to.equal('return -(-(-30))')
     })
 
     it("can add to a number", () => {
       const ctx = generateFunctionSource('$ + 4')
-      expect(ctx.source).to.equal('return ƒ.num($)+4')
+      expect(ctx.source).to.equal('return ƒ.calc("+",$,4)')
     })
 
     it("can multiply a number", () => {
       const ctx = generateFunctionSource('$ * 10')
-      expect(ctx.source).to.equal('return ƒ.num($)*10')
+      expect(ctx.source).to.equal('return ƒ.calc("*",$,10)')
     })
 
     it("can modulo an array of numbers", () => {
       const ctx = generateFunctionSource('$ ? (@ % 2 == 0)')
-      expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare(0,ƒ.num(v)%2,0))')
+      expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.compare(0,ƒ.calc("%",v,2),0))')
     })
 
     it("can divide by a function", () => {
       const ctx = generateFunctionSource('$[0] / $.size()')
-      expect(ctx.source).to.equal('return ƒ.num(ƒ.array($)([0]))/ƒ.num(ƒ.size($))')
+      expect(ctx.source).to.equal('return ƒ.calc("/",ƒ.array($)([0]),ƒ.size($))')
     })
 
     it("chain arithmetic statements", () => {
       const ctx = generateFunctionSource('$[0] / ($.size() + 2)')
-      expect(ctx.source).to.equal('return ƒ.num(ƒ.array($)([0]))/ƒ.num((ƒ.num(ƒ.size($))+2))')
+      expect(ctx.source).to.equal('return ƒ.calc("/",ƒ.array($)([0]),(ƒ.calc("+",ƒ.size($),2)))')
     })
 
     it("chain arithmetic statements again", () => {
       const ctx = generateFunctionSource('$[0] / 5 * $.size() + 9 - 1')
-      expect(ctx.source).to.equal('return ƒ.num(ƒ.num(ƒ.array($)([0]))/5*ƒ.num(ƒ.size($)))+9-1')
+      expect(ctx.source).to.equal('return ƒ.calc("-",ƒ.calc("+",ƒ.calc("*",ƒ.calc("/",ƒ.array($)([0]),5),ƒ.size($)),9),1)')
     })
   })
 

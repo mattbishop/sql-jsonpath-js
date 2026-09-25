@@ -47,7 +47,7 @@ export function generateFunctionSource(text: string): CodegenContext {
 
 
 /** @internal */
-export type SJPFn<T> = ($: unknown, $named?: NamedVariables) => T | IteratorObject<T>
+export type SJPFn<T> = ($: unknown, isQuery: boolean, $named?: NamedVariables) => T | IteratorObject<T>
 
 const EMPTY$$ = (name: string) => { throw new Error(`no variable named '$${name}'`) }
 
@@ -55,7 +55,7 @@ function createFunction<T>({source, lax, scope}: CodegenContext): SJPFn<T> {
   const fn = new Function("ƒ", "$", "$$", source)
   const ƒ = new ƒBase(lax, scope)
 
-  return ($, $named?) => {
+  return ($, isQuery, $named?) => {
     const $$ = !$named
       ? EMPTY$$
       : (name: string): unknown => {
@@ -66,6 +66,7 @@ function createFunction<T>({source, lax, scope}: CodegenContext): SJPFn<T> {
         throw new Error(`no variable named '$${name}'`)
       }
 
+    ƒ.inQuery = isQuery
     return fn(ƒ, $, $$)
   }
 }
@@ -85,7 +86,7 @@ export function createStatement(text: string): SqlJsonPathStatement {
       const {vars} = config
       // iterate through the inputs one at a time and test them against fn()
       // filter() will omit the exists == false elements, and the caller needs to know this
-      const existsƒ = (i: unknown) => hasValue(fn(i, vars))
+      const existsƒ = (i: unknown) => hasValue(fn(i, false, vars))
       if (isIterableInput(input)) {
         return Iterator.from(input)
           .map(existsƒ)
@@ -96,7 +97,7 @@ export function createStatement(text: string): SqlJsonPathStatement {
 
     query<T>(input: Input, config: QueryConfig<T> = {}): IteratorObject<T> {
       const {vars} = config
-      const queryƒ = (i: unknown) => fn(i, vars) as IteratorObject<T>
+      const queryƒ = (i: unknown) => fn(i, true, vars) as IteratorObject<T>
       const iterator = toInputIterator(input)
         .map(queryƒ)
         .flatMap(flatten)

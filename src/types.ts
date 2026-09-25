@@ -4,6 +4,9 @@ import {ZonedTime} from "./json-path.ts"
 /** @internal */
 export type NumBigInt = number | bigint
 
+/** @internal */
+export type Maybe<T> = T | typeof NO_VALUE
+
 /**
  * Shorter version of the type for code clarity.
  * @internal

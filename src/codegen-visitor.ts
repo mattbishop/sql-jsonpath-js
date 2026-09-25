@@ -60,12 +60,6 @@ function maybeParen(source: string): string {
     : `(${source})`
 }
 
-function maybeNum(source: string): string {
-  return Number.isNaN(Number.parseFloat(source))
-    ? `ƒ.num(${source})`
-    : source
-}
-
 
 
 /**
@@ -125,14 +119,12 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       ctx = this.visitNoSource(left, ctx)
       if (right && opToken) {
         const {source: leftSource} = ctx
-        const leftNum = maybeNum(leftSource)
         const source = right
           .reduce((acc, r, i) => {
             const {source: rightSource} = this.visitNoSource(r, ctx)
-            const rightNum = maybeNum(rightSource)
             const op = opToken[i].image
-            return `${acc}${op}${rightNum}`
-          }, leftNum)
+            return `ƒ.calc("${op}",${acc},${rightSource})`
+          }, leftSource)
         ctx = {...ctx, source}
       }
       return {...ctx, source: `${origSource}${ctx.source}`}
@@ -158,12 +150,14 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
         const {source: left} = ctx
         const op = maybeImage(UnaryOp)
         ctx = this.visitNoSource(unary, ctx)
-        let right = maybeNum(ctx.source)
-        // might be ƒ.num() because ---2 doesn't work in JS
-        if (!right.startsWith("ƒ")) {
-          right = `(${right})`
+        const right = ctx.source
+        if (right.startsWith("ƒ")) {
+          const opFn = op === "-" ? "neg" : "pos"
+          ctx = {...ctx, source: `${left}ƒ.${opFn}(${right})`}
         }
-        ctx = {...ctx, source: `${left}${op}${right}`}
+        else {
+          ctx = {...ctx, source: `${left}${op}(${right})`}
+        }
       }
       return ctx
     }

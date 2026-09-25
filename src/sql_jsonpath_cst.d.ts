@@ -144,7 +144,7 @@ export interface MultCstNode extends CstNode {
 export type MultCstChildren = {
   left: UnaryCstNode[];
   BinaryOp?: IToken[];
-  right?: MultCstNode[];
+  right?: UnaryCstNode[];
 };
 
 export interface WffCstNode extends CstNode {

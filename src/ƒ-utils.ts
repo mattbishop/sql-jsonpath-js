@@ -1,6 +1,5 @@
 import {ZonedTime} from "./json-path.ts"
-import {type NumBigInt, Pred, type SingleOrSeq} from "./types.ts"
-import {next} from "./iterators.ts"
+import {type Maybe, NO_VALUE, type NumBigInt, Pred} from "./types.ts"
 
 
 /*
@@ -140,22 +139,23 @@ export function toPred(condition: boolean): Pred {
 }
 
 /** @internal */
-export function mustBeNumber(input: SingleOrSeq<unknown>, method: string): number {
-  const num = next<unknown>(input)
-  if (isNumber(num)) {
-    return sqlNum(num) as number
+export function mustBeNumber(input: unknown, method: string, suppress = false): Maybe<number> {
+  if (isNumber(input)) {
+    return sqlNum(input)
+  }
+  if (suppress) {
+    return NO_VALUE
   }
   throw new Error(`${method} input must be a number, found ${JSON.stringify(input)}.`)
 }
 
 /** @internal */
-export function mustBeNumberOrBigInt(input: SingleOrSeq<unknown>, method: string): NumBigInt {
-  const num = next<unknown>(input)
+export function mustBeNumberOrBigInt(num: unknown, method: string): NumBigInt {
   if (isNumber(num)) {
     return sqlNum(num)
   }
   if (isBigInt(num)) {
     return num
   }
-  throw new Error(`${method} input must be a number or bigint, found ${JSON.stringify(input)}.`)
+  throw new Error(`${method} input must be a number or bigint, found ${JSON.stringify(num)}.`)
 }
