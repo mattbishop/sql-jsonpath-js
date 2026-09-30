@@ -283,6 +283,14 @@ describe("datetime tests", () => {
       })
     })
 
+    describe("timestamp_tz()", () => {
+      it("exists with space-separated timestamp and offset will throw", () => {
+        // postgres accepts ' ' in addition to 'T' but spec does not allow space.
+        const statement = compile('$.timestamp_tz()')
+        expect(() => statement.exists("2023-08-15 12:34:56 +05:30")).to.throw
+      })
+    })
+
     describe("datetime()", () => {
       const statement = compile('$.datetime()')
       it("ISO timestamp", () => {

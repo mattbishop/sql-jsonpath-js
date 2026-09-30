@@ -27,8 +27,9 @@
     "dist"
   ],
   "scripts": {
-    "test": "yarn build && node --test --import tsx test/*-tests.ts",
-    "coverage": "yarn build && node --test --experimental-test-coverage --import tsx test/*-tests.ts",
+    "pg-test": "yarn build && node --test --import tsx test/postgres/*-tests.ts",
+    "test": "yarn build && node --test --import tsx test/**/*-tests.ts",
+    "coverage": "yarn build && node --test --experimental-test-coverage --import tsx test/**/*-tests.ts",
     "benchmark": "node --import tsx benchmark/cases.ts",
     "clean": "node -e \"fs.rmSync('./dist', {recursive: true, force: true})\"",
     "build": "yarn clean && tsc",
@@ -49,9 +50,10 @@
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8",
     "@types/chai": "5.2.3",
-    "@types/node": "^26.0.0",
-    "chai": "6.2.2",
-    "tsx": "4.23.12",
-    "typescript": "6.0.3"
+    "@types/node": "^26.6.3",
+    "chai": "6.3.0",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "typescript-fsm": "1.6.0"
   }
 }

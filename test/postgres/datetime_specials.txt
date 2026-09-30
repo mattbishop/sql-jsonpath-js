@@ -1,0 +1,20 @@
+-- todo validate they are part of SQL:2023
+-- These tests are in the postgres jsonpath files, but need custom tests written to validate them
+
+-- .string() does not react to timezone or datestyle
+begin;
+set local timezone = 'UTC';
+set local datestyle = 'German';
+select jsonb_path_query('"2023-08-15 12:34:56 +5:30"', '$.timestamp_tz().string()');
+      jsonb_path_query
+-----------------------------
+ "2023-08-15T12:34:56+05:30"
+(1 row)
+
+select jsonb_path_query('"2023-08-15 12:34:56"', '$.timestamp().string()');
+   jsonb_path_query
+-----------------------
+ "2023-08-15T12:34:56"
+(1 row)
+
+rollback;
