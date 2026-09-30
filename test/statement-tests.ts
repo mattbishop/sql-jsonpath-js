@@ -1937,12 +1937,38 @@ describe("Statement tests", () => {
     it("returns null for missing members", async () => {
       const src = '$.b + 2'
       const data = {a: 12}
-      await testExistsCompareToPg(src, data)
+      await testCompareToPg(src, data)
     })
 
-    it("exists suppresses item errors from unary minus and matches later numeric values", async () => {
+    it("suppresses item errors from unary plus and matches later numeric values", async () => {
+      const src = '+$[*]'
+      let data = ["1", 2, 0, 3]
+      await testCompareToPg(src, data)
+      data = [1, "2", 0, 3]
+      await testCompareToPg(src, data)
+    })
+
+    it("in strict, suppresses item errors from unary plus on numeric values", async () => {
+      const src = 'strict +$[*]'
+      let data = ["1", 2, 0, 3]
+      await testCompareToPg(src, data)
+      data = [1, "2", 0, 3]
+      await testCompareToPg(src, data)
+    })
+
+    it("suppresses item errors from unary minus and matches later numeric values", async () => {
       const src = '-$[*]'
-      const data = ["1", 2, 0, 3]
+      let data = ["1", 2, 0, 3]
+      await testCompareToPg(src, data)
+      data = [1, "2", 0, 3]
+      await testCompareToPg(src, data)
+    })
+
+    it("in strict, shows error from unary minus on numeric values", async () => {
+      const src = 'strict -$[*]'
+      let data = ["1", 2, 0, 3]
+      await testCompareToPg(src, data)
+      data = [1, "2", 0, 3]
       await testCompareToPg(src, data)
     })
   })

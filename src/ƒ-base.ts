@@ -222,7 +222,7 @@ export class ƒBase {
   }
 
   neg(input: unknown): SingleOrSeq<Maybe<number>> {
-    return this._unwrapWithArgs(input, ƒBase._neg, !this.inQuery, !this.inQuery)
+    return this._unwrapWithArgs(input, ƒBase._neg, !this.inQuery, !this.inQuery && this.lax)
   }
 
 
@@ -231,7 +231,7 @@ export class ƒBase {
   }
 
   pos(input: unknown): SingleOrSeq<Maybe<number>> {
-    return this._unwrapWithArgs(input, ƒBase._pos, !this.inQuery, !this.inQuery)
+    return this._unwrapWithArgs(input, ƒBase._pos, !this.inQuery, !this.inQuery && this.lax)
   }
 
 

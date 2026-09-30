@@ -86,7 +86,7 @@ export function createStatement(text: string): SqlJsonPathStatement {
       const {vars} = config
       // iterate through the inputs one at a time and test them against fn()
       // filter() will omit the exists == false elements, and the caller needs to know this
-      const existsƒ = (i: unknown) => hasValue(fn(i, false, vars))
+      const existsƒ = (i: unknown) => hasValue(fn(i, false, vars), ctx.lax)
       if (isIterableInput(input)) {
         return Iterator.from(input)
           .map(existsƒ)
@@ -107,10 +107,29 @@ export function createStatement(text: string): SqlJsonPathStatement {
   }
 }
 
-function hasValue(input: unknown): boolean {
+function hasValue(input: unknown, lax: boolean): boolean {
+  return lax
+    ? hasValueLax(input)
+    : hasValueStrict(input)
+}
+
+function hasValueLax(input: unknown): boolean {
   return isSeq(input)
     ? input.some(noValueFilter)
     : noValueFilter(input)
+}
+
+function hasValueStrict(input: unknown): boolean {
+  if (isSeq(input)) {
+    let found = false
+    for (const value of input) {
+      if (noValueFilter(value)) {
+        found = true
+      }
+    }
+    return found
+  }
+  return noValueFilter(input)
 }
 
 
