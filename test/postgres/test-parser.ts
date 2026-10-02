@@ -6,10 +6,10 @@ import { type JsonbTest} from "./fsm-actions.ts"
 import { compile } from "../../src/index.ts"
 
 
-export function parseTest(jsonb: JsonbTest): TestFn {
+export function parseTest(jsonb: JsonbTest): TestFn | undefined {
   const testƒ = parseStatements(jsonb)
   if (!testƒ) {
-    return () => undefined
+    return
   }
 
   return () => {
@@ -47,16 +47,14 @@ function parseStatements(testInput: JsonbTest): (() => (unknown | IteratorObject
     return parseJsonbTest(testInput, match[1])
   }
 
-  match = /^jsonb_path_([^\(]+)(\((.*)\));$/.exec(statement)
+  match = /^jsonb_path_([^(]+)(\((.*)\));$/.exec(statement)
   if (match) {
-    return parse_jsonbFunctionTest(testInput, match[1], match[3])
+    return parse_jsonbFunctionTest(match[1], match[3])
   }
   console.error(`Unrecognized statement "${statement}"`)
 }
 
 function parseJsonbTest(testInput: JsonbTest, statement: string): (() => (null | boolean | IteratorObject<boolean>)) | undefined {
-  const {expectedData} = testInput
-
   // '{"a": 12}' @? '$';
   const jsonb = /'(.+)' (@.) '(.+)'/.exec(statement)
 
@@ -73,16 +71,6 @@ function parseJsonbTest(testInput: JsonbTest, statement: string): (() => (null |
 
     // https://justatheory.com/2023/10/sql-jsonpath-operators/
     if (jsonb[2] == '@?') {
-      //convert to booleans
-      testInput.expectedData = expectedData.map((item) => {
-        if (item === "t") {
-          return true
-        }
-        if (item === "f") {
-          return false
-        }
-        return null
-      })
       return () => {
         try {
           return sqlJsonPath.exists(input)
@@ -94,24 +82,23 @@ function parseJsonbTest(testInput: JsonbTest, statement: string): (() => (null |
       // @@ is same as jsonb_path_match, not part of the SQL/JSONPath spec.
       // convert to values, most of the test results are boolean.
       // Only a few expected results are null, so I changed those to the query result value.
-      testInput.expectedData = expectedData.map((item) => JSON.parse(item))
       return () => sqlJsonPath.query(input)
     }
   }
 }
-function parse_jsonbFunctionTest(testInput:     JsonbTest,
-                                 functionName:  string,
+function parse_jsonbFunctionTest(functionName:  string,
                                  args:          string): (() => (unknown | IteratorObject<unknown>)) | undefined {
-  const {expectedData} = testInput
   const parsedArgs = parseSqlFunctionArgs(args)
-
   if (parsedArgs.length < 2) {
+    return
+  }
+  if (parsedArgs.length === 3 && parsedArgs[2] === "silent => true") {
+    // skip test, always preceded with an ERROR test
     return
   }
 
   const input = JSON.parse(parsedArgs[0])
   const src = parsedArgs[1]
-
   if (isUnsupportedStatement(src)) {
     return
   }
@@ -122,7 +109,6 @@ function parse_jsonbFunctionTest(testInput:     JsonbTest,
 
   switch (functionName) {
     case "exists":
-      testInput.expectedData = expectedData.map(postgresBoolean)
       return () => {
         try {
           return sqlJsonPath().exists(input)
@@ -133,22 +119,18 @@ function parse_jsonbFunctionTest(testInput:     JsonbTest,
 
     case "query":
     case "query_tz":
-      testInput.expectedData = expectedData.map((item) => JSON.parse(item))
       return () => sqlJsonPath().query(input)
 
     case "query_array":
-      testInput.expectedData = expectedData.map((item) => JSON.parse(item))
-      return () => [Array.from(sqlJsonPath().query(input))][Symbol.iterator]()
+      return () => [Array.from(sqlJsonPath().query(input))].values()
 
     case "query_first":
-      testInput.expectedData = expectedData.map((item) => item === null ? null : JSON.parse(item))
       return () => {
         const first = sqlJsonPath().query(input).next()
         return first.done ? null : first.value
       }
 
     case "match":
-      testInput.expectedData = expectedData.map(postgresBoolean)
       return () => {
         const first = sqlJsonPath().query(input).next()
         return first.done ? null : first.value
@@ -216,14 +198,4 @@ function isUnsupportedStatement(src: string): boolean {
     }
   }
   return false
-}
-
-function postgresBoolean(item: unknown): boolean | null {
-  if (item === "t") {
-    return true
-  }
-  if (item === "f") {
-    return false
-  }
-  return null
 }

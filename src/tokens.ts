@@ -136,9 +136,9 @@ export const FilterValue      = createToken({name: "FilterValue", pattern: "@"})
 /** @internal */
 export const Exists           = createToken({name: "Exists", pattern: "exists"})
 /** @internal */
-export const LikeRegex        = createToken({name: "LikeRegex", pattern: /\slike_regex/})
+export const LikeRegex        = createToken({name: "LikeRegex", pattern: "like_regex"})
 /** @internal */
-export const Flag             = createToken({name: "Flag", pattern: /\sflag/})
+export const Flag             = createToken({name: "Flag", pattern: "flag"})
 // Spec calls for whitespace
 /** @internal */
 export const StartsWith       = createToken({name: "StartsWith", pattern: /\sstarts\s+with/})
@@ -162,7 +162,7 @@ export const NumberLiteral    = createToken({name: "Number", pattern: /-?(?:0(?:
 /** @internal */
 export const StringLiteral    = createRegexToken({
   name:             "String",
-  pattern:          /"((?:[^"\\\p{Cc}]+|(?:\\(?:["\\/bfnrt]|u[a-fA-F\d]{4})))*)"/uy,
+  pattern:          /"((?:[^"\p{Cc}]+|(?:\\(?:["\\/bfnrt]|u[a-fA-F\d]{4})))*)"/uy,
   start_chars_hint: ["\""]
 })
 

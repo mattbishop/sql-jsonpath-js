@@ -621,6 +621,16 @@ describe("Codegen tests", () => {
         expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.match(v,/court/i))')
       })
 
+      it("with q flag escapes regex metacharacters and removes q from JS flags", () => {
+        const ctx = generateFunctionSource('$ ? (@ like_regex "a.b[0]+(yes)?" flag "q")')
+        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.match(v,new RegExp("\\\\x61\\\\.b\\\\[0\\\\]\\\\+\\\\(yes\\\\)\\\\?","")))')
+      })
+
+      it("with q and i flags escapes regex metacharacters and keeps non-q flags", () => {
+        const ctx = generateFunctionSource('$ ? (@ like_regex "a.b[0]+(yes)?" flag "qi")')
+        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.match(v,new RegExp("\\\\x61\\\\.b\\\\[0\\\\]\\\\+\\\\(yes\\\\)\\\\?","i")))')
+      })
+
       it("can filter an iterator of values", () => {
         const ctx = generateFunctionSource('$ ? (@[*] like_regex "\\\\d+")')
         expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.match(ƒ.boxStar(v),/\\d+/))')

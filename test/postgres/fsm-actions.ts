@@ -55,7 +55,17 @@ export function createTestsBuilder(): TestsBuilder {
   }
 
   function onData(args: unknown) {
-    current.expectedData.push(args as string)
+    let data
+    if (args === "t") {
+      data = true
+    } else if (args === "f") {
+      data = false
+    } else if (args === "") {
+      data = null
+    } else {
+      data = JSON.parse(args as string)
+    }
+    current.expectedData.push(data)
   }
 
   function onRows(args: unknown) {

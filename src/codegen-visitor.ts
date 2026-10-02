@@ -378,13 +378,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
 
     likeRegex(node: LikeRegexCstChildren, ctx: CodegenContext): CodegenContext {
       const {Pattern: [{image: pattern}], FlagValue} = node
-      const regex = pattern
-        .slice(1, -1)
-        .replace("\\\\", "\\")
-      if (!safeRegex(regex)) {
-        throw new Error(`Unsafe regex: ${regex}`)
-      }
-      let fnSource = `${ctx.source},/${regex}/`
+      let flags = ""
       if (FlagValue) {
         /*
           The spec states that SQL like_regex should be used. That states XQuery flags should be used:
@@ -394,21 +388,36 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
                 newlines, so the string is treated as a single line.
           • 'm' enables "multi-line mode". In this mode, the anchors "^" and "$" match before and after newlines in the
                 string as well in addition to applying to the string as a whole.
+          • 'q' enables "quote mode". In this mode, the regex string is matched as-is to the input. It looks for the presence
+                of the regex value in the input string.
           • 'x' enables "free-spacing mode". In this mode, whitespace in regex pattern is ignored. This is mainly used
                 when one has divided a complicated regex over several lines, but do not intend the newlines to be matched.
 
           i -> JS i
           s -> JS s
           m -> JS m
+          q -> look for the string as-is, without pattern matching
           x -> JS none, don't support.
 
           However, JS has more flags. Much more useful, so just pass them in. I could create a 'spec' mode
-          that only accepts i, s, and m, but let's see if anyone asks for that.
+          that only accepts i, s, q and m, but let's see if anyone asks for that.
          */
-        const flags = maybeImage(FlagValue).slice(1, -1)
-        fnSource += flags
+        flags = maybeImage(FlagValue).slice(1, -1)
       }
-      return {...ctx, source: `ƒ.match(${fnSource})`}
+      // trim quotes
+      let regex = pattern.slice(1, -1)
+      if (flags.includes("q")) {
+        flags = flags.replaceAll("q", "")
+        regex = RegExp.escape(regex)
+        regex = `new RegExp(${JSON.stringify(regex)},"${flags}")`
+      } else {
+        regex = regex.replace("\\\\", "\\")
+        regex = `/${regex}/${flags}`
+      }
+      if (!safeRegex(regex)) {
+        throw new Error(`Unsafe regex: ${pattern}`)
+      }
+      return {...ctx, source: `ƒ.match(${ctx.source},${regex})`}
     }
 
 

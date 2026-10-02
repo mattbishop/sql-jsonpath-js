@@ -693,10 +693,74 @@ describe("Statement tests", () => {
         expect(Array.from(actual)).to.deep.equal(["8854"])
       })
 
-      it("with flags", () => {
+      it("with case-insensitive flag", () => {
         const statement = compile('$ ? (@ like_regex "court" flag "i")')
         const actual = statement.query(["cOuRt", "COURT", 17])
         expect(Array.from(actual)).to.deep.equal(["cOuRt", "COURT"])
+      })
+
+      it("with q flag treats regex metacharacters as literal text", () => {
+        const statement = compile('$ ? (@ like_regex "a.b[0]+(yes)?" flag "q")')
+        const actual = statement.query([
+          "a.b[0]+(yes)?",
+          "prefix a.b[0]+(yes)? suffix",
+          "axb0yes",
+          "a-b[0]+(yes)?"
+        ])
+        expect(Array.from(actual)).to.deep.equal([
+          "a.b[0]+(yes)?",
+          "prefix a.b[0]+(yes)? suffix"
+        ])
+      })
+
+      it("with q and i flags performs quoted matching case-insensitively", () => {
+        const statement = compile('$ ? (@ like_regex "a.b[0]+(yes)?" flag "qi")')
+        const actual = statement.query([
+          "A.B[0]+(YES)?",
+          "a.b[0]+(yes)?",
+          "axb0yes",
+          "A-B[0]+(YES)?"
+        ])
+        expect(Array.from(actual)).to.deep.equal([
+          "A.B[0]+(YES)?",
+          "a.b[0]+(yes)?"
+        ])
+      })
+
+      it("with q flag treats backslash escapes as quoted text", () => {
+        const statement = compile('lax $[*] ? (@ like_regex "a\\b" flag "q")')
+        const actual = statement.query([null, 1, "a\b", "a\\b", "^a\\b$"])
+        expect(Array.from(actual)).to.deep.equal(["a\\b", "^a\\b$"])
+      })
+
+      it("with empty flag treats backslash escapes as regex syntax", () => {
+        const statement = compile('lax $[*] ? (@ like_regex "a\\b" flag "")')
+        const actual = statement.query([null, 1, "a\b", "a\\b", "^a\\b$"])
+        expect(Array.from(actual)).to.deep.equal(["a\b", "a\\b", "^a\\b$"])
+      })
+
+      it("with q flag treats anchors and backslash escapes as quoted text", () => {
+        const statement = compile('lax $[*] ? (@ like_regex "^a\\b$" flag "q")')
+        const actual = statement.query([null, 1, "a\b", "a\\b", "^a\\b$"])
+        expect(Array.from(actual)).to.deep.equal(["^a\\b$"])
+      })
+
+      it("with q flag treats uppercase boundary escape as quoted text", () => {
+        const statement = compile('lax $[*] ? (@ like_regex "^a\\\\B$" flag "q")')
+        const actual = statement.query([null, 1, "a\b", "a\\b", "^a\\b$"])
+        expect(Array.from(actual)).to.deep.equal([])
+      })
+
+      it("with i and q flags treats uppercase boundary escape as quoted text and removes q from regex flags", () => {
+        const statement = compile('lax $[*] ? (@ like_regex "^a\\B$" flag "iq")')
+        const actual = statement.query([null, 1, "a\b", "a\\b", "^a\\b$"])
+        expect(Array.from(actual)).to.deep.equal(["^a\\b$"])
+      })
+
+      it("with empty flag treats anchors and backslash escapes as regex syntax", () => {
+        const statement = compile('lax $[*] ? (@ like_regex "^a\\\\b$" flag "")')
+        const actual = statement.query([null, 1, "a\b", "a\\b", "^a\\b$"])
+        expect(Array.from(actual)).to.deep.equal([])
       })
 
       it("can filter an iterator of values", () => {

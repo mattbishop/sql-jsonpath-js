@@ -23,7 +23,7 @@ testsBuilder.tests
   .filter(test => test.statement !== "")
   .forEach((test) => {
   const testƒ = parseTest(test)
-  if (test.statement) {
+  if (testƒ) {
     it(`Postgres project tests: ${test.statement}`, testƒ)
   }
 })
