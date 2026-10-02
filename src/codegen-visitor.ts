@@ -259,7 +259,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
         const parser = buildTemporalParser(template)
         if (template) {
           ctx.scope.set(template, parser)
-          templateParam = `,"${template}"`
+          templateParam = `,${JSON.stringify(template)}`
         } else {
           ctx.scope.set(CLDR, parser)
         }

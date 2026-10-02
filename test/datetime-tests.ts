@@ -365,6 +365,83 @@ describe("datetime tests", () => {
         const actualTime = statement.query("02:11:18.0214-02:00")
         expect(one(actualTime)).to.deep.equal(ZonedTime.from("04:11:18.0214"))
       })
+
+      describe("quoted string literals", () => {
+        it("matches a quoted literal between date and time fields", () => {
+          const statement = compile('$.datetime("YYYY-MM-DD\"T\"HH24:MI:SS")')
+          const actual = statement.query("2024-09-30T12:34:56")
+
+          expect(one(actual)).to.deep.equal(Temporal.PlainDateTime.from("2024-09-30T12:34:56"))
+        })
+
+        it("matches quoted word literals exactly", () => {
+          const statement = compile('$.datetime("YYYY\" year \"MM\" month \"DD\" day\"")')
+          const actual = statement.query("2024 year 09 month 30 day")
+
+          expect(one(actual)).to.deep.equal(Temporal.PlainDate.from("2024-09-30"))
+        })
+
+        it("preserves quoted literal case", () => {
+          const statement = compile('$.datetime("YYYY\"Year\"MM")')
+          const actual = statement.query("2024Year09")
+
+          expect(one(actual)).to.deep.equal(Temporal.PlainDate.from("2024-09-01"))
+          expect(() => one(statement.query("2024year09"))).to.throw
+        })
+
+        it("treats field-looking quoted text as literal text", () => {
+          const statement = compile('$.datetime("YYYY\"MM\"DD")')
+          const actual = statement.query("2024MM30")
+
+          expect(one(actual)).to.deep.equal(Temporal.PlainDate.from("2024-01-30"))
+        })
+
+        it("allows quoted delimiter literals without triggering consecutive delimiter validation", () => {
+          const statement = compile('$.datetime("YYYY\"-\"MM\"-\"DD")')
+          const actual = statement.query("2024-09-30")
+
+          expect(one(actual)).to.deep.equal(Temporal.PlainDate.from("2024-09-30"))
+        })
+
+        it("matches regex-special quoted literals as literal text", () => {
+          const statement = compile('$.datetime("YYYY\"[date].\"MM\"+\"DD")')
+          const actual = statement.query("2024[date].09+30")
+
+          expect(one(actual)).to.deep.equal(Temporal.PlainDate.from("2024-09-30"))
+        })
+
+        it("supports quoted literals in time-only templates", () => {
+          const statement = compile('$.datetime("HH24\" hours \"MI\" minutes \"SS\" seconds\"")')
+          const actual = statement.query("12 hours 34 minutes 56 seconds")
+
+          expect(one(actual)).to.deep.equal(Temporal.PlainTime.from("12:34:56"))
+        })
+
+        it("supports quoted literals in timezone templates", () => {
+          const statement = compile('$.datetime("YYYY-MM-DD\" at \"HH24:MI:SSTZH:TZM")')
+          const actual = statement.query("2024-09-30 at 12:34:56+05:30")
+
+          expect(one(actual)).to.deep.equal(Temporal.Instant.from("2024-09-30T12:34:56+05:30"))
+        })
+
+        it("rejects unmatched input literal text", () => {
+          const statement = compile('$.datetime("YYYY\"Year\"MM")')
+
+          expect(() => one(statement.query("2024YEAR09"))).to.throw
+        })
+
+        it("rejects unterminated quoted literals in templates", () => {
+          expect(() => compile('$.datetime("YYYY\"broken")')).to.throw
+        })
+
+        it("still rejects duplicate fields separated by quoted literals", () => {
+          expect(() => compile('$.datetime("YYYY\" literal \"YYYY")')).to.throw
+        })
+
+        it("still rejects consecutive unquoted delimiters", () => {
+          expect(() => compile('$.datetime("YYYY--MM-DD")')).to.throw
+        })
+      })
     })
   })
 

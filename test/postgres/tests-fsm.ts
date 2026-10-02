@@ -59,7 +59,7 @@ export enum Events {
 
 const commentPattern = /^-- .+/
 const setPattern = /^set (.+);/i
-const selectPattern = /^select (.+)(;)?( -- (.+))?/i
+const selectPattern = /^select (?:\* from )?(.+)(;)?( -- (.+))?/i
 const continueSelectPattern = /^\t(.+)(;)?( -- (.+))?/
 const errorPattern = /^((ERROR|HINT|DETAIL|LINE \d): (.+)| +\^)/
 const warningPattern = /^WARNING: (.+)/
@@ -78,8 +78,7 @@ export function createTester(actions: TransitionActions): (line: string) => void
 
   const testMachine: SyncStateMachine<States, Events> = new SyncStateMachine(States.start)
   testMachine.addTransitions(buildTransitions(actions))
-  console.log(testMachine.toMermaid("tests"))
-
+  console.info(testMachine.toMermaid("tests"))
 
   return (line) => lineToTransition(testMachine, line)
 }

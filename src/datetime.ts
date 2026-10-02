@@ -148,7 +148,7 @@ const USE_OFFSET_REJECT_OVERFLOW: Temporal.ZonedDateTimeFromOptions = {offset: "
 
 
 // Matches standard tokens or single delimiters
-const templateTokenizer = /(A\.M\.|P\.M\.|HH12|HH24|HH|YYYY|YYY|YY|Y|MM|DDD|DD|MI|SSSSS|SS|TZH|TZM|FF[1-9]|RRRR|RR)|([-.\/,';: ])/g
+const templateTokenizer = /(A\.M\.|P\.M\.|HH12|HH24|HH|YYYY|YYY|YY|Y|MM|DDD|DD|MI|SSSSS|SS|TZH|TZM|FF[1-9]|RRRR|RR)|([-.\/,';: ])|(?:"([^"]+)")/ig
 
 function createFormattedParser(template: string): StringToTemporal {
   const fields = new Set<string>()
@@ -156,25 +156,28 @@ function createFormattedParser(template: string): StringToTemporal {
   let hasYear = false, hasMonthDay = false, hasTime = false
 
   let lastWasDelim = false
-  for (const match of template.toUpperCase().matchAll(templateTokenizer)) {
-    const [_, field, delim] = match
+  for (const match of template.matchAll(templateTokenizer)) {
+    const [_, fieldIn, delim, lit] = match
 
-    if (field) {
+    if (fieldIn) {
+      const field = fieldIn.toUpperCase()
       if (fields.has(field)) {
         throw new Error(`Rule 3: Duplicate field "${field}"`)
       }
       fields.add(field)
       regexPattern += FIELD_TO_REGEX[field]
       lastWasDelim = false
-      hasYear = hasYear || "YR".indexOf(field[0]) > -1
+      hasYear = hasYear || "YR".includes(field[0])
       hasMonthDay = hasMonthDay || field.startsWith("MM") || field.startsWith("D")
-      hasTime = hasTime || "APFHST".indexOf(field[0]) > -1
+      hasTime = hasTime || "APFHST".includes(field[0])
     } else if (delim) {
       if (lastWasDelim) {
         throw new Error("Rule 2: Consecutive delimiters")
       }
       regexPattern += RegExp.escape(delim)
       lastWasDelim = true
+    } else if (lit) {
+      regexPattern += RegExp.escape(lit)
     }
   }
 
@@ -221,7 +224,6 @@ function createFormattedParser(template: string): StringToTemporal {
       microsecond = Math.floor((nanosecond % 1_000_000) / 1_000)
       nanosecond = nanosecond % 1_000
     }
-
 
     const hasDate = hasYear || hasMonthDay
     const offset = fields.has("TZH") && `${g.tzh}:${g.tzm || "00"}`

@@ -19,11 +19,11 @@ for (const line of testLines) {
   testMachine(line)
 }
 
-
-
-testsBuilder.tests.forEach((test) => {
+testsBuilder.tests
+  .filter(test => test.statement !== "")
+  .forEach((test) => {
   const testƒ = parseTest(test)
-  if (test.statements[0]) {
-    it(`Postgres project tests: ${test.statements[0]}`, testƒ)
+  if (test.statement) {
+    it(`Postgres project tests: ${test.statement}`, testƒ)
   }
 })

@@ -37,7 +37,7 @@ export const WildcardMember   = createToken({name: "WildcardMember", pattern: /\
 /** @internal */
 export const DatetimeMethod   = createRegexToken({
   name:             "DatetimeMethod",
-  pattern:          /\.\s*datetime\s*\(\s*("([-.\/,';: \da-zA-Z]*)")?\s*\)/y,
+  pattern:          /\.\s*datetime\s*\(\s*("(.*)")?\s*\)/y,
   start_chars_hint: ["."]
 })
 

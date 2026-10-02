@@ -4,7 +4,7 @@ import {type TransitionActions} from "./tests-fsm.ts"
 export interface JsonbTest {
   errorExpected: boolean
   setup?: Function
-  statements: string[]
+  statement: string
   cleanup?: Function
   test: Function
   expectedData: any[]
@@ -24,7 +24,7 @@ export function createTestsBuilder(): TestsBuilder {
   function startNewTest() {
     current = {
       errorExpected: false,
-      statements: [],
+      statement: "",
       test: () => console.error("no test"),
       expectedData: []
     }
@@ -41,13 +41,12 @@ export function createTestsBuilder(): TestsBuilder {
     if (!current || !current.setup) {
       startNewTest()
     }
-    current.statements.push(args as string)
+    current.statement = args as string
   }
 
   function onContinue(args: unknown) {
     console.info("onContinue: ", args)
-    const lastIndex = current.statements.length - 1
-    current.statements[lastIndex] += "\n" + args
+    current.statement += args
   }
 
   function onError(args: unknown) {
