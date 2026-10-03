@@ -1,7 +1,7 @@
 import { expect } from "chai"
 import type { TestFn } from "node:test"
 
-import { isIterable } from "../../src/iterators.ts"
+import {isIterable, next} from "../../src/iterators.ts"
 import { type JsonbTest} from "./fsm-actions.ts"
 import { compile } from "../../src/index.ts"
 
@@ -14,7 +14,10 @@ export function parseTest(jsonb: JsonbTest): TestFn | undefined {
 
   return () => {
     if (jsonb.errorExpected) {
-      expect(testƒ).to.throw()
+      expect(() => {
+        const result = next(testƒ())
+        console.warn("Expected error, but result is " + result)
+      }).to.throw()
     } else {
       const results = testƒ()
       if (isIterable(results)) {
@@ -71,13 +74,7 @@ function parseJsonbTest(testInput: JsonbTest, statement: string): (() => (null |
 
     // https://justatheory.com/2023/10/sql-jsonpath-operators/
     if (jsonb[2] == '@?') {
-      return () => {
-        try {
-          return sqlJsonPath.exists(input)
-        } catch (err) {
-          return null
-        }
-      }
+      return () => sqlJsonPath.exists(input)
     } else {
       // @@ is same as jsonb_path_match, not part of the SQL/JSONPath spec.
       // convert to values, most of the test results are boolean.

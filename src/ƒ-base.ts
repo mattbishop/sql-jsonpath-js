@@ -671,7 +671,7 @@ export class ƒBase {
 
   private _maybeElement(array: Array<unknown>, pos: number): unknown {
     if (pos > INTEGER_MAX) {
-      return NO_VALUE
+      throw new Error ("Array subscript is out of integer range.")
     }
     if (pos > -1 && pos < array.length) {
       return array[pos]

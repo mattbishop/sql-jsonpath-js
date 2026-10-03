@@ -1830,14 +1830,16 @@ describe("Statement tests", () => {
       await testValuesCompareToPg(src, data)
     })
 
-    it("rejects out-of-bounds array access in strict mode", () => {
-      const statement = compile('strict $[100]')
-      expect(() => one(statement.query(["tea", "Cookies"]))).to.throw
+    it("rejects out-of-bounds array access in strict mode", async () => {
+      const src = 'strict $[100]'
+      const data = ["tea", "Cookies"]
+      await testValuesCompareToPg(src, data)
     })
 
-    it("rejects subscript larger than integer max array access", () => {
-      const statement = compile('$[10000000000000000]')
-      expect(one(statement.query([1]))).to.be.undefined
+    it("rejects subscript larger than integer max array access", async () => {
+      const src = '$[10000000000000000]'
+      const data = [1]
+      await testValuesCompareToPg(src, data)
     })
 
     it("rejects partially out-of-bounds subscript lists in strict mode", async () => {
