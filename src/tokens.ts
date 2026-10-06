@@ -124,7 +124,7 @@ export const RightBracket     = createToken({name: "RightBracket", pattern: "]"}
 export const Last             = createToken({name: "Last", pattern: "last"})
 // Spec calls for whitespace
 /** @internal */
-export const To               = createToken({name: "To", pattern: /\sto\s/})
+export const To               = createToken({name: "To", pattern: /\sto/})
 
 
 // filter expressions

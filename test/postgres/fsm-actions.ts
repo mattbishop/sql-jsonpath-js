@@ -1,4 +1,5 @@
 import {type TransitionActions} from "./tests-fsm.ts"
+import {NO_VALUE} from "../../src/types"
 
 
 export interface JsonbTest {
@@ -61,17 +62,21 @@ export function createTestsBuilder(): TestsBuilder {
     } else if (args === "f") {
       data = false
     } else if (args === "") {
-      data = null
+      data = NO_VALUE
     } else {
       data = JSON.parse(args as string)
     }
-    current.expectedData.push(data)
+    if (data !== undefined) {
+      current.expectedData.push(data)
+    }
   }
 
   function onRows(args: unknown) {
     // check for empty expected data and push null
     if (current.expectedData.length === 0) {
-      current.expectedData.push(null)
+      if (args === "1") {
+        current.expectedData.push(NO_VALUE)
+      }
     }
     startNewTest()
   }

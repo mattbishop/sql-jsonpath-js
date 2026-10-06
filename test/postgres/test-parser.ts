@@ -1,9 +1,10 @@
 import { expect } from "chai"
 import type { TestFn } from "node:test"
 
-import {isIterable, next} from "../../src/iterators.ts"
+import {DefaultOnErrorIterator, isIterable, isSeq, next, noValueFilter, one} from "../../src/iterators.ts"
 import { type JsonbTest} from "./fsm-actions.ts"
 import { compile } from "../../src/index.ts"
+import {NO_VALUE} from "../../src/types";
 
 
 export function parseTest(jsonb: JsonbTest): TestFn | undefined {
@@ -17,12 +18,13 @@ export function parseTest(jsonb: JsonbTest): TestFn | undefined {
       expect(() => {
         const result = next(testƒ())
         console.warn("Expected error, but result is " + result)
-      }).to.throw()
+      }, jsonb.statement).to.throw()
     } else {
       const results = testƒ()
       if (isIterable(results)) {
         const actual = Array.from(results)
-        expect(actual).to.deep.equal(jsonb.expectedData)
+          .filter(noValueFilter)
+        expect(actual, jsonb.statement).to.deep.equal(jsonb.expectedData)
       } else {
         expect(results, jsonb.statement).to.equal(jsonb.expectedData[0])
       }
@@ -57,7 +59,7 @@ function parseStatements(testInput: JsonbTest): (() => (unknown | IteratorObject
   console.error(`Unrecognized statement "${statement}"`)
 }
 
-function parseJsonbTest(testInput: JsonbTest, statement: string): (() => (null | boolean | IteratorObject<boolean>)) | undefined {
+function parseJsonbTest(testInput: JsonbTest, statement: string): (() => (boolean | IteratorObject<boolean>)) | undefined {
   // '{"a": 12}' @? '$';
   const jsonb = /'(.+)' (@.) '(.+)'/.exec(statement)
 
@@ -70,68 +72,70 @@ function parseJsonbTest(testInput: JsonbTest, statement: string): (() => (null |
     }
 
     console.info("parsing: ", src)
-    const sqlJsonPath = compile(src)
+    // compile path in a function so it can throw during test execution.
+    const sqlJsonPath = () => compile(src)
 
     // https://justatheory.com/2023/10/sql-jsonpath-operators/
     if (jsonb[2] == '@?') {
-      return () => sqlJsonPath.exists(input)
+      return () => callMaybeSilently(() => sqlJsonPath().exists(input), true)
     } else {
       // @@ is same as jsonb_path_match, not part of the SQL/JSONPath spec.
       // convert to values, most of the test results are boolean.
       // Only a few expected results are null, so I changed those to the query result value.
-      return () => sqlJsonPath.query(input)
+      return () => sqlJsonPath().query(input)
     }
   }
 }
 function parse_jsonbFunctionTest(functionName:  string,
                                  args:          string): (() => (unknown | IteratorObject<unknown>)) | undefined {
-  const parsedArgs = parseSqlFunctionArgs(args)
-  if (parsedArgs.length < 2) {
-    return
-  }
-  if (parsedArgs.length === 3 && parsedArgs[2] === "silent => true") {
-    // skip test, always preceded with an ERROR test
-    return
-  }
-
-  const input = JSON.parse(parsedArgs[0])
-  const src = parsedArgs[1]
-  if (isUnsupportedStatement(src)) {
+  const [dataArg, srcArg, silentArg] = parseSqlFunctionArgs(args)
+  const silent = silentArg === "silent => true"
+  const input = JSON.parse(dataArg)
+  if (isUnsupportedStatement(srcArg)) {
     return
   }
 
-  console.info("parsing: ", src)
+  console.info("parsing: ", srcArg)
   // compile path in a function so it can throw during test execution.
-  const sqlJsonPath = () => compile(src)
+  const sqlJsonPath = () => compile(srcArg)
 
   switch (functionName) {
     case "exists":
-      return () => {
-        try {
-          return sqlJsonPath().exists(input)
-        } catch (err) {
-          return null
-        }
-      }
+      return () => callMaybeSilently<boolean>(() => sqlJsonPath().exists(input), silent)
 
     case "query":
     case "query_tz":
-      return () => sqlJsonPath().query(input)
+      return () => callMaybeSilently(() => sqlJsonPath().query(input), silent)
 
     case "query_array":
-      return () => [Array.from(sqlJsonPath().query(input))].values()
+      return () => callMaybeSilently(() => sqlJsonPath().query(input), silent)
 
     case "query_first":
       return () => {
-        const first = sqlJsonPath().query(input).next()
-        return first.done ? null : first.value
-      }
+          const first = callMaybeSilently(() => sqlJsonPath().query(input), silent)
+          return one(first)
+        }
 
     case "match":
       return () => {
-        const first = sqlJsonPath().query(input).next()
-        return first.done ? null : first.value
+        const first = callMaybeSilently(() => sqlJsonPath().query(input), silent)
+        return one(first)
       }
+  }
+}
+
+function callMaybeSilently<T>(fn: () => T | Iterator<T>, silent: boolean): T | IteratorObject<T | NO_VALUE> | NO_VALUE {
+  try {
+    const result = fn()
+    if (isSeq(result) && silent) {
+      return Iterator.from(new DefaultOnErrorIterator(NO_VALUE, result))
+    }
+    return result
+  } catch (err) {
+    if (silent) {
+      return NO_VALUE
+    }
+    throw err
   }
 }
 

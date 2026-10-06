@@ -154,8 +154,8 @@ export class ƒBase {
   }
 
 
-  private static _num(input: unknown): Maybe<number> {
-    return mustBeNumber(input, "arithmetic")
+  private static _num(input: unknown, suppress: boolean): Maybe<number> {
+    return mustBeNumber(input, "arithmetic", suppress)
   }
 
   // not a JSONPath function. Used to convert strings to numbers for math
@@ -163,12 +163,11 @@ export class ƒBase {
     if (isFunction(input)) {
       input = input(this.scope.get(CURRENT_ARRAY))
     }
-    return autoMap(input, ƒBase._num)
+    return this._unwrapWithArgs(input, ƒBase._num, !this.inQuery, !this.inQuery && this.lax)
   }
 
 
   calc(op: string, leftIn: unknown, rightIn: unknown): SingleOrSeq<Maybe<number>> {
-    // is this the same as compare()?
     const left = this.num(leftIn)
     const right = this.num(rightIn)
 
@@ -193,10 +192,10 @@ export class ƒBase {
 
   private static _calcPair(op: string, left: Maybe<number>, right: Maybe<number>): number {
     if (left === NO_VALUE) {
-      throw new Error(`left operand of jsonpath operator ${op} is not a single numeric value`)
+      throw new Error(`left operand of jsonpath operator ${op} is not a value`)
     }
     if (right === NO_VALUE) {
-      throw new Error(`right operand of jsonpath operator ${op} is not a single numeric value`)
+      throw new Error(`right operand of jsonpath operator ${op} is not a value`)
     }
 
     switch (op) {
@@ -727,8 +726,8 @@ export class ƒBase {
       const start = isFunction(from) ? from(array) : from
       const end = isFunction(to) ? to(array) : to
       return Iterator.from(ƒBase._range(
-        mustBeNumber(start, "'from'") as number,
-        mustBeNumber(end, "'to'") as number))
+        Math.floor(mustBeNumber(start, "'from'") as number),
+        Math.floor(mustBeNumber(end, "'to'") as number)))
     }
   }
 
