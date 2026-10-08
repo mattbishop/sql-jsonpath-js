@@ -4,7 +4,7 @@ import type { TestFn } from "node:test"
 import {DefaultOnErrorIterator, isIterable, isSeq, next, noValueFilter, one} from "../../src/iterators.ts"
 import { type JsonbTest} from "./fsm-actions.ts"
 import { compile } from "../../src/index.ts"
-import {NO_VALUE} from "../../src/types";
+import {NO_VALUE} from "../../src/types"
 
 
 export function parseTest(jsonb: JsonbTest): TestFn | undefined {
@@ -86,14 +86,17 @@ function parseJsonbTest(testInput: JsonbTest, statement: string): (() => (boolea
     }
   }
 }
+
+
 function parse_jsonbFunctionTest(functionName:  string,
                                  args:          string): (() => (unknown | IteratorObject<unknown>)) | undefined {
-  const [dataArg, srcArg, silentArg] = parseSqlFunctionArgs(args)
-  const silent = silentArg === "silent => true"
-  const input = JSON.parse(dataArg)
+  const [dataArg, srcArg, last1, last2] = parseSqlFunctionArgs(args)
   if (isUnsupportedStatement(srcArg)) {
     return
   }
+  const silent = last1?.endsWith("true") || "true" === last2
+  const input = JSON.parse(dataArg)
+  const vars = parseVars(last1)
 
   console.info("parsing: ", srcArg)
   // compile path in a function so it can throw during test execution.
@@ -101,27 +104,36 @@ function parse_jsonbFunctionTest(functionName:  string,
 
   switch (functionName) {
     case "exists":
-      return () => callMaybeSilently<boolean>(() => sqlJsonPath().exists(input), silent)
+      return () => callMaybeSilently<boolean>(() => sqlJsonPath().exists(input, vars), silent)
 
     case "query":
     case "query_tz":
-      return () => callMaybeSilently(() => sqlJsonPath().query(input), silent)
+      return () => callMaybeSilently(() => sqlJsonPath().query(input, vars), silent)
 
     case "query_array":
-      return () => callMaybeSilently(() => sqlJsonPath().query(input), silent)
+      return () => callMaybeSilently(() => sqlJsonPath().query(input, vars), silent)
 
     case "query_first":
       return () => {
-          const first = callMaybeSilently(() => sqlJsonPath().query(input), silent)
+          const first = callMaybeSilently(() => sqlJsonPath().query(input, vars), silent)
           return one(first)
         }
 
     case "match":
       return () => {
-        const first = callMaybeSilently(() => sqlJsonPath().query(input), silent)
+        const first = callMaybeSilently(() => sqlJsonPath().query(input, vars), silent)
         return one(first)
       }
   }
+}
+
+function parseVars(input?: string) {
+  if (input === undefined || input === "NULL" || input.startsWith("silent")) {
+    return
+  }
+  const varsStr = input.match(/(:?vars => )?(.+)/)
+  const vars = JSON.parse(varsStr ? varsStr[2] : input)
+  return {vars}
 }
 
 function callMaybeSilently<T>(fn: () => T | Iterator<T>, silent: boolean): T | IteratorObject<T | NO_VALUE> | NO_VALUE {

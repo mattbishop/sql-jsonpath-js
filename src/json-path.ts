@@ -14,7 +14,6 @@ export type StatementConfig = {
   vars?:  NamedVariables
 }
 
-
 /**
  * Configuration object for the query() method.
  */
@@ -41,6 +40,10 @@ export type KeyValue = {
   value:  unknown
 }
 
+/**
+ * Thrown when a statement refers to a variable that has not been passed in to query() or exists().
+ */
+export class MissingVariableError extends Error { }
 
 /**
  * Instance of a compiled Sql/JsonPath statement. Can be reused to interpret JSON data.

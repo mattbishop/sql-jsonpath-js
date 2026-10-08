@@ -11,9 +11,10 @@ import {
   noValueFilter,
   toInputIterator
 } from "./iterators.ts"
-import type {Input, NamedVariables, SqlJsonPathStatement, QueryConfig} from "./json-path.ts"
+import {type Input, type NamedVariables, type SqlJsonPathStatement, type QueryConfig, MissingVariableError} from "./json-path.ts"
 import {JsonPathParser} from "./parser.ts"
 import {allTokens} from "./tokens.ts"
+import {isObject} from "./ƒ-utils.ts"
 
 
 const jsonPathLexer = new Lexer(allTokens, {
@@ -49,21 +50,31 @@ export function generateFunctionSource(text: string): CodegenContext {
 /** @internal */
 export type SJPFn<T> = ($: unknown, isQuery: boolean, $named?: NamedVariables) => T | IteratorObject<T>
 
-const EMPTY$$ = (name: string) => { throw new Error(`no variable named '$${name}'`) }
+const EMPTY$$ = (name: string) => {
+  missingVarError(name)
+}
+
+
+// thrown for both LAX and STRICT modes
+function missingVarError(name: string) {
+  throw new MissingVariableError(`no variable named '$${name}'`)
+}
 
 function createFunction<T>({source, lax, scope}: CodegenContext): SJPFn<T> {
   const fn = new Function("ƒ", "$", "$$", source)
   const ƒ = new ƒBase(lax, scope)
 
   return ($, isQuery, $named?) => {
+    if ($named !== undefined && !isObject($named)) {
+      throw new Error("vars must be an object")
+    }
     const $$ = !$named
       ? EMPTY$$
       : (name: string): unknown => {
         if (Object.hasOwn($named, name)) {
           return $named[name]
         }
-        // thrown for both LAX and STRICT modes
-        throw new Error(`no variable named '$${name}'`)
+        missingVarError(name)
       }
 
     ƒ.inQuery = isQuery

@@ -1,5 +1,5 @@
 import {CLDR, timeRoundOptions, timestampRoundOptions} from "./datetime.ts"
-import {type KeyValue} from "./json-path.ts"
+import {type KeyValue, MissingVariableError} from "./json-path.ts"
 import {autoFlatMap, autoMap, flatten, isIterable, isIterableInput, isSeq, next, one, ReplayableIterable} from "./iterators.ts"
 import {
   isBigInt,
@@ -769,8 +769,11 @@ export class ƒBase {
       return isSeq(result)
         ? result.some((p) => p === Pred.TRUE)
         : result === Pred.TRUE
-    } catch (e) {
-      // filter silently consumes all errors
+    } catch (err) {
+      // filter silently consumes most errors
+      if (err instanceof MissingVariableError) {
+        throw err
+      }
       return false
     }
   }
