@@ -1,6 +1,6 @@
 import {CLDR, timeRoundOptions, timestampRoundOptions} from "./datetime.ts"
 import {type KeyValue} from "./json-path.ts"
-import {autoFlatMap, autoMap, flatten, isIterable, isIterableInput, isSeq, next, ReplayableIterable} from "./iterators.ts"
+import {autoFlatMap, autoMap, flatten, isIterable, isIterableInput, isSeq, next, one, ReplayableIterable} from "./iterators.ts"
 import {
   isBigInt,
   isBoolean,
@@ -48,6 +48,8 @@ const BIGINT_MIN = -(2n ** 63n)
 const BIGINT_MAX = 2n ** 63n - 1n
 const INTEGER_MIN = -(2 ** 31)
 const INTEGER_MAX = 2 ** 31 - 1
+
+const RANGE = Symbol.for("*range")
 
 
 /** @internal */
@@ -685,6 +687,11 @@ export class ƒBase {
     const array = this._toArray(input, {strict: Array.isArray, error: "Array accessors can only be applied to an array."})
     return Iterator.from(subscripts)
       .map((sub) => {
+        // range function generates a sequence of array positions
+        if (ƒBase.isRangeFunction(sub)) {
+          return sub(array)
+            .map((s: number) => this._maybeElement(array, s))
+        }
         if (isFunction(sub)) {
           sub = sub(array)
         }
@@ -692,7 +699,12 @@ export class ƒBase {
           return this._maybeElement(array, sub)
         }
         if (isSeq(sub)) {
-          return sub.map((s) => this._maybeElement(array, s as number))
+          // not a range query, can only be one element
+          const s = one(sub)
+          if (isNumber(s) && sub.next().done) {
+            return this._maybeElement(array, s)
+          }
+          throw new Error("array subscript must be single numeric value")
         }
         throw new Error("array accessor must be numbers")
       })
@@ -710,10 +722,25 @@ export class ƒBase {
   }
 
 
-  last(array: Array<unknown>): number {
-    return array.length - 1
+  last(array?: unknown): unknown {
+    if (array === undefined) {
+      array = this.scope.get(CURRENT_ARRAY) as []
+    }
+    if (Array.isArray(array)) {
+      return array.length - 1
+    }
+    if (isIterable(array)) {
+      return (arr: unknown) => this.last(arr)
+    }
+    // scalar values are auto-wrapped, so their last position is 0
+    return 0
   }
 
+
+  private static isRangeFunction(input: unknown): input is Function {
+    // @ts-ignore
+    return input[RANGE]
+  }
 
   private static *_range(start: number, end: number): Generator<number> {
     for (let i = start; i <= end; i++) {
@@ -722,13 +749,16 @@ export class ƒBase {
   }
 
   range(from: unknown, to: unknown): (array: Array<unknown>) => Seq<number> {
-    return (array) => {
+    const rangeƒ = (array: unknown[]) => {
       const start = isFunction(from) ? from(array) : from
       const end = isFunction(to) ? to(array) : to
       return Iterator.from(ƒBase._range(
         Math.floor(mustBeNumber(start, "'from'") as number),
         Math.floor(mustBeNumber(end, "'to'") as number)))
     }
+    // mark the function so it can be identified later as a range generator.
+    rangeƒ[RANGE] = true
+    return rangeƒ
   }
 
 

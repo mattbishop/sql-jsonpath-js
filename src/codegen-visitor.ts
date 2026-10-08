@@ -209,7 +209,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       } else if (FilterValue) {
         source = `${ctx.source}v`
       } else if (Last) {
-        source = `${ctx.source}ƒ.last`
+        source = `${ctx.source}ƒ.last()`
       }
       return {...ctx, source}
     }
@@ -280,6 +280,12 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       const {source: primary} = ctx
       const subscripts = subscript
         .map((s) => this.visitNoSource(s, ctx).source)
+      /*
+        ƒ.array() returns:
+          - a function that takes a list of subscripts
+          - an array that accepts the subscripts
+        both can consume ([subs]), though an array will only use the last element in [subs]
+       */
       return {...ctx, source: `ƒ.array(${primary})([${subscripts}])`}
     }
 

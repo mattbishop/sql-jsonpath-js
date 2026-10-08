@@ -1769,11 +1769,11 @@ describe("Statement tests", () => {
   })
 
   describe("array accessor", () => {
-    it("single elements", () => {
+    it("single elements", async () => {
       // tests $.size() which is out of bounds, but in lax mode, ignores the access
-      const statement = compile('$[0,4,last,$.size()]')
-      const actualArray = Array.from(statement.query(["a", "b", "c", "d", [66,77], "f", "g", "h"]))
-      expect(actualArray).to.deep.equal(["a", [66,77], "h"])
+      const src = '$[0,4,last,$.size()]'
+      const data = ["a", "b", "c", "d", [66,77], "f", "g", "h"]
+      await testValuesCompareToPg(src, data)
     })
 
     it("supports duplicate and reordered subscripts", async () => {
@@ -1791,6 +1791,24 @@ describe("Statement tests", () => {
     it("supports last minus offset subscripts", async () => {
       const src = '$[last - 2,last - 1,last]'
       const data = ["a", "b", "c", "d", "e"]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("filtered subscript can resolve to a single numeric value", async () => {
+      const src = '$[last ? (@.type() == "number")]'
+      const data = [1, 2, 3]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("throws when a filtered last subscript does not resolve to a single numeric value", async () => {
+      const src = '$[last ? (@.type() == "string")]'
+      const data = [1, 2, 3]
+      await testValuesCompareToPg(src, data)
+    })
+
+    it("ignores last offset subscripts outside the array in lax mode", async () => {
+      const src = '$[last - 10,last + 1,last]'
+      const data = ["a", "b", "c"]
       await testValuesCompareToPg(src, data)
     })
 
@@ -1854,10 +1872,10 @@ describe("Statement tests", () => {
       await testValuesCompareToPg(src, data)
     })
 
-    it("auto-wraps non-arrays in lax mode", () => {
-      const statement = compile('$[last]')
-      const actual = one(statement.query("coffee"))
-      expect(actual).to.equal("coffee")
+    it("auto-wraps non-arrays in lax mode", async () => {
+      const src = '$[last]'
+      const data = "coffee"
+      await testValuesCompareToPg(src, data)
     })
 
     it("applies lax array subscripts to auto-wrapped scalar values", async () => {
@@ -1872,53 +1890,50 @@ describe("Statement tests", () => {
       await testValuesCompareToPg(src, data)
     })
 
-    it("rejects non-arrays in strict mode", () => {
-      const statement = compile('strict $[last]')
-      expect(() => one(statement.query("tea"))).to.throw
+    it("rejects non-arrays in strict mode", async () => {
+      const src = 'strict $[last]'
+      const data = "tea"
+      await testValuesCompareToPg(src, data)
     })
 
-    it("range elements", () => {
-      const statement = compile('$[1 to 3]')
-      const actualArray = Array.from(statement.query(["a", "b", "c", "d", [66,77]]))
-      expect(actualArray).to.deep.equal(["b", "c", "d"])
+    it("range elements", async () => {
+      const src = '$[1 to 3]'
+      const data = ["a", "b", "c", "d", [66,77]]
+      await testValuesCompareToPg(src, data)
     })
 
-    it("unwraps lax", () => {
-      const statement = compile('$.phones.type')
+    it("unwraps lax", async () => {
+      const src = '$.phones.type'
       const data = {phones: [
           {type: "cell", number: "abc-defg"},
           {number: "pqr-wxyz"},
           {type: "home", number: "hij-klmn"}
         ]}
-      const actual = Array.from(statement.query(data))
-      expect(actual).to.deep.equal(["cell", "home"])
+      await testValuesCompareToPg(src, data)
     })
 
-    it("nested array unwrapping", () => {
-      const statement = compile('$.phones[last]')
+    it("nested array unwrapping", async () => {
+      const src = '$.phones[last]'
       const data = [
         { name: "Fred", phones: [ "372-0453", "558-9345"] },
         { name: "Manjit", phones: "906-2051" }
       ]
-      const actual = Array.from(statement.query(data))
-      expect(actual).to.deep.equal(["558-9345", "906-2051"])
+      await testValuesCompareToPg(src, data)
     })
 
-    it("does not unwrap strict", () => {
-      const statement = compile('strict $.phones.type')
+    it("does not unwrap strict", async () => {
+      const src = 'strict $.phones.type'
       const data = { name: "Fred", phones: [
           { type: "home", number: "372-0453" },
           { type: "work", number: "506-2051" }
         ] }
-      expect(() => one(statement.query(data))).to.throw
+      await testValuesCompareToPg(src, data)
     })
 
-    it("nested elements", () => {
-      // $[last] is [1, 2], and [1] is 2
-      // So get [0, 2]
-      const statement = compile('$[0,$[last][1]]')
-      const actualArray = Array.from(statement.query([27, "testy", true, [1, 2]]))
-      expect(actualArray).to.deep.equal([27, true])
+    it("nested elements", async () => {
+      const src = '$[0,$[last][1]]'
+      const data = [27, "testy", true, [1, 2]]
+      await testValuesCompareToPg(src, data)
     })
   })
 
