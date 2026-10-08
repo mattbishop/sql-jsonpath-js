@@ -433,7 +433,7 @@ describe("Codegen tests", () => {
     it("single elements", () => {
       // tests $.size() which is out of bounds, but in lax mode, ignores the access
       const ctx = generateFunctionSource('$[0,4,last,$.size()]')
-      expect(ctx.source).to.equal('return ƒ.array($)([0,4,ƒ.last,ƒ.size($)])')
+      expect(ctx.source).to.equal('return ƒ.array($)([0,4,ƒ.last(),ƒ.size($)])')
     })
 
     it("out-of-bounds array access in strict mode", () => {
@@ -443,12 +443,12 @@ describe("Codegen tests", () => {
 
     it("non-arrays in lax mode", () => {
       const ctx = generateFunctionSource('$[last]')
-      expect(ctx.source).to.equal('return ƒ.array($)([ƒ.last])')
+      expect(ctx.source).to.equal('return ƒ.array($)([ƒ.last()])')
     })
 
     it("non-arrays in strict mode", () => {
       const ctx = generateFunctionSource('strict $[last]')
-      expect(ctx.source).to.equal('return ƒ.array($)([ƒ.last])')
+      expect(ctx.source).to.equal('return ƒ.array($)([ƒ.last()])')
     })
 
     it("range elements", () => {
@@ -463,7 +463,7 @@ describe("Codegen tests", () => {
 
     it("nested array unwrapping", () => {
       const ctx = generateFunctionSource('$.phones[last]')
-      expect(ctx.source).to.equal('return ƒ.array(ƒ.member($,"phones"))([ƒ.last])')
+      expect(ctx.source).to.equal('return ƒ.array(ƒ.member($,"phones"))([ƒ.last()])')
     })
 
     it("does not unwrap strict", () => {
@@ -473,7 +473,7 @@ describe("Codegen tests", () => {
 
     it("nested elements", () => {
       const ctx = generateFunctionSource('$[0,$[last][1]]')
-      expect(ctx.source).to.equal('return ƒ.array($)([0,ƒ.array(ƒ.array($)([ƒ.last]))([1])])')
+      expect(ctx.source).to.equal('return ƒ.array($)([0,ƒ.array(ƒ.array($)([ƒ.last()]))([1])])')
     })
   })
 
