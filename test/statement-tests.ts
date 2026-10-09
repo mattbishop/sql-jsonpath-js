@@ -580,6 +580,38 @@ describe("Statement tests", () => {
         const data = [[{z: true}, {y: false}], [{a: "yes"}], [{q: 6, z: 1}]]
         await testValuesCompareToPg(src, data)
       })
+
+      it("matches strict exists over array member access", async () => {
+        const data = {g: [{x: 2}, {y: 3}]}
+        // input for exists is an array iterator (g[*])
+        const src = 'strict $.g[*] ? (exists (@.x))'
+        await testValuesCompareToPg(src, data)
+      })
+
+      it("unknown strict exists over array member access", async () => {
+        const data = {g: [{x: 2}, {y: 3}]}
+        const src = 'strict $.g[*] ? ((exists (@.x)) is unknown)'
+        await testValuesCompareToPg(src, data)
+      })
+
+      it("matches strict exists over array[*] member access", async () => {
+        const data = {g: [{x: 2}, {y: 3}]}
+        // input for exists is the array (g); boxStar hasn't happened yet
+        const src = 'strict $.g ? (exists (@[*].x))'
+        await testValuesCompareToPg(src, data)
+      })
+
+      it("unknown strict exists over array member[*] access", async () => {
+        const data = {g: [{x: 2}, {y: 3}]}
+        const src = 'strict $.g ? ((exists (@[*].x)) is unknown)'
+        await testValuesCompareToPg(src, data)
+      })
+
+      it("can filter ! predicates on members", async () => {
+        const src = '$ ? (!exists(@.z))'
+        const data = [{z: true}, {y: false}, {a: "yes"}]
+        await testValuesCompareToPg(src, data)
+      })
     })
 
     describe("'is unknown'", () => {

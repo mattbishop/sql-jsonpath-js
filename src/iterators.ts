@@ -58,6 +58,8 @@ export function toInputIterator(input: Input): IteratorObject<unknown> {
     : new SingletonIterator(input))
 }
 
+/** @internal */
+export const EMPTY_ITERATOR = Iterator.from([])
 
 /**
  * Wraps a single-pass iterable so it can be iterated multiple times.
@@ -157,7 +159,7 @@ export class DefaultOnErrorIterator<T> implements Iterator<T> {
   next(): IteratorResult<T> {
     try {
       return this.iterator.next()
-    } catch (e: any) {
+    } catch {
       return {value: this.defaultValue, done: false}
     }
   }

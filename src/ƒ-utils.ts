@@ -1,5 +1,6 @@
 import {ZonedTime} from "./json-path.ts"
 import {type Maybe, NO_VALUE, type NumBigInt, Pred} from "./types.ts"
+import {isSeq, noValueFilter} from "./iterators.ts"
 
 
 /*
@@ -158,4 +159,30 @@ export function mustBeNumberOrBigInt(num: unknown, method: string): NumBigInt {
     return num
   }
   throw new Error(`${method} input must be a number or bigint, found ${JSON.stringify(num)}.`)
+}
+
+export function hasValue(input: unknown, lax: boolean): boolean {
+  return lax
+    ? hasValueLax(input)
+    : hasValueStrict(input)
+}
+
+function hasValueLax(input: unknown): boolean {
+  return isSeq(input)
+    ? input.some(noValueFilter)
+    : noValueFilter(input)
+}
+
+function hasValueStrict(input: unknown): boolean {
+  if (isSeq(input)) {
+    let found = false
+    for (const value of input) {
+      if (noValueFilter(value)) {
+        found = true
+        // continue evaluating seq to trigger possible Errors.
+      }
+    }
+    return found
+  }
+  return noValueFilter(input)
 }

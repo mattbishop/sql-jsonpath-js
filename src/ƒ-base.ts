@@ -1,7 +1,20 @@
 import {CLDR, timeRoundOptions, timestampRoundOptions} from "./datetime.ts"
 import {type KeyValue, MissingVariableError} from "./json-path.ts"
-import {autoFlatMap, autoMap, flatten, isIterable, isIterableInput, isSeq, next, one, ReplayableIterable} from "./iterators.ts"
 import {
+  autoFlatMap,
+  autoMap,
+  EMPTY_ITERATOR,
+  flatten,
+  isIterable,
+  isIterableInput,
+  isSeq,
+  next,
+  noValueFilter,
+  one,
+  ReplayableIterable
+} from "./iterators.ts"
+import {
+  hasValue,
   isBigInt,
   isBoolean,
   isFunction,
@@ -796,7 +809,7 @@ export class ƒBase {
       // scalar value
       return matches(input)
         ? input
-        : Iterator.from([])
+        : EMPTY_ITERATOR
     }
 
     // Strict mode preserves the current input shape. The predicate decides
@@ -805,17 +818,15 @@ export class ƒBase {
     if (isIterableInput(input)) {
       for (const element of input) {
         if (matches(element)) {
-          matched = true
+          matched = element
           break
         }
       }
-    } else {
-      matched = matches(input)
+    } else if (matches(input)) {
+      matched = input
     }
 
-    return matched
-      ? input
-      : Iterator.from([])
+    return matched ?? EMPTY_ITERATOR
   }
 
 
@@ -869,17 +880,8 @@ export class ƒBase {
   exists(wff: () => SingleOrSeq<unknown>): Pred {
     try {
       const result = wff()
-      let value
-      if (isSeq(result)) {
-        const next = result.next()
-        value = next.done
-          ? NO_VALUE
-          : next.value
-      } else {
-        value = result
-      }
-      return toPred(value !== NO_VALUE)
-    } catch (e) {
+      return toPred(hasValue(result, this.lax))
+    } catch {
       return Pred.UNKNOWN
     }
   }

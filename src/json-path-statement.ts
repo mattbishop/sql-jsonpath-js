@@ -2,19 +2,11 @@ import {Lexer} from "chevrotain"
 
 import {type CodegenContext, newCodegenVisitor} from "./codegen-visitor.ts"
 import {ƒBase} from "./ƒ-base.ts"
-import {
-  DefaultOnEmptyIterator,
-  DefaultOnErrorIterator,
-  flatten,
-  isIterableInput,
-  isSeq,
-  noValueFilter,
-  toInputIterator
-} from "./iterators.ts"
-import {type Input, type NamedVariables, type SqlJsonPathStatement, type QueryConfig, MissingVariableError} from "./json-path.ts"
+import {DefaultOnEmptyIterator, DefaultOnErrorIterator, flatten, isIterableInput, noValueFilter, toInputIterator} from "./iterators.ts"
+import {type Input, MissingVariableError, type NamedVariables, type QueryConfig, type SqlJsonPathStatement} from "./json-path.ts"
 import {JsonPathParser} from "./parser.ts"
 import {allTokens} from "./tokens.ts"
-import {isObject} from "./ƒ-utils.ts"
+import {hasValue, isObject} from "./ƒ-utils.ts"
 
 
 const jsonPathLexer = new Lexer(allTokens, {
@@ -116,31 +108,6 @@ export function createStatement(text: string): SqlJsonPathStatement {
       return Iterator.from(defaultsIterator(iterator, config))
     }
   }
-}
-
-function hasValue(input: unknown, lax: boolean): boolean {
-  return lax
-    ? hasValueLax(input)
-    : hasValueStrict(input)
-}
-
-function hasValueLax(input: unknown): boolean {
-  return isSeq(input)
-    ? input.some(noValueFilter)
-    : noValueFilter(input)
-}
-
-function hasValueStrict(input: unknown): boolean {
-  if (isSeq(input)) {
-    let found = false
-    for (const value of input) {
-      if (noValueFilter(value)) {
-        found = true
-      }
-    }
-    return found
-  }
-  return noValueFilter(input)
 }
 
 
