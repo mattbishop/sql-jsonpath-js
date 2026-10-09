@@ -641,8 +641,6 @@ describe("Statement tests", () => {
 
       it("can filter 'is unknown' predicates", async () => {
         const src = '$ ? ((@.sleepy == true) is unknown)'
-        // todo interesting, it keeps going through the objects even after the first test matches 'is unknown'. Probably should
-        // short-circuit and skip the rest?
         const data = [{sleepy: 77}, {sleepy: true}, {sleepy: false}, {sleepy: "yes"}]
         await testValuesCompareToPg(src, data)
       })
@@ -656,6 +654,18 @@ describe("Statement tests", () => {
       it("can filter ! 'is unknown' predicate iterators", async () => {
         const src = '$ ? ((!(@[*] == true)) is unknown)'
         const data = [[false, 100], [true, false], ["baby", true, {"g": 22}]]
+        await testValuesCompareToPg(src, data)
+      })
+
+      it("keeps items whose arithmetic predicate errors inside is unknown", async () => {
+        const src = '$[*] ? ((2 / @ > 0) is unknown)'
+        const data = [1, 2, 0, 3]
+        await testValuesCompareToPg(src, data)
+      })
+
+      it("does not keep items whose arithmetic predicate is known", async () => {
+        const src = '$[*] ? ((!(2 % @ > 0)) is unknown)'
+        const data = [1, 2, 0, 3]
         await testValuesCompareToPg(src, data)
       })
 

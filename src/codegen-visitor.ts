@@ -374,10 +374,9 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
     scopedPred(node: ScopedPredCstChildren, ctx: CodegenContext): CodegenContext {
       const {predicate, IsUnknown} = node
       ctx = this.visit(predicate, ctx)
-      let source = maybeParen(ctx.source)
-      if (IsUnknown) {
-        source = `ƒ.isUnknown${source}`
-      }
+      const source = IsUnknown
+        ? `ƒ.isUnknown(()=>${ctx.source})`
+        : maybeParen(ctx.source)
       return {...ctx, source}
     }
 

@@ -872,10 +872,13 @@ export class ƒBase {
     return toPred(input === Pred.UNKNOWN)
   }
 
-  isUnknown(input: SingleOrSeq<Pred>): SingleOrSeq<Pred> {
-    return this._unwrapWith(input, ƒBase._isUnknown, !this.inQuery)
+  isUnknown(input: () => SingleOrSeq<Pred>): SingleOrSeq<Pred> {
+    try {
+      return this._unwrapWith(input(), ƒBase._isUnknown, !this.inQuery)
+    } catch {
+      return Pred.TRUE
+    }
   }
-
 
   private static _startsWith(input: unknown, start: string): Pred {
     return isString(input)

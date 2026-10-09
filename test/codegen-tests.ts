@@ -579,18 +579,18 @@ describe("Codegen tests", () => {
     describe("'is unknown'", () => {
       it("can filter 'is unknown' predicates", () => {
         const ctx = generateFunctionSource('$ ? ((@.sleepy == true) is unknown)')
-        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.isUnknown(ƒ.compare(0,ƒ.member(v,"sleepy"),true)))')
+        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.isUnknown(()=>ƒ.compare(0,ƒ.member(v,"sleepy"),true)))')
       })
 
       it("can filter 'is unknown' predicate iterators", () => {
         const ctx = generateFunctionSource('$ ? ((@[*] == true) is unknown)')
-        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.isUnknown(ƒ.compare(0,ƒ.boxStar(v),true)))')
+        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.isUnknown(()=>ƒ.compare(0,ƒ.boxStar(v),true)))')
       })
     })
 
     it("can filter not 'is unknown' predicate iterators", () => {
       const ctx = generateFunctionSource('$ ? (!((@[*] == true) is unknown))')
-      expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.not(ƒ.isUnknown(ƒ.compare(0,ƒ.boxStar(v),true))))')
+      expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.not(ƒ.isUnknown(()=>ƒ.compare(0,ƒ.boxStar(v),true))))')
     })
 
     it("can filter multiple predicates with && and ||", () => {
@@ -646,7 +646,6 @@ describe("Codegen tests", () => {
     })
 
     it("chains filters", () => {
-      const data = [[{"z": true}, {"y": false}], [{"a": "yes"}], [{"z": 1}]]
       let ctx = generateFunctionSource('$ ? (exists(@[*].z))')
       expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.exists(()=>(ƒ.member(ƒ.boxStar(v),"z"))))')
 
