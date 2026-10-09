@@ -3,13 +3,10 @@ import {type KeyValue, MissingVariableError} from "./json-path.ts"
 import {
   autoFlatMap,
   autoMap,
-  EMPTY_ITERATOR,
   flatten,
   isIterable,
   isIterableInput,
   isSeq,
-  next,
-  noValueFilter,
   one,
   ReplayableIterable
 } from "./iterators.ts"
@@ -24,6 +21,7 @@ import {
   isString,
   mustBeNumber,
   mustBeNumberOrBigInt,
+  seekPred,
   sqlNum,
   sqlRound,
   sqlType,
@@ -809,7 +807,7 @@ export class ƒBase {
       // scalar value
       return matches(input)
         ? input
-        : EMPTY_ITERATOR
+        : NO_VALUE
     }
 
     // Strict mode preserves the current input shape. The predicate decides
@@ -826,7 +824,7 @@ export class ƒBase {
       matched = input
     }
 
-    return matched ?? EMPTY_ITERATOR
+    return matched ?? NO_VALUE
   }
 
 
@@ -843,37 +841,14 @@ export class ƒBase {
         : Pred.UNKNOWN
   }
 
-  /**
-   * Walk through an array of Preds and look for a specific value. Handles UNKNOWN rules.
-   * @param preds array of preds to examine
-   * @param seek  sought-after pred value
-   * @param defaultPred return this if none found, or UNKNOWN if found
-   */
-  private static _seekPred(preds:       SingleOrSeq<Pred>[],
-                           seek:        Pred,
-                           defaultPred: Pred): Pred {
-    let hasUnknown = false
-    for (const pred of preds) {
-      const value = next(pred)
-      if (value === seek) {
-        return seek
-      }
-      if (value === Pred.UNKNOWN) {
-        hasUnknown = true
-      }
-    }
-    return hasUnknown
-      ? Pred.UNKNOWN
-      : defaultPred
-  }
 
   and(preds: SingleOrSeq<Pred>[]): Pred {
-    return ƒBase._seekPred(preds, Pred.FALSE, Pred.TRUE)
+    return seekPred(preds, Pred.FALSE, Pred.TRUE)
   }
 
 
   or(preds: Pred[]): Pred {
-    return ƒBase._seekPred(preds, Pred.TRUE, Pred.FALSE)
+    return seekPred(preds, Pred.TRUE, Pred.FALSE)
   }
 
 

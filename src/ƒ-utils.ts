@@ -1,6 +1,6 @@
 import {ZonedTime} from "./json-path.ts"
-import {type Maybe, NO_VALUE, type NumBigInt, Pred} from "./types.ts"
-import {isSeq, noValueFilter} from "./iterators.ts"
+import {type Maybe, NO_VALUE, type NumBigInt, Pred, type SingleOrSeq} from "./types.ts"
+import {isSeq, next, noValueFilter} from "./iterators.ts"
 
 
 /*
@@ -139,6 +139,32 @@ export function toPred(condition: boolean): Pred {
     : Pred.FALSE
 }
 
+/**
+ * Walk through an array of Preds and look for a specific value. Handles UNKNOWN rules.
+ * @param preds array of preds to examine
+ * @param seek  sought-after pred value
+ * @param defaultPred return this if none found, or UNKNOWN if found
+ * @internal
+ */
+export function seekPred(preds:       SingleOrSeq<Pred>[],
+                         seek:        Pred,
+                         defaultPred: Pred): Pred {
+  let hasUnknown = false
+  for (const pred of preds) {
+    const value = next(pred)
+    if (value === seek) {
+      return seek
+    }
+    if (value === Pred.UNKNOWN) {
+      hasUnknown = true
+    }
+  }
+  return hasUnknown
+    ? Pred.UNKNOWN
+    : defaultPred
+}
+
+
 /** @internal */
 export function mustBeNumber(input: unknown, method: string, suppress = false): Maybe<number> {
   if (isNumber(input)) {
@@ -161,6 +187,7 @@ export function mustBeNumberOrBigInt(num: unknown, method: string): NumBigInt {
   throw new Error(`${method} input must be a number or bigint, found ${JSON.stringify(num)}.`)
 }
 
+/** @internal */
 export function hasValue(input: unknown, lax: boolean): boolean {
   return lax
     ? hasValueLax(input)
