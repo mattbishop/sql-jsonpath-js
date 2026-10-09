@@ -173,9 +173,6 @@ export class ƒBase {
 
   // not a JSONPath function. Used to convert strings to numbers for math
   num(input: unknown): SingleOrSeq<Maybe<number>> {
-    if (isFunction(input)) {
-      input = input(this.scope.get(CURRENT_ARRAY))
-    }
     return this._unwrapWithArgs(input, ƒBase._num, !this.inQuery, !this.inQuery && this.lax)
   }
 
