@@ -466,6 +466,12 @@ describe("Statement tests", () => {
         await testValuesCompareToPg(src, data)
       })
 
+      it("does not treat object identity as equality", async () => {
+        const src = '$ ? (@ == @)'
+        const data = {}
+        await testCompareToPg(src, data)
+      })
+
       it("treats null != true as known true", async () => {
         const src = '$ ? (@ != true)'
         const data = null

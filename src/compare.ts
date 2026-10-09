@@ -42,14 +42,19 @@ function comparePair(compOp: CompOp, left: any, typeLeft: string, right: any, ty
     return Pred.FALSE
   }
 
+  // no object identity comparisons
+  if (typeLeft === "object" || typeRight === "object") {
+    return Pred.UNKNOWN
+  }
+
   const nullComp = compareMaybeNull(compOp, typeLeft, typeRight)
   if (nullComp) {
     return nullComp
   }
 
-  const primComp = comparePrimitive(compOp, left, typeLeft, right, typeRight)
-  if (primComp) {
-    return primComp
+  const numComp = compareNumerics(compOp, left, typeLeft, right, typeRight)
+  if (numComp) {
+    return numComp
   }
 
   if (areTemporalComparable(typeLeft, typeRight)) {
@@ -78,11 +83,11 @@ function comparePair(compOp: CompOp, left: any, typeLeft: string, right: any, ty
   return Pred.UNKNOWN
 }
 
-function comparePrimitive(compOp:     CompOp,
-                          left:       unknown,
-                          typeLeft:   string,
-                          right:      unknown,
-                          typeRight:  string): Pred | undefined {
+function compareNumerics(compOp:    CompOp,
+                         left:      unknown,
+                         typeLeft:  string,
+                         right:     unknown,
+                         typeRight: string): Pred | undefined {
   if (   (typeLeft === "number" && !Number.isFinite(left))
       || (typeRight === "number" && !Number.isFinite(right))) {
     return Pred.UNKNOWN
@@ -161,9 +166,10 @@ function compareMaybeNull(compOp: CompOp, typeLeft: string, typeRight: string): 
 */
 function areTemporalComparable(typeLeft: string, typeRight: string): boolean {
   if (   typeLeft === typeRight
-      && (typeLeft === "date" || typeLeft.startsWith("time"))) {
+      && (typeLeft === TemporalTypes.DATE || typeLeft.startsWith("time"))) {
     return true
   }
+  // types are different but possibly comparable
   const leftIsComparable =
        typeLeft === TemporalTypes.DATE
     || typeLeft === TemporalTypes.TIMESTAMP
@@ -176,6 +182,7 @@ function areTemporalComparable(typeLeft: string, typeRight: string): boolean {
 }
 
 function toTemporalComparable(temporal: Temporal.PlainDate | Temporal.PlainDateTime): string {
+  // todo it would be good to cache this conversion
   if (temporal instanceof Temporal.PlainDate) {
     temporal = Temporal.PlainDateTime.from(temporal)
   }
