@@ -217,10 +217,16 @@ export class ƒBase {
       case "-":
         return left - right
       case "/":
+        if (right === 0) {
+          throw new Error("division by zero")
+        }
         return left / right
       case "*":
         return left * right
       case "%":
+        if (right === 0) {
+          throw new Error("division by zero")
+        }
         return left % right
       default:
         throw new Error(`${op} is not a valid calc operation`)

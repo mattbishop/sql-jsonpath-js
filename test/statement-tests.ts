@@ -1976,54 +1976,76 @@ describe("Statement tests", () => {
   })
 
   describe("arithmetic", () => {
-    it("can negate a value", () => {
-      const statement = compile('-$.x')
-      const actualNumber = statement.query({x: 100})
-      expect(one(actualNumber)).to.equal(-100)
+    it("can negate a value", async () => {
+      const src = '-$.x'
+      const data = {x: 100}
+      await testCompareToPg(src, data)
     })
 
-    it("can triple-negate a value", () => {
-      const statement = compile('---30')
-      const actualNumber = statement.query(null)
-      expect(one(actualNumber)).to.equal(-30)
+    it("can triple-negate a value", async () => {
+      const src = '---30'
+      const data = null
+      await testCompareToPg(src, data)
     })
 
-    it("can add to a number", () => {
-      const statement = compile('$ + 4')
-      const actualNumber = statement.query(10)
-      expect(one(actualNumber)).to.equal(14)
+    it("can add to a number", async () => {
+      const src = '$ + 4'
+      const data = 10
+      await testCompareToPg(src, data)
     })
 
-    it("can multiply a number", () => {
-      const statement = compile('$ * 10')
-      const actualNumber = statement.query(2)
-      expect(one(actualNumber)).to.equal(20)
+    it("can multiply a number", async () => {
+      const src = '$ * 10'
+      const data = 2
+      await testCompareToPg(src, data)
     })
 
-    it("can modulo an array of numbers", () => {
-      const statement = compile('$ ? (@ % 2 == 0)')
-      const actual = statement.query([0, 1, 2, 3, 4, 5, 6, 7, 8, 9].values())
-      expect(Array.from(actual)).to.deep.equal([0, 2, 4, 6, 8])
+    it("can modulo an array of numbers", async () => {
+      const src = '$ ? (@ % 2 == 0)'
+      const data = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+      await testCompareToPg(src, data)
     })
 
-    it("can divide by a function", () => {
-      const statement = compile('$[0] / $.size()')
-      const actualNumber = statement.query([20, 0])
-      expect(one(actualNumber)).to.equal(10)
+    it("can divide by a function", async () => {
+      const src = '$[0] / $.size()'
+      const data = [20, 0]
+      await testCompareToPg(src, data)
     })
 
-    it("chain arithmetic statements", () => {
-      const statement = compile('$[0] / ($.size() + 2)')
-      const actualNumber = statement.query([20, 0])
-      expect(one(actualNumber)).to.equal(5)
+    it("chain arithmetic statements", async () => {
+      const src = '$[0] / ($.size() + 2)'
+      const data = [20, 0]
+      await testCompareToPg(src, data)
     })
 
     it("chain arithmetic statements again", async () => {
       const src = '$[0] / 5 * $.size() + 9 - 1'
       const data = [20, 3]
+      await testCompareToPg(src, data)
+    })
 
-      await testExistsCompareToPg(src, data)
-      await testValuesCompareToPg(src, data)
+    it("throws on division by zero", async () => {
+      const src = '$ / 0'
+      const data = 10
+      await testCompareToPg(src, data)
+    })
+
+    it("throws on modulo by zero", async () => {
+      const src = '$ % 0'
+      const data = 10
+      await testCompareToPg(src, data)
+    })
+
+    it("handles division by zero in filter", async () => {
+      const src = '$ ? (@ / 0 == 1)'
+      const data = [1, 2, 3]
+      await testCompareToPg(src, data)
+    })
+
+    it("handles modulo by zero in filter", async () => {
+      const src = '$ ? (@ % 0 == 0)'
+      const data = [1, 2, 3]
+      await testCompareToPg(src, data)
     })
 
     it("omits arithmetic results when either operand is missing", async () => {
