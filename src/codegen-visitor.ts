@@ -151,12 +151,11 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
         const op = maybeImage(UnaryOp)
         ctx = this.visitNoSource(unary, ctx)
         const right = ctx.source
-        if (right.startsWith("ƒ")) {
+        if (/^[-+\d]/.test(right)) {
+          ctx = {...ctx, source: `${left}${op}(${right})`}
+        } else {
           const opFn = op === "-" ? "neg" : "pos"
           ctx = {...ctx, source: `${left}ƒ.${opFn}(${right})`}
-        }
-        else {
-          ctx = {...ctx, source: `${left}${op}(${right})`}
         }
       }
       return ctx

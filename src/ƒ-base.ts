@@ -55,12 +55,11 @@ type StrictConfig = {
 
 const KV_INDEX = "KV-index"
 const CURRENT_ARRAY = "current-array"
+const RANGE = Symbol.for("*range")
 const BIGINT_MIN = -(2n ** 63n)
 const BIGINT_MAX = 2n ** 63n - 1n
 const INTEGER_MIN = -(2 ** 31)
 const INTEGER_MAX = 2 ** 31 - 1
-
-const RANGE = Symbol.for("*range")
 
 
 /** @internal */
@@ -173,7 +172,7 @@ export class ƒBase {
 
   // not a JSONPath function. Used to convert strings to numbers for math
   num(input: unknown): SingleOrSeq<Maybe<number>> {
-    return this._unwrapWithArgs(input, ƒBase._num, !this.inQuery, !this.inQuery && this.lax)
+    return autoMap(input, (v) => ƒBase._num(v, false))
   }
 
 
@@ -237,7 +236,10 @@ export class ƒBase {
   }
 
   neg(input: unknown): SingleOrSeq<Maybe<number>> {
-    return this._unwrapWithArgs(input, ƒBase._neg, !this.inQuery, !this.inQuery && this.lax)
+    const suppress = this.lax && !this.inQuery
+    return suppress
+      ? this._unwrapWith(input, (v) => ƒBase._neg(v, true), true)
+      : autoMap(input, (v) => ƒBase._neg(v, false))
   }
 
 
@@ -246,7 +248,10 @@ export class ƒBase {
   }
 
   pos(input: unknown): SingleOrSeq<Maybe<number>> {
-    return this._unwrapWithArgs(input, ƒBase._pos, !this.inQuery, !this.inQuery && this.lax)
+    const suppress = this.lax && !this.inQuery
+    return suppress
+      ? this._unwrapWith(input, (v) => ƒBase._pos(v, true), true)
+      : autoMap(input, (v) => ƒBase._pos(v, false))
   }
 
 

@@ -2122,6 +2122,26 @@ describe("Statement tests", () => {
       data = [1, "2", 0, 3]
       await testCompareToPg(src, data)
     })
+
+    describe("arithmetic error cases", () => {
+      it("throws when right operand of multiplication is not a single numeric value", async () => {
+        const src = '3 * $'
+        const data = [1, 2]
+        await testCompareToPg(src, data)
+      })
+
+      it("throws when operand of unary minus is not a numeric value", async () => {
+        const src = '-$'
+        const data = [1, "2", 3]
+        await testCompareToPg(src, data)
+      })
+
+      it("throws when operand of unary plus is not a numeric value", async () => {
+        const src = '+$'
+        const data = [1, "2", 3]
+        await testCompareToPg(src, data)
+      })
+    })
   })
 
   describe("README samples", () => {
