@@ -281,8 +281,12 @@ export class ƒBase {
   }
 
 
-  private static _size(value: unknown): number {
-    return Array.isArray(value)
+  private static _size(value: unknown, strict: boolean): number {
+    const isArray = Array.isArray(value)
+    if (!isArray && strict) {
+      throw new Error("size() can only be applied to arrays in strict mode")
+    }
+    return isArray
       ? value.length
       : 1
   }
@@ -290,7 +294,7 @@ export class ƒBase {
   size(input: unknown): SingleOrSeq<number> {
     this._checkStrict(input, {strict: Array.isArray, error: "size() can only be applied to arrays."})
     // do not use unwrap since it must preserve Array shape for size()
-    return autoMap(input, ƒBase._size)
+    return autoMap(input, (v) => ƒBase._size(v, !this.lax))
   }
 
 

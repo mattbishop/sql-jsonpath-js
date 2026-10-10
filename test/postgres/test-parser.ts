@@ -8,7 +8,7 @@ import {NO_VALUE} from "../../src/types"
 
 
 export function parseTest(jsonb: JsonbTest): TestFn | undefined {
-  const testƒ = parseStatements(jsonb)
+  const testƒ = parseStatement(jsonb)
   if (!testƒ) {
     return
   }
@@ -47,7 +47,7 @@ Possible select terms:
         jsonb_path_query_tz(...)
         jsonb_path_query_first(...)
  */
-function parseStatements(testInput: JsonbTest): (() => (unknown | IteratorObject<unknown>)) | undefined {
+function parseStatement(testInput: JsonbTest): (() => (unknown | IteratorObject<unknown>)) | undefined {
 
   const {statement} = testInput
   let match = /^jsonb (.+);/.exec(statement)
