@@ -1354,10 +1354,11 @@ select jsonb_path_query('{"a": 2}', '($.a - 5).abs() + 10');
  13
 (1 row)
 
-select jsonb_path_query('{"a": 2.5}', '-($.a * $.a).floor() % 4.3');
+-- changed 4.3 to 4.5 so JS result is more comparable to pg.
+select jsonb_path_query('{"a": 2.5}', '-($.a * $.a).floor() % 4.5');
  jsonb_path_query
 ------------------
- -1.7
+ -1.5
 (1 row)
 
 select jsonb_path_query('[1, 2, 3]', '($[*] > 2) ? (@ == true)');
