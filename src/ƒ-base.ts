@@ -7,8 +7,7 @@ import {
   isIterable,
   isIterableInput,
   isSeq,
-  one,
-  ReplayableIterable
+  one
 } from "./iterators.ts"
 import {
   hasValue,
@@ -177,26 +176,29 @@ export class ƒBase {
 
 
   calc(op: string, leftIn: unknown, rightIn: unknown): SingleOrSeq<Maybe<number>> {
-    const left = this.num(leftIn)
-    const right = this.num(rightIn)
+    const left = this.operand(leftIn)
+    const right = this.operand(rightIn)
+    return ƒBase._calcPair(op, left, right)
+  }
 
-    const leftIterable = isSeq(left)
-    const rightIterable = isSeq(right)
+  private operand(input:unknown): Maybe<number> {
+    const values = this.lax
+      ? this._unwrapWith(input, (v) => ƒBase._num(v, false), false)
+      : autoMap(input, (v) => ƒBase._num(v, false))
 
-    if (!leftIterable && !rightIterable) {
-      return ƒBase._calcPair(op, left, right)
+    if (isSeq(values)) {
+      const first = values.next()
+      if (first.done) {
+        return NO_VALUE
+      }
+      // array operands only unwrap single-element arrays
+      const second = values.next()
+      if (!second.done) {
+        throw new Error("operand is not a single numeric value")
+      }
+      return first.value
     }
-    if (leftIterable && !rightIterable) {
-      return left.map((l) => ƒBase._calcPair(op, l, right))
-    }
-    if (!leftIterable && rightIterable) {
-      return right.map((r) => ƒBase._calcPair(op, left, r))
-    }
-    //both are iterable
-    const rightValues = new ReplayableIterable((right as Seq<number>))
-    return (left as Seq<number>)
-      .flatMap((l) => Iterator.from(rightValues)
-        .map((r) => ƒBase._calcPair(op, l, r)))
+    return values
   }
 
   private static _calcPair(op: string, left: Maybe<number>, right: Maybe<number>): number {
@@ -237,9 +239,9 @@ export class ƒBase {
 
   neg(input: unknown): SingleOrSeq<Maybe<number>> {
     const suppress = this.lax && !this.inQuery
-    return suppress
-      ? this._unwrapWith(input, (v) => ƒBase._neg(v, true), true)
-      : autoMap(input, (v) => ƒBase._neg(v, false))
+    return this.lax
+      ? this._unwrapWith(input, (v) => ƒBase._neg(v, suppress), true)
+      : autoMap(input, (v) => ƒBase._neg(v, suppress))
   }
 
 
@@ -247,11 +249,29 @@ export class ƒBase {
     return mustBeNumber(input, "positive", suppress)
   }
 
+  /*
+  [1,2,3]
+  query
+    lax: 1, 2, 3
+    strict: operand not number Error
+  exists
+    lax: returns true
+    strict: operand not number Error
+
+  [1,"2",3]
+  query:
+    lax: operand not number Error
+    strict: operand not number Error
+  exists
+    lax: true
+    strict: operand not number Error
+   */
   pos(input: unknown): SingleOrSeq<Maybe<number>> {
     const suppress = this.lax && !this.inQuery
-    return suppress
-      ? this._unwrapWith(input, (v) => ƒBase._pos(v, true), true)
-      : autoMap(input, (v) => ƒBase._pos(v, false))
+    return this.lax
+      ? this._unwrapWith(input, (v) => ƒBase._pos(v, suppress), true)
+      : autoMap(input, (v) => ƒBase._pos(v, suppress))
+
   }
 
 

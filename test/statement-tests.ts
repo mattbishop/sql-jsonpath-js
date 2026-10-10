@@ -2091,45 +2091,13 @@ describe("Statement tests", () => {
       await testCompareToPg(src, data)
     })
 
-    it("suppresses item errors from unary plus and matches later numeric values", async () => {
-      const src = '+$[*]'
-      let data = ["1", 2, 0, 3]
-      await testCompareToPg(src, data)
-      data = [1, "2", 0, 3]
+    it("throws when right operand of multiplication is not a single numeric value", async () => {
+      const src = '3 * $'
+      const data = [1, 2]
       await testCompareToPg(src, data)
     })
 
-    it("in strict, suppresses item errors from unary plus on numeric values", async () => {
-      const src = 'strict +$[*]'
-      let data = ["1", 2, 0, 3]
-      await testCompareToPg(src, data)
-      data = [1, "2", 0, 3]
-      await testCompareToPg(src, data)
-    })
-
-    it("suppresses item errors from unary minus and matches later numeric values", async () => {
-      const src = '-$[*]'
-      let data = ["1", 2, 0, 3]
-      await testCompareToPg(src, data)
-      data = [1, "2", 0, 3]
-      await testCompareToPg(src, data)
-    })
-
-    it("in strict, shows error from unary minus on numeric values", async () => {
-      const src = 'strict -$[*]'
-      let data = ["1", 2, 0, 3]
-      await testCompareToPg(src, data)
-      data = [1, "2", 0, 3]
-      await testCompareToPg(src, data)
-    })
-
-    describe("arithmetic error cases", () => {
-      it("throws when right operand of multiplication is not a single numeric value", async () => {
-        const src = '3 * $'
-        const data = [1, 2]
-        await testCompareToPg(src, data)
-      })
-
+    describe ("unary operations", () => {
       it("throws when operand of unary minus is not a numeric value", async () => {
         const src = '-$'
         const data = [1, "2", 3]
@@ -2139,6 +2107,50 @@ describe("Statement tests", () => {
       it("throws when operand of unary plus is not a numeric value", async () => {
         const src = '+$'
         const data = [1, "2", 3]
+        await testCompareToPg(src, data)
+      })
+
+      it("unwraps arrays for unary minus", async () => {
+        const src = '-$.a'
+        const data = { a: [-1, -2, -3] }
+        await testCompareToPg(src, data)
+      })
+
+      it("unwraps arrays for unary plus", async () => {
+        const src = '+$.a'
+        const data = { a: [-1, -2, -3] }
+        await testCompareToPg(src, data)
+      })
+
+      it("suppresses item errors from unary plus and matches later numeric values", async () => {
+        const src = '+$[*]'
+        let data = ["1", 2, 0, 3]
+        await testCompareToPg(src, data)
+        data = [1, "2", 0, 3]
+        await testCompareToPg(src, data)
+      })
+
+      it("in strict, suppresses item errors from unary plus on numeric values", async () => {
+        const src = 'strict +$[*]'
+        let data = ["1", 2, 0, 3]
+        await testCompareToPg(src, data)
+        data = [1, "2", 0, 3]
+        await testCompareToPg(src, data)
+      })
+
+      it("suppresses item errors from unary minus and matches later numeric values", async () => {
+        const src = '-$[*]'
+        let data = ["1", 2, 0, 3]
+        await testCompareToPg(src, data)
+        data = [1, "2", 0, 3]
+        await testCompareToPg(src, data)
+      })
+
+      it("in strict, shows error from unary minus on numeric values", async () => {
+        const src = 'strict -$[*]'
+        let data = ["1", 2, 0, 3]
+        await testCompareToPg(src, data)
+        data = [1, "2", 0, 3]
         await testCompareToPg(src, data)
       })
     })

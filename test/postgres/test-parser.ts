@@ -16,8 +16,12 @@ export function parseTest(jsonb: JsonbTest): TestFn | undefined {
   return () => {
     if (jsonb.errorExpected) {
       expect(() => {
-        const result = next(testƒ())
-        console.warn("Expected error, but result is " + result)
+        const results = testƒ()
+        if (isIterable(results)) {
+          // iterate over all the elements to trigger an error
+          Array.from(results)
+        }
+        console.warn("Expected error, but result is " + JSON.stringify(results))
       }, jsonb.statement).to.throw()
     } else {
       const results = testƒ()
