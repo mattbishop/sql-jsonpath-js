@@ -267,9 +267,27 @@ describe("Statement tests", () => {
         @ returns []
         @[*] returns data array
    */
-  it("strict searches array with an named array value on right side of comparison", async () => {
+  it("strict searches array with an array value on right side of comparison", async () => {
     const src = 'strict $ ? (@[*] == "angie")'
     const data = ["mary", "angie"]
+    await testValuesCompareToPg(src, data)
+  })
+
+  it("strict searches array with an empty string", async () => {
+    const src = 'strict $ ? (@[*] starts with "abc")'
+    const data = ["", "a", "abc", "abcabc"]
+    await testValuesCompareToPg(src, data)
+  })
+
+  it("strict searches array with strings but no matches", async () => {
+    const src = 'strict $ ? (@[*] starts with "abc")'
+    const data = ["", "a", "abd", "abdabc"]
+    await testValuesCompareToPg(src, data)
+  })
+
+  it("strict searches array but rejects arrays with unknown comparison values", async () => {
+    const src = 'strict $ ? (@[*] starts with "abc")'
+    const data = ["abc", "abcabc", null, 1]
     await testValuesCompareToPg(src, data)
   })
 

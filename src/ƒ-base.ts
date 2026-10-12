@@ -1,14 +1,6 @@
 import {CLDR, timeRoundOptions, timestampRoundOptions} from "./datetime.ts"
 import {type KeyValue, MissingVariableError} from "./json-path.ts"
-import {
-  autoFlatMap,
-  autoMap,
-  flatten,
-  isIterable,
-  isIterableInput,
-  isSeq,
-  one
-} from "./iterators.ts"
+import {autoFlatMap, autoMap, flatten, isIterable, isIterableInput, isSeq, one} from "./iterators.ts"
 import {
   hasValue,
   isBigInt,
@@ -805,13 +797,28 @@ export class ƒBase {
   }
 
 
-  private static _matchesFilter(input: unknown, filterExp: Predƒ): boolean {
+  private matchesFilter(input: unknown, filterExp: Predƒ): boolean {
     try {
       const result = filterExp(input)
-      // look for at least one Pred.TRUE in the iterator
-      return isSeq(result)
-        ? result.some((p) => p === Pred.TRUE)
-        : result === Pred.TRUE
+      if (isSeq(result)) {
+        if(this.lax) {
+          return result.some((p) => p === Pred.TRUE)
+        }
+        // strict
+        let p = false
+        for (const pred of result) {
+          // any unknown will break out of matching
+          if (pred === Pred.UNKNOWN) {
+            return false
+          }
+          // look for at least one true, but don't break; still need to ensure no unknowns
+          if (!p) {
+            p = pred === Pred.TRUE
+          }
+        }
+        return p
+      }
+      return result === Pred.TRUE
     } catch (err) {
       // filter silently consumes most errors
       if (err instanceof MissingVariableError) {
@@ -822,7 +829,7 @@ export class ƒBase {
   }
 
   filter(input: unknown, filterExp: Predƒ): SingleOrSeq<unknown> {
-    const matches = (v: unknown) => ƒBase._matchesFilter(v, filterExp)
+    const matches = (v: unknown) => this.matchesFilter(v, filterExp)
 
     if (this.lax) {
       // Lax mode auto-unwraps arrays/sequences, so the filter keeps the
