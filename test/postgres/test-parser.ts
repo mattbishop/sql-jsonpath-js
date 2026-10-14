@@ -77,7 +77,7 @@ function parseJsonbTest(testInput: JsonbTest, statement: string): (() => (boolea
 
     console.info("parsing: ", src)
     // compile path in a function so it can throw during test execution.
-    const sqlJsonPath = () => compile(src)
+    const sqlJsonPath = () => compile(src.replaceAll("\\\\", "\\"))
 
     // https://justatheory.com/2023/10/sql-jsonpath-operators/
     if (jsonb[2] == '@?') {
@@ -104,7 +104,7 @@ function parse_jsonbFunctionTest(functionName:  string,
 
   console.info("parsing: ", srcArg)
   // compile path in a function so it can throw during test execution.
-  const sqlJsonPath = () => compile(srcArg)
+  const sqlJsonPath = () => compile(srcArg.replaceAll("\\\\", "\\"))
 
   switch (functionName) {
     case "exists":

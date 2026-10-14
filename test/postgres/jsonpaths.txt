@@ -1675,13 +1675,6 @@ select jsonb_path_query('[null, 1, "abc", "abd", "aBdC", "abdacb", "babc", "adc\
  "ab\nadc"
 (3 rows)
 
-select jsonb_path_query('[null, 1, "a\b", "a\\b", "^a\\b$"]', 'lax $[*] ? (@ like_regex "a\\b" flag "q")');
- jsonb_path_query
-------------------
- "a\\b"
- "^a\\b$"
-(2 rows)
-
 select jsonb_path_query('[null, 1, "a\b", "a\\b", "^a\\b$"]', 'lax $[*] ? (@ like_regex "a\\b" flag "")');
  jsonb_path_query
 ------------------

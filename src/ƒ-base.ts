@@ -924,13 +924,13 @@ export class ƒBase {
   }
 
 
-  private static _match(input: unknown, pattern: RegExp): Pred {
+  private static _regex(input: unknown, pattern: RegExp): Pred {
     return isString(input)
       ? toPred(pattern.test(input))
       : Pred.UNKNOWN
   }
 
-  match(input: unknown, pattern: RegExp): SingleOrSeq<Pred> {
-    return this._unwrapWithArgs(input, ƒBase._match, !this.inQuery, pattern)
+  regex(input: unknown, pattern: RegExp): SingleOrSeq<Pred> {
+    return this._unwrapWithArgs(input, ƒBase._regex, !this.inQuery, pattern)
   }
 }

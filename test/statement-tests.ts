@@ -753,92 +753,87 @@ describe("Statement tests", () => {
     })
 
     describe("can filter 'like_regex' predicates", () => {
-      it("without flags", () => {
-        const statement = compile('$ ? (@ like_regex "\\\\d+")')
-        const actual = statement.query(["8854", "bear"])
-        expect(Array.from(actual)).to.deep.equal(["8854"])
+      it("without flags", async () => {
+        const src = '$ ? (@ like_regex "\d+")'
+        const data = ["8854", "bear"]
+        await testCompareToPg(src, data)
       })
 
-      it("with case-insensitive flag", () => {
-        const statement = compile('$ ? (@ like_regex "court" flag "i")')
-        const actual = statement.query(["cOuRt", "COURT", 17])
-        expect(Array.from(actual)).to.deep.equal(["cOuRt", "COURT"])
+      it("with case-insensitive flag", async () => {
+        const src = '$ ? (@ like_regex "court" flag "i")'
+        const data = ["cOuRt", "COURT", 17]
+        await testCompareToPg(src, data)
       })
 
-      it("with q flag treats regex metacharacters as literal text", () => {
-        const statement = compile('$ ? (@ like_regex "a.b[0]+(yes)?" flag "q")')
-        const actual = statement.query([
+      it("with q flag treats regex metacharacters as literal text", async () => {
+        const src = '$ ? (@ like_regex "a.b[0]+(yes)?" flag "q")'
+        const data = [
           "a.b[0]+(yes)?",
           "prefix a.b[0]+(yes)? suffix",
           "axb0yes",
           "a-b[0]+(yes)?"
-        ])
-        expect(Array.from(actual)).to.deep.equal([
-          "a.b[0]+(yes)?",
-          "prefix a.b[0]+(yes)? suffix"
-        ])
+        ]
+        await testValuesCompareToPg(src, data)
       })
 
-      it("with q and i flags performs quoted matching case-insensitively", () => {
-        const statement = compile('$ ? (@ like_regex "a.b[0]+(yes)?" flag "qi")')
-        const actual = statement.query([
+      it("with q and i flags performs quoted matching case-insensitively", async () => {
+        const src = '$ ? (@ like_regex "a.b[0]+(yes)?" flag "qi")'
+        const data = [
           "A.B[0]+(YES)?",
           "a.b[0]+(yes)?",
           "axb0yes",
           "A-B[0]+(YES)?"
-        ])
-        expect(Array.from(actual)).to.deep.equal([
-          "A.B[0]+(YES)?",
-          "a.b[0]+(yes)?"
-        ])
+        ]
+        await testCompareToPg(src, data)
       })
 
-      it("with q flag treats backslash escapes as quoted text", () => {
-        const statement = compile('lax $[*] ? (@ like_regex "a\\b" flag "q")')
-        const actual = statement.query([null, 1, "a\b", "a\\b", "^a\\b$"])
-        expect(Array.from(actual)).to.deep.equal(["a\\b", "^a\\b$"])
+      it("with q flag treats backslash escapes as quoted text", async () => {
+        const src = 'lax $[*] ? (@ like_regex "a\\b" flag "q")'
+        const data = [null, 1, "1a\b", "2a\\b", "^a\\b$"]
+        await testValuesCompareToPg(src, data)
       })
 
-      it("with empty flag treats backslash escapes as regex syntax", () => {
-        const statement = compile('lax $[*] ? (@ like_regex "a\\b" flag "")')
-        const actual = statement.query([null, 1, "a\b", "a\\b", "^a\\b$"])
-        expect(Array.from(actual)).to.deep.equal(["a\b", "a\\b", "^a\\b$"])
+      it("with empty flag treats backslash escapes as regex syntax", async () => {
+        const src = 'lax $[*] ? (@ like_regex "a\\b" flag "")'
+        // Need to turn \\b into both \b and \\b?
+        const data = [null, 1, "1a\b", "2a\\b", "^a\\b$"]
+        await testCompareToPg(src, data)
       })
 
-      it("with q flag treats anchors and backslash escapes as quoted text", () => {
-        const statement = compile('lax $[*] ? (@ like_regex "^a\\b$" flag "q")')
-        const actual = statement.query([null, 1, "a\b", "a\\b", "^a\\b$"])
-        expect(Array.from(actual)).to.deep.equal(["^a\\b$"])
+      it("with q flag treats anchors and backslash escapes as quoted text", async () => {
+        const src = 'lax $[*] ? (@ like_regex "^a\\b$" flag "q")'
+        const data = [null, 1, "a\b", "a\\b", "^a\\b$"]
+        await testCompareToPg(src, data)
       })
 
-      it("with q flag treats uppercase boundary escape as quoted text", () => {
-        const statement = compile('lax $[*] ? (@ like_regex "^a\\\\B$" flag "q")')
-        const actual = statement.query([null, 1, "a\b", "a\\b", "^a\\b$"])
-        expect(Array.from(actual)).to.deep.equal([])
+      it("with q flag treats uppercase boundary escape as quoted text", async () => {
+        const src = 'lax $[*] ? (@ like_regex "^a\\\\B$" flag "q")'
+        const data = [null, 1, "a\b", "a\\b", "^a\\b$"]
+        await testCompareToPg(src, data)
       })
 
-      it("with i and q flags treats uppercase boundary escape as quoted text and removes q from regex flags", () => {
-        const statement = compile('lax $[*] ? (@ like_regex "^a\\B$" flag "iq")')
-        const actual = statement.query([null, 1, "a\b", "a\\b", "^a\\b$"])
-        expect(Array.from(actual)).to.deep.equal(["^a\\b$"])
+      it("with i and q flags treats uppercase boundary escape as quoted text and removes q from regex flags", async () => {
+        const src = 'lax $[*] ? (@ like_regex "^a\\B$" flag "iq")'
+        const data = [null, 1, "a\b", "a\\b", "^a\\b$"]
+        await testCompareToPg(src, data)
       })
 
-      it("with empty flag treats anchors and backslash escapes as regex syntax", () => {
-        const statement = compile('lax $[*] ? (@ like_regex "^a\\\\b$" flag "")')
-        const actual = statement.query([null, 1, "a\b", "a\\b", "^a\\b$"])
-        expect(Array.from(actual)).to.deep.equal([])
+      it("with empty flag treats anchors and backslash escapes as regex syntax", async () => {
+        const src = 'lax $[*] ? (@ like_regex "^a\\\\b$" flag "")'
+        const data = [null, 1, "a\b", "a\\b", "^a\\b$"]
+        await testCompareToPg(src, data)
       })
 
-      it("can filter an iterator of values", () => {
-        const statement = compile('$ ? (@[*] like_regex "\\\\d+")')
-        const actual = statement.query([true, ["bear", "8854"], ["not a number"], ["1", "-2"]])
-        expect(Array.from(actual)).to.deep.equal([["bear", "8854"], ["1", "-2"]])
+      it("can filter an iterator of values", async () => {
+        const src = '$ ? (@[*] like_regex "\d+")'
+        const data = [true, ["bear", "8854"], ["not a number"], ["1", "-2"]]
+        await testValuesCompareToPg(src, data)
       })
 
       it("handles missing member values before 'like_regex'", async () => {
         const src = '$ ? (@.name like_regex "^a")'
         const data = [{name: "apple"}, {missing: true}, {name: "orange"}, {name: "argon"}]
-        await testValuesCompareToPg(src, data)
+        await testCompareToPg(src, data)
       })
     })
 

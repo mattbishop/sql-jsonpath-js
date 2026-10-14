@@ -40,6 +40,16 @@ export type CodegenContext = {
 
 const compOps = ["==", "!=", ">", ">=", "<", "<="]
 
+const xqueryCCs = {
+  b: "\\x08", // Backspace (0x08)
+  t: "\\x09", // Tab (0x09)
+  n: "\\x0A", // Newline (0x0A)
+  r: "\\x0D", // Carriage Return (0x0D)
+  f: "\\x0C", // Form Feed (0x0C)
+  v: "\\x0B"  // Vertical Tab (0x0B)
+}
+
+
 
 function maybeAppend(token: IToken[] | undefined, ctx: CodegenContext): CodegenContext {
   return token
@@ -401,7 +411,7 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
           s -> JS s
           m -> JS m
           q -> look for the string as-is, without pattern matching
-          x -> JS none, don't support.
+          x -> JS none, don't support yet. Basically trip unescaped whitespace from pattern string?
 
           However, JS has more flags. Much more useful, so just pass them in. I could create a 'spec' mode
           that only accepts i, s, q and m, but let's see if anyone asks for that.
@@ -410,18 +420,27 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       }
       // trim quotes
       let regex = pattern.slice(1, -1)
+      regex = this.convertXqueryCCs(regex)
+      if (!safeRegex(regex)) {
+        throw new Error(`Unsafe regex: ${pattern}`)
+      }
+
       if (flags.includes("q")) {
         flags = flags.replaceAll("q", "")
-        regex = RegExp.escape(regex)
+        regex = RegExp.escape(regex) // this is the problem for CCs
+        regex = regex.replace("\\\\", "\\")
         regex = `new RegExp(${JSON.stringify(regex)},"${flags}")`
       } else {
         regex = regex.replace("\\\\", "\\")
         regex = `/${regex}/${flags}`
       }
-      if (!safeRegex(regex)) {
-        throw new Error(`Unsafe regex: ${pattern}`)
-      }
-      return {...ctx, source: `ƒ.match(${ctx.source},${regex})`}
+      return {...ctx, source: `ƒ.regex(${ctx.source},${regex})`}
+    }
+
+
+  convertXqueryCCs(pattern: string) {
+      // @ts-ignore
+      return pattern.replace(/\\([btnrvf])/g, (_, code) => xqueryCCs[code])
     }
 
 
