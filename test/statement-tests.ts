@@ -837,19 +837,19 @@ describe("Statement tests", () => {
       })
     })
 
-    it("chains filters", () => {
+    it("chains filters", async () => {
       const data = [[{"z": true}, {"y": false}], [{"a": "yes"}], [{"z": 1}]]
-      let statement = compile('$ ? (exists(@[*].z))')
-      const actualExists = statement.query(data)
-      expect(Array.from(actualExists)).to.deep.equal([[{"z": true}, {"y": false}], [{"z": 1}]])
+      const src1 = '$ ? (exists(@[*].z))'
+      await testCompareToPg(src1, data)
 
-      statement = compile('$ ? (@.size() > 0)')
-      const actualSize = statement.query(data)
-      expect(Array.from(actualSize)).to.deep.equal(data)
+      const src2 = '$ ? (@.size() > 0)'
+      await testCompareToPg(src2, data)
 
-      statement = compile('$ ? (exists(@[*].z)) ? (@.size() > 0)')
-      const actualChain = statement.query(data)
-      expect(Array.from(actualChain)).to.deep.equal([[{"z": true}, {"y": false}], [{"z": 1}]])
+      const src3 = 'strict $ ? (exists(@[*].z)) ? (@.size() > 0)'
+      await testCompareToPg(src3, data)
+
+      const src4 = '$ ? (exists(@[*].z)) ? (@.size() > 0)'
+      await testCompareToPg(src4, data)
     })
   })
 

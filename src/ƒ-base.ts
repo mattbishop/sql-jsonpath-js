@@ -1,6 +1,6 @@
 import {CLDR, timeRoundOptions, timestampRoundOptions} from "./datetime.ts"
 import {type KeyValue, MissingVariableError} from "./json-path.ts"
-import {autoFlatMap, autoMap, flatten, isIterable, isIterableInput, isSeq, one} from "./iterators.ts"
+import {autoFlatMap, autoMap, flatten, isIterable, isIterableInput, isSeq, one, toSeq} from "./iterators.ts"
 import {
   hasValue,
   isBigInt,
@@ -840,7 +840,7 @@ export class ƒBase {
       }
       if (isSeq(input)) {
         return input
-          .flatMap(flatten)
+          .flatMap(toSeq)
           .filter(matches)
       }
       // scalar value
