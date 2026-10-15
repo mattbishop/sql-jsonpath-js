@@ -91,6 +91,15 @@ function parseJsonbTest(testInput: JsonbTest, statement: string): (() => (boolea
   }
 }
 
+function temporalToString(input: unknown) {
+  if (   input instanceof Temporal.Instant
+      || input instanceof Temporal.PlainDate
+      || input instanceof Temporal.PlainTime
+      || input instanceof Temporal.PlainDateTime) {
+    return input.toString()
+  }
+  return input
+}
 
 function parse_jsonbFunctionTest(functionName:  string,
                                  args:          string): (() => (unknown | IteratorObject<unknown>)) | undefined {
@@ -146,7 +155,9 @@ function callMaybeSilently<T>(fn: () => T | Iterator<T>, silent: boolean): T | I
     if (isSeq(result) && silent) {
       return Iterator.from(new DefaultOnErrorIterator(NO_VALUE, result))
     }
-    return result
+    return isSeq(result)
+      ? result.map(temporalToString)
+      : temporalToString(result)
   } catch (err) {
     if (silent) {
       return NO_VALUE

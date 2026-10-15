@@ -148,7 +148,7 @@ const USE_OFFSET_REJECT_OVERFLOW: Temporal.ZonedDateTimeFromOptions = {offset: "
 
 
 // Matches standard tokens or single delimiters
-const templateTokenizer = /(A\.M\.|P\.M\.|HH12|HH24|HH|YYYY|YYY|YY|Y|MM|DDD|DD|MI|SSSSS|SS|TZH|TZM|FF[1-9]|RRRR|RR)|([-.\/,';: ])|(?:"([^"]+)")/ig
+const templateTokenizer = /(A\.M\.|P\.M\.|HH12|HH24|HH|YYYY|YYY|YY|Y|MM|DDD|DD|MI|SSSSS|SS|TZH|TZM|FF[1-9]|RRRR|RR)|([-.\/,';: ])|("[^"]+")/ig
 
 function createFormattedParser(template: string): StringToTemporal {
   const fields = new Set<string>()
@@ -177,7 +177,10 @@ function createFormattedParser(template: string): StringToTemporal {
       regexPattern += RegExp.escape(delim)
       lastWasDelim = true
     } else if (lit) {
-      regexPattern += RegExp.escape(lit)
+      // unescape quotes
+      const thing = lit.replaceAll('\\"', '"')
+      // trim quotes
+      regexPattern += RegExp.escape(thing.slice(1, -1))
     }
   }
 
