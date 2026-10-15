@@ -613,7 +613,7 @@ describe("Codegen tests", () => {
     describe("can filter 'like_regex' predicates", () => {
       it("without flags", () => {
         const ctx = generateFunctionSource('$ ? (@ like_regex "\\\\d+")')
-        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.match(v,/\\d+/))')
+        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.regex(v,/\\d+/))')
       })
 
       it("with flags", () => {
@@ -623,12 +623,12 @@ describe("Codegen tests", () => {
 
       it("with q flag escapes regex metacharacters and removes q from JS flags", () => {
         const ctx = generateFunctionSource('$ ? (@ like_regex "a.b[0]+(yes)?" flag "q")')
-        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.regex(v,new RegExp("\\\\x61\\\\.b\\\\[0\\\\]\\\\+\\\\(yes\\\\)\\\\?","")))')
+        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.regex(v,new RegExp(RegExp.escape("a.b[0]+(yes)?"),"")))')
       })
 
       it("with q and i flags escapes regex metacharacters and keeps non-q flags", () => {
         const ctx = generateFunctionSource('$ ? (@ like_regex "a.b[0]+(yes)?" flag "qi")')
-        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.regex(v,new RegExp("\\\\x61\\\\.b\\\\[0\\\\]\\\\+\\\\(yes\\\\)\\\\?","i")))')
+        expect(ctx.source).to.equal('return ƒ.filter($,v=>ƒ.regex(v,new RegExp(RegExp.escape("a.b[0]+(yes)?"),"i")))')
       })
 
       it("can filter an iterator of values", () => {

@@ -420,18 +420,16 @@ export function newCodegenVisitor(ctor: { new(...args: any[]): ICstVisitor<Codeg
       }
       // trim quotes
       let regex = pattern.slice(1, -1)
-      regex = this.convertXqueryCCs(regex)
       if (!safeRegex(regex)) {
         throw new Error(`Unsafe regex: ${pattern}`)
       }
 
       if (flags.includes("q")) {
         flags = flags.replaceAll("q", "")
-        regex = RegExp.escape(regex) // this is the problem for CCs
-        regex = regex.replace("\\\\", "\\")
-        regex = `new RegExp(${JSON.stringify(regex)},"${flags}")`
+        regex = `new RegExp(RegExp.escape("${regex}"),"${flags}")`
       } else {
-        regex = regex.replace("\\\\", "\\")
+        regex = this.convertXqueryCCs(regex)
+        regex = regex.replaceAll("\\\\", "\\")
         regex = `/${regex}/${flags}`
       }
       return {...ctx, source: `ƒ.regex(${ctx.source},${regex})`}

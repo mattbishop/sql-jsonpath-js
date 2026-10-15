@@ -773,7 +773,7 @@ describe("Statement tests", () => {
           "axb0yes",
           "a-b[0]+(yes)?"
         ]
-        await testValuesCompareToPg(src, data)
+        await testCompareToPg(src, data)
       })
 
       it("with q and i flags performs quoted matching case-insensitively", async () => {
@@ -790,7 +790,7 @@ describe("Statement tests", () => {
       it("with q flag treats backslash escapes as quoted text", async () => {
         const src = 'lax $[*] ? (@ like_regex "a\\b" flag "q")'
         const data = [null, 1, "1a\b", "2a\\b", "^a\\b$"]
-        await testValuesCompareToPg(src, data)
+        await testCompareToPg(src, data)
       })
 
       it("with empty flag treats backslash escapes as regex syntax", async () => {
@@ -827,7 +827,7 @@ describe("Statement tests", () => {
       it("can filter an iterator of values", async () => {
         const src = '$ ? (@[*] like_regex "\d+")'
         const data = [true, ["bear", "8854"], ["not a number"], ["1", "-2"]]
-        await testValuesCompareToPg(src, data)
+        await testCompareToPg(src, data)
       })
 
       it("handles missing member values before 'like_regex'", async () => {
