@@ -157,13 +157,8 @@ export class ƒBase {
   }
 
 
-  private static _num(input: unknown, suppress: boolean): Maybe<number> {
-    return mustBeNumber(input, "arithmetic", suppress)
-  }
-
-  // not a JSONPath function. Used to convert strings to numbers for math
-  num(input: unknown): SingleOrSeq<Maybe<number>> {
-    return autoMap(input, (v) => ƒBase._num(v, false))
+  private static _num(input: unknown, suppress: boolean): Maybe<NumBigInt> {
+    return mustBeNumberOrBigInt(input, "arithmetic", suppress)
   }
 
 
@@ -173,7 +168,7 @@ export class ƒBase {
     return ƒBase._calcPair(op, left, right)
   }
 
-  private operand(input:unknown): Maybe<number> {
+  private operand(input:unknown): Maybe<NumBigInt> {
     const values = this.lax
       ? this._unwrapWith(input, (v) => ƒBase._num(v, false), false)
       : autoMap(input, (v) => ƒBase._num(v, false))
@@ -193,43 +188,56 @@ export class ƒBase {
     return values
   }
 
-  private static _calcPair(op: string, left: Maybe<number>, right: Maybe<number>): number {
+  private static _calcPair(op: string, left: Maybe<NumBigInt>, right: Maybe<NumBigInt>): number {
     if (left === NO_VALUE) {
       throw new Error(`left operand of jsonpath operator ${op} is not a value`)
     }
     if (right === NO_VALUE) {
       throw new Error(`right operand of jsonpath operator ${op} is not a value`)
     }
+    const leftBI = isBigInt(left)
+    const rightBI = isBigInt(right)
+    if (leftBI !== rightBI) {
+      left = leftBI ? Number(left) : left
+      right = rightBI ? Number(right) : right
+    }
 
+    let result
     switch (op) {
       case "+":
-        return left + right
+        result = left + right
+        break
       case "-":
-        return left - right
+        result = left - right
+        break
       case "/":
         if (right === 0) {
           throw new Error("division by zero")
         }
-        return left / right
+        result = left / right
+        break
       case "*":
-        return left * right
+        result = left * right
+        break
       case "%":
         if (right === 0) {
           throw new Error("division by zero")
         }
-        return left % right
+        result = left % right
+        break
       default:
         throw new Error(`${op} is not a valid calc operation`)
     }
+    return Number(result)
   }
 
 
-  private static _neg(input: unknown, suppress: boolean): Maybe<number> {
-    const num = mustBeNumber(input, "negation", suppress)
+  private static _neg(input: unknown, suppress: boolean): Maybe<NumBigInt> {
+    const num = mustBeNumberOrBigInt(input, "negation", suppress)
     return num === NO_VALUE ? num : sqlNum(-num)
   }
 
-  neg(input: unknown): SingleOrSeq<Maybe<number>> {
+  neg(input: unknown): SingleOrSeq<Maybe<NumBigInt>> {
     const suppress = this.lax && !this.inQuery
     return this.lax
       ? this._unwrapWith(input, (v) => ƒBase._neg(v, suppress), true)
@@ -237,8 +245,8 @@ export class ƒBase {
   }
 
 
-  private static _pos(input: unknown, suppress: boolean): Maybe<number> {
-    return mustBeNumber(input, "positive", suppress)
+  private static _pos(input: unknown, suppress: boolean): Maybe<NumBigInt> {
+    return mustBeNumberOrBigInt(input, "positive", suppress)
   }
 
   /*
@@ -258,7 +266,7 @@ export class ƒBase {
     lax: true
     strict: operand not number Error
    */
-  pos(input: unknown): SingleOrSeq<Maybe<number>> {
+  pos(input: unknown): SingleOrSeq<Maybe<NumBigInt>> {
     const suppress = this.lax && !this.inQuery
     return this.lax
       ? this._unwrapWith(input, (v) => ƒBase._pos(v, suppress), true)
@@ -496,12 +504,16 @@ export class ƒBase {
   }
 
 
-  private static _abs(input: unknown): NumBigInt {
+  private static _abs(input: unknown): Maybe<NumBigInt> {
     const num = mustBeNumberOrBigInt(input, "abs()")
-    return num < 0 ? -num : num
+    if (num !== NO_VALUE) {
+      return num < 0 ? -num : num
+    }
+    return num
   }
 
   abs(input: unknown): SingleOrSeq<NumBigInt> {
+    //@ts-ignore
     return this._unwrapWith(input, ƒBase._abs, !this.inQuery)
   }
 

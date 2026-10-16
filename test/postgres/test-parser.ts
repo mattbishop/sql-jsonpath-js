@@ -91,12 +91,15 @@ function parseJsonbTest(testInput: JsonbTest, statement: string): (() => (boolea
   }
 }
 
-function temporalToString(input: unknown) {
+function mapToPgComparable(input: unknown) {
   if (   input instanceof Temporal.Instant
       || input instanceof Temporal.PlainDate
       || input instanceof Temporal.PlainTime
       || input instanceof Temporal.PlainDateTime) {
     return input.toString()
+  }
+  if (typeof input === "bigint") {
+    return Number(input).valueOf()
   }
   return input
 }
@@ -156,8 +159,8 @@ function callMaybeSilently<T>(fn: () => T | Iterator<T>, silent: boolean): T | I
       return Iterator.from(new DefaultOnErrorIterator(NO_VALUE, result))
     }
     return isSeq(result)
-      ? result.map(temporalToString)
-      : temporalToString(result)
+      ? result.map(mapToPgComparable)
+      : mapToPgComparable(result)
   } catch (err) {
     if (silent) {
       return NO_VALUE

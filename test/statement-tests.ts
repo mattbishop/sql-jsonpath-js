@@ -8,11 +8,16 @@ import type {Input} from "../src/json-path.ts"
 
 // better for debugging issues
 import {compile, one} from "../src/index.ts"
+import {isBigInt} from "../src/ƒ-utils";
 // testing from /dist to ensure the exported interface is correct
 //import {compile, one} from "../dist/index.js"
 
 
-const pg = await PGlite.create()
+const pg = await PGlite.create({
+  serializers: {
+
+  }
+})
 
 after(async () => {
   await pg.close()
@@ -113,6 +118,11 @@ async function pgValues(statement: string, data: any, vars?: Record<string, unkn
   }
 }
 
+function toJson(input: any): string {
+  return JSON.stringify(input, (key, value) =>
+    isBigInt(value) ? value.toString() : value)
+}
+
 async function _pgTest(method: string, statement: string, data: any, vars: Record<string, unknown> = {}) {
   const result = await pg.query<{value: unknown}>(`
     SELECT jsonb_path_${method}(
@@ -120,9 +130,9 @@ async function _pgTest(method: string, statement: string, data: any, vars: Recor
       $2,
       $3::JSONB
     ) AS value`, [
-      JSON.stringify(data),
+      toJson(data),
       statement,
-      JSON.stringify(vars)
+      toJson(vars)
   ])
 
   return result.rows.map(({value}) => value)
@@ -2111,6 +2121,18 @@ describe("Statement tests", () => {
     })
 
     describe ("unary operations", () => {
+      it("supports bigint() unary plus", async () => {
+        const src = '+$.bigint()'
+        const data = [100n, -3000n]
+        await testValuesCompareToPg(src, data)
+      })
+
+      it("supports bigint() unary minus", async () => {
+        const src = '-$.bigint()'
+        const data = [100n, -3000n]
+        await testValuesCompareToPg(src, data)
+      })
+
       it("throws when operand of unary minus is not a numeric value", async () => {
         const src = '-$'
         const data = [1, "2", 3]

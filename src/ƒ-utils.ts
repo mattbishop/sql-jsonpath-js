@@ -173,16 +173,19 @@ export function mustBeNumber(input: unknown, method: string, suppress = false): 
   if (suppress) {
     return NO_VALUE
   }
-  throw new Error(`${method} input must be a number, found ${JSON.stringify(input)}.`)
+  throw new Error(`${method} input must be a number, found ${input}.`)
 }
 
 /** @internal */
-export function mustBeNumberOrBigInt(num: unknown, method: string): NumBigInt {
+export function mustBeNumberOrBigInt(num: unknown, method: string, suppress = false): Maybe<NumBigInt> {
   if (isNumber(num)) {
     return sqlNum(num)
   }
   if (isBigInt(num)) {
     return num
+  }
+  if (suppress) {
+    return NO_VALUE
   }
   throw new Error(`${method} input must be a number or bigint, found ${JSON.stringify(num)}.`)
 }
