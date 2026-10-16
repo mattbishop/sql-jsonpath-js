@@ -394,8 +394,8 @@ export class ƒBase {
     const hasScale = precision && scale !== undefined
 
     if (hasScale) {
-      if (!Number.isInteger(scale) || scale < 0 || scale > precision) {
-        throw new Error(`decimal() scale must be an integer between 0 and precision, found ${scale}.`)
+      if (!Number.isInteger(scale) || scale < -1000 || scale > 1000) {
+        throw new Error(`decimal() scale must be an integer between -1000 and 1000, found ${scale}.`)
       }
       const mult = 10 ** scale
       value = sqlRound(value * mult) / mult
@@ -405,19 +405,19 @@ export class ƒBase {
     }
 
     if (hasPrecision) {
-      if (!Number.isInteger(precision) || precision < 1) {
-        throw new Error(`decimal() precision must be a positive integer, found ${precision}.`)
+      if (!Number.isInteger(precision) || precision < 1 || precision > 1000) {
+        throw new Error(`decimal() precision must be an integer between 1 and 1000, found ${precision}.`)
       }
       const absValue = Math.abs(value)
       const integerDigits = absValue < 1
         ? 0
         : Math.trunc(absValue).toString().length
-      const maxIntegerDigits = precision - (scale ?? 0)
+      const maxIntegerDigits = Math.abs(precision - (scale ?? 0))
       if (integerDigits > maxIntegerDigits) {
         throw new Error(`value out of range for decimal(${precision}${hasScale ? `,${scale}` : ""}): ${value}`)
       }
     }
-    return value
+    return sqlNum(value)
   }
 
   decimal(input: unknown, precision?: number, scale?: number): SingleOrSeq<number> {

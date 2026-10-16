@@ -1119,6 +1119,12 @@ describe("Statement tests", () => {
       await testValuesCompareToPg(src, data.values())
     })
 
+    it("returns correct value with negative scale", async () => {
+      const src = '$.decimal(5, -2)'
+      const data = ["1234.5678", "1200", "-1234.5678", "-1200"]
+      await testValuesCompareToPg(src, data)
+    })
+
     it("accepts bigint input from .bigint()", async () => {
       const src = '$.bigint().decimal()'
       const data = [0, 1, -1, 42, -42]

@@ -54,7 +54,7 @@ export const TimeStampTzMethod  = createRegexToken({
 /** @internal */
 export const DecimalMethod    = createRegexToken({
   name:             "DecimalMethod",
-  pattern:          /\.\s*decimal\s*\(\s*(?:(\d+)\s*(?:,\s*(\d+)\s*)?)?\)/y,
+  pattern:          /\.\s*decimal\s*\(\s*(?:([+-]?\d+)\s*(?:,\s*([+-]?\d+)\s*)?)?\)/y,
   start_chars_hint: ["."]
 })
 

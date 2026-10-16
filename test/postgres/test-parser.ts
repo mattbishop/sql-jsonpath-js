@@ -127,7 +127,8 @@ function parse_jsonbFunctionTest(functionName:  string,
       return () => callMaybeSilently(() => sqlJsonPath().query(input, vars), silent)
 
     case "query_array":
-      return () => callMaybeSilently(() => sqlJsonPath().query(input, vars), silent)
+      // expected data is an array, not a list of rows
+      return () => callMaybeSilently(() => [Array.from(sqlJsonPath().query(input, vars))], silent)
 
     case "query_first":
       return () => {
