@@ -140,8 +140,18 @@ function parse_jsonbFunctionTest(functionName:  string,
 
     case "match":
       return () => {
-        const first = callMaybeSilently(() => sqlJsonPath().query(input, vars), silent)
-        return one(first)
+        const result = callMaybeSilently(() => sqlJsonPath().query(input, vars), silent)
+        const all =  result.toArray()
+        if (all.length === 1) {
+          const value = all[0]
+          if (typeof value === "boolean") {
+            return value
+          }
+          if (silent || value === null) {
+            return NO_VALUE
+          }
+        }
+        throw new Error("match must return a single boolean value")
       }
   }
 }
