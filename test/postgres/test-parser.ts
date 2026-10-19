@@ -132,9 +132,11 @@ function parse_jsonbFunctionTest(functionName:  string,
 
     case "query_first":
       return () => {
-          const first = callMaybeSilently(() => sqlJsonPath().query(input, vars), silent)
-          return one(first)
-        }
+        const result = callMaybeSilently(() => sqlJsonPath().query(input, vars), silent)
+        //trigger any errors
+        const all =  result.toArray()
+        return all.length ? all[0] : NO_VALUE
+      }
 
     case "match":
       return () => {

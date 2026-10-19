@@ -51,7 +51,7 @@ export function sqlType(input: unknown): string {
 
 // SQL does not support IEEE 754 signed zero
 /** @internal */
-export function sqlNum(input: number): number {
+export function sqlNum(input: NumBigInt): NumBigInt {
   return Object.is(input, -0) ? 0 : input
 }
 
@@ -86,7 +86,7 @@ export function toNumber(input: unknown, method: string): number {
   if (!Number.isFinite(value)) {
     throw new Error(`${method}() input ${input} is not a representation of a finite number.`)
   }
-  return sqlNum(value)
+  return sqlNum(value) as number
 }
 
 /** @internal */
@@ -168,7 +168,7 @@ export function seekPred(preds:       SingleOrSeq<Pred>[],
 /** @internal */
 export function mustBeNumber(input: unknown, method: string, suppress = false): Maybe<number> {
   if (isNumber(input)) {
-    return sqlNum(input)
+    return sqlNum(input) as number
   }
   if (suppress) {
     return NO_VALUE

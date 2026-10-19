@@ -205,24 +205,29 @@ export class ƒBase {
     let result
     switch (op) {
       case "+":
+        //@ts-ignore already aligned the types above
         result = left + right
         break
       case "-":
+        //@ts-ignore already aligned the types above
         result = left - right
         break
       case "/":
         if (right === 0) {
           throw new Error("division by zero")
         }
+        //@ts-ignore already aligned the types above
         result = left / right
         break
       case "*":
+        //@ts-ignore already aligned the types above
         result = left * right
         break
       case "%":
         if (right === 0) {
           throw new Error("division by zero")
         }
+        //@ts-ignore already aligned the types above
         result = left % right
         break
       default:
@@ -358,7 +363,7 @@ export class ƒBase {
     if (value < INTEGER_MIN || value > INTEGER_MAX) {
       throw new Error(`value out of range for integer(): ${value}`)
     }
-    return sqlNum(value)
+    return sqlNum(value) as number
   }
 
   integer(input: unknown): SingleOrSeq<number> {
@@ -417,7 +422,7 @@ export class ƒBase {
         throw new Error(`value out of range for decimal(${precision}${hasScale ? `,${scale}` : ""}): ${value}`)
       }
     }
-    return sqlNum(value)
+    return sqlNum(value) as number
   }
 
   decimal(input: unknown, precision?: number, scale?: number): SingleOrSeq<number> {

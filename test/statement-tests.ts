@@ -1838,6 +1838,12 @@ describe("Statement tests", () => {
       await testValuesCompareToPg(src, data)
     })
 
+    it("throws for strict wildcard member access when any object is missing the key", async () => {
+      const src = 'strict $[*].a'
+      const data = [{a: 1}, {a: 2}, {}]
+      await testValuesCompareToPg(src, data)
+    })
+
     it("supports auto-unwrapping array of values", async () => {
       const src = '$.a'
       const data = [{a: 1}, {a: 2}, {b: 3}, {a: {a: 5}}]
