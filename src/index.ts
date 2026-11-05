@@ -1,6 +1,7 @@
 import {one} from "./iterators.ts"
-import {type SqlJsonPathStatement, ZonedTime} from "./json-path.ts"
+import {type SqlJsonPathStatement} from "./json-path.ts"
 import {createStatement} from "./json-path-statement.ts"
+import {ZonedTime} from "./zoned-time.ts"
 
 
 export {type SqlJsonPathStatement, one, ZonedTime}

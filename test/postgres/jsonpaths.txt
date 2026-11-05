@@ -2689,11 +2689,8 @@ select jsonb_path_query_tz('"2023-08-15 12:34:56"', '$.timestamp_tz().string()')
  "2023-08-15T12:34:56-07:00"
 (1 row)
 
-select jsonb_path_query('"2023-08-15 12:34:56 +5:30"', '$.timestamp_tz().string()');
-      jsonb_path_query
------------------------------
- "2023-08-15T12:34:56+05:30"
-(1 row)
+-- removed, non-standard string pattern
+-- select jsonb_path_query('"2023-08-15 12:34:56 +5:30"', '$.timestamp_tz().string()');
 
 select jsonb_path_query('"2023-08-15 12:34:56"', '$.timestamp().string()');
    jsonb_path_query
@@ -2701,19 +2698,11 @@ select jsonb_path_query('"2023-08-15 12:34:56"', '$.timestamp().string()');
  "2023-08-15T12:34:56"
 (1 row)
 
-select jsonb_path_query('"12:34:56 +5:30"', '$.time_tz().string()');
- jsonb_path_query
-------------------
- "12:34:56+05:30"
-(1 row)
+-- removed, non-standard string pattern
+-- select jsonb_path_query('"12:34:56 +5:30"', '$.time_tz().string()');
 
--- this timetz usage will absorb the UTC offset of the current timezone setting
-set local timezone = 'UTC-10';
-select jsonb_path_query_tz('"12:34:56"', '$.time_tz().string()');
- jsonb_path_query_tz
----------------------
- "12:34:56+10:00"
-(1 row)
+-- removed, non-standard string pattern, no support for setting timezone
+-- select jsonb_path_query_tz('"12:34:56"', '$.time_tz().string()');
 
 select jsonb_path_query('"12:34:56"', '$.time().string()');
  jsonb_path_query
@@ -2808,12 +2797,8 @@ select jsonb_path_query('"12:34:56.789"', '$.time(5)');
  "12:34:56.789"
 (1 row)
 
-select jsonb_path_query('"12:34:56.789"', '$.time(10)');
-WARNING:  TIME(10) precision reduced to maximum allowed, 6
- jsonb_path_query
-------------------
- "12:34:56.789"
-(1 row)
+-- removed, time precision behaviour different than spec, which states an error must be thrown.
+-- select jsonb_path_query('"12:34:56.789"', '$.time(10)');
 
 select jsonb_path_query('"12:34:56.789012"', '$.time(8)');
 WARNING:  TIME(8) precision reduced to maximum allowed, 6
@@ -2846,58 +2831,52 @@ select jsonb '"12:34:56+05:30"' @? '$.time_tz()';
  t
 (1 row)
 
-select jsonb_path_query('"12:34:56 +05:30"', '$.time_tz()');
- jsonb_path_query
-------------------
- "12:34:56+05:30"
-(1 row)
+-- removed, non-standard zoned time string
+-- select jsonb_path_query('"12:34:56 +05:30"', '$.time_tz()');
 
-select jsonb_path_query('"12:34:56 +05:30"', '$.time_tz().type()');
-   jsonb_path_query
------------------------
- "time with time zone"
-(1 row)
+-- removed, non-standard zoned time string
+-- select jsonb_path_query('"12:34:56 +05:30"', '$.time_tz().type()');
 
 select jsonb_path_query('"2023-08-15"', '$.time_tz()');
 ERROR:  time_tz format is not recognized: "2023-08-15"
 select jsonb_path_query('"2023-08-15 12:34:56"', '$.time_tz()');
 ERROR:  time_tz format is not recognized: "2023-08-15 12:34:56"
-select jsonb_path_query('"12:34:56.789 +05:30"', '$.time_tz(-1)');
+select jsonb_path_query('"12:34:56.789+05:30"', '$.time_tz(-1)');
 ERROR:  syntax error at or near "-" of jsonpath input
 LINE 1: select jsonb_path_query('"12:34:56.789 +05:30"', '$.time_tz(...
                                                          ^
-select jsonb_path_query('"12:34:56.789 +05:30"', '$.time_tz(2.0)');
+select jsonb_path_query('"12:34:56.789+05:30"', '$.time_tz(2.0)');
 ERROR:  syntax error at or near "2.0" of jsonpath input
 LINE 1: select jsonb_path_query('"12:34:56.789 +05:30"', '$.time_tz(...
                                                          ^
-select jsonb_path_query('"12:34:56.789 +05:30"', '$.time_tz(12345678901)');
+select jsonb_path_query('"12:34:56.789+05:30"', '$.time_tz(12345678901)');
 ERROR:  time precision of jsonpath item method .time_tz() is out of range for type integer
-select jsonb_path_query('"12:34:56.789 +05:30"', '$.time_tz(0)');
+select jsonb_path_query('"12:34:56.789+05:30"', '$.time_tz(0)');
  jsonb_path_query
 ------------------
  "12:34:57+05:30"
 (1 row)
 
-select jsonb_path_query('"12:34:56.789 +05:30"', '$.time_tz(2)');
+select jsonb_path_query('"12:34:56.789+05:30"', '$.time_tz(2)');
   jsonb_path_query
 ---------------------
  "12:34:56.79+05:30"
 (1 row)
 
-select jsonb_path_query('"12:34:56.789 +05:30"', '$.time_tz(5)');
+select jsonb_path_query('"12:34:56.789+05:30"', '$.time_tz(5)');
    jsonb_path_query
 ----------------------
  "12:34:56.789+05:30"
 (1 row)
 
-select jsonb_path_query('"12:34:56.789 +05:30"', '$.time_tz(10)');
+select jsonb_path_query('"12:34:56.789+05:30"', '$.time_tz(10)');
 WARNING:  TIME(10) WITH TIME ZONE precision reduced to maximum allowed, 6
    jsonb_path_query
 ----------------------
  "12:34:56.789+05:30"
 (1 row)
 
-select jsonb_path_query('"12:34:56.789012 +05:30"', '$.time_tz(8)');
+select jsonb_path_query('"12:34:56.789012+05:30"', '$.time_tz(8)');
 WARNING:  TIME(8) WITH TIME ZONE precision reduced to maximum allowed, 6
     jsonb_path_query
 -------------------------

@@ -1,4 +1,4 @@
-import {ZonedTime} from "./json-path.ts"
+import {ZonedTime} from "./zoned-time.ts"
 
 
 /** @internal */

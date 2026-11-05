@@ -1,6 +1,6 @@
-import {ZonedTime} from "./json-path.ts"
 import {type Maybe, NO_VALUE, type NumBigInt, Pred, type SingleOrSeq} from "./types.ts"
 import {isSeq, next, noValueFilter} from "./iterators.ts"
+import {ZonedTime} from "./zoned-time.ts"
 
 
 /*

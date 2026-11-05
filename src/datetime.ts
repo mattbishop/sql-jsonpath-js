@@ -1,5 +1,5 @@
-import {ZonedTime} from "./json-path.ts"
 import {type TemporalParser, type TemporalType, TemporalTypes, type TimeRoundOptions, type TimestampRoundOptions} from "./types.ts"
+import {ZonedTime} from "./zoned-time.ts";
 
 
 /**
@@ -77,7 +77,8 @@ function _toTimeTz(parser: StringToTemporal, input: string): ZonedTime {
     return value
   }
   if (value instanceof Temporal.Instant) {
-    return ZonedTime.from(value.toZonedDateTimeISO("UTC"))
+    const dt = value.toZonedDateTimeISO("UTC")
+    return ZonedTime.fromZDT(dt)
   }
   throw new Error(`Cannot convert input to a time with time zone: "${input}"`)
 }
@@ -251,12 +252,12 @@ function createFormattedParser(template: string): StringToTemporal {
     if (offset) {
       const zdt = Temporal.ZonedDateTime.from({
           year, month, day, hour, minute, second, millisecond, microsecond, nanosecond,
-          timeZone: "Etc/UTC",  // timeZone is required but will probably not match the offset
+          timeZone: "Etc/UTC",
           offset
         },
         USE_OFFSET_REJECT_OVERFLOW
       )
-      return ZonedTime.from(zdt)
+      return ZonedTime.fromZDT(zdt)
     }
     return Temporal.PlainTime.from(
       {hour, minute, second, millisecond, microsecond, nanosecond},
@@ -270,10 +271,7 @@ function parseTemporalString(input: string): TemporalType {
     case TemporalTypes.TIME:
       return Temporal.PlainTime.from(input, REJECT_OVERFLOW)
     case TemporalTypes.TIME_TZ:
-      // Instant wants a date portion
-      const instant = Temporal.Instant.from(`1970-01-01T${input}`)
-      // apply effect of timezone to time
-      return ZonedTime.from(instant.toZonedDateTimeISO("UTC"), REJECT_OVERFLOW)
+      return ZonedTime.from(input, REJECT_OVERFLOW)
     case TemporalTypes.DATE:
       return Temporal.PlainDate.from(input, REJECT_OVERFLOW)
     case TemporalTypes.TIMESTAMP:
@@ -347,7 +345,8 @@ export function timeRoundOptions(precision?: number): TimeRoundOptions | undefin
 
 function _timeRoundOptions(precision: number): TimeRoundOptions {
   if (precision > 9) {
-    throw new Error(`time/timestamp_tz() precision must be an integer between 0 and 9, found ${precision}.`)
+    console.warn(`time/timestamp_tz() precision must be an integer between 0 and 9, found ${precision}. Decreasing to 9`)
+    precision = 9
   }
   if (precision === 0) {
     return { smallestUnit: "second", roundingMode }

@@ -2,7 +2,7 @@ import {expect} from "chai"
 import {describe, it} from "node:test"
 
 import {compile, one} from "../src/index.ts"
-import {ZonedTime} from "../src/json-path.ts"
+import {ZonedTime} from "../src/zoned-time.ts"
 
 
 describe("datetime tests", () => {
@@ -250,21 +250,21 @@ describe("datetime tests", () => {
         const statement = compile('$.time_tz(3)')
         const timeActual = one(statement.query<Temporal.PlainTime>("12:34:56.7894+00:00"))
         // @ts-ignore
-        expect(timeActual.toString()).to.equal("12:34:56.789")
+        expect(timeActual.toString()).to.equal("12:34:56.789+00:00")
       })
 
       it("rounds half expand at the requested precision", () => {
         const statement = compile('$.time_tz(3)')
         const timeActual = one(statement.query<Temporal.PlainTime>("12:34:56.7895+00:00"))
         // @ts-ignore
-        expect(timeActual.toString()).to.equal("12:34:56.79")
+        expect(timeActual.toString()).to.equal("12:34:56.79+00:00")
       })
 
       it("supports zero precision", () => {
         const statement = compile('$.time_tz(0)')
-        const timeActual = one(statement.query<Temporal.PlainTime>("12:34:56.5+00:00"))
+        const timeActual = one(statement.query<Temporal.PlainTime>("12:34:56.5+03:30"))
         // @ts-ignore
-        expect(timeActual.toString()).to.equal("12:34:57")
+        expect(timeActual.toString()).to.equal("12:34:57+03:30")
       })
 
       it("rejects invalid precision values", () => {
@@ -496,6 +496,73 @@ describe("datetime tests", () => {
 
       expect(Array.from(actual)).to.deep.equal([])
     })
+
+    describe("ZonedTime comparison", () => {
+      it("treats offset-equivalent times as equal", () => {
+        const left = ZonedTime.from("12:35:00+01:00")
+        const right = ZonedTime.from("11:35:00+00:00")
+
+        expect(left.compare(right)).to.equal(0)
+        expect(right.compare(left)).to.equal(0)
+      })
+
+      it("orders by offset-adjusted hour and minute", () => {
+        const earlier = ZonedTime.from("12:35:00+02:00")
+        const later = ZonedTime.from("12:35:00+01:00")
+
+        expect(earlier.compare(later)).to.equal(-1)
+        expect(later.compare(earlier)).to.equal(1)
+      })
+
+      it("compares seconds when adjusted hour and minute match", () => {
+        const earlier = ZonedTime.from("12:35:00+01:00")
+        const later = ZonedTime.from("11:35:01+00:00")
+
+        expect(earlier.compare(later)).to.equal(-1)
+        expect(later.compare(earlier)).to.equal(1)
+      })
+
+      it("compares milliseconds when adjusted time matches to the second", () => {
+        const earlier = ZonedTime.from("12:35:00.123+01:00")
+        const later = ZonedTime.from("11:35:00.124+00:00")
+
+        expect(earlier.compare(later)).to.equal(-1)
+        expect(later.compare(earlier)).to.equal(1)
+      })
+
+      it("compares microseconds when adjusted time matches to the millisecond", () => {
+        const earlier = ZonedTime.from("12:35:00.123456+01:00")
+        const later = ZonedTime.from("11:35:00.123457+00:00")
+
+        expect(earlier.compare(later)).to.equal(-1)
+        expect(later.compare(earlier)).to.equal(1)
+      })
+
+      it("compares nanoseconds when adjusted time matches to the microsecond", () => {
+        const earlier = ZonedTime.from("12:35:00.123456123+01:00")
+        const later = ZonedTime.from("11:35:00.123456124+00:00")
+
+        expect(earlier.compare(later)).to.equal(-1)
+        expect(later.compare(earlier)).to.equal(1)
+      })
+
+      it("wraps offset-adjusted minutes across midnight", () => {
+        const earlier = ZonedTime.from("23:30:00-02:00")
+        const later = ZonedTime.from("01:30:00+00:00")
+
+        expect(earlier.compare(later)).to.equal(0)
+        expect(ZonedTime.from("23:29:59-02:00").compare(later)).to.equal(-1)
+        expect(ZonedTime.from("23:30:01-02:00").compare(later)).to.equal(1)
+      })
+
+      it("supports offsets without explicit minutes", () => {
+        const left = ZonedTime.from("12:35:00+1")
+        const right = ZonedTime.from("11:35:00+00:00")
+
+        expect(left.compare(right)).to.equal(0)
+        expect(left.toString()).to.equal("12:35:00+01:00")
+      })
+    })
   })
 
   describe("time precision branches", () => {
@@ -533,21 +600,21 @@ describe("datetime tests", () => {
       const statement = compile('$.time_tz(1)')
       const actual = one(statement.query("12:34:56.149+00:00"))
 
-      expect(actual?.toString()).to.equal("12:34:56.1")
+      expect(actual?.toString()).to.equal("12:34:56.1+00:00")
     })
 
     it("rounds time_tz to four digits of fractional second precision", () => {
       const statement = compile('$.time_tz(4)')
       const actual = one(statement.query("12:34:56.12345+00:00"))
 
-      expect(actual?.toString()).to.equal("12:34:56.1235")
+      expect(actual?.toString()).to.equal("12:34:56.1235+00:00")
     })
 
     it("rounds time_tz to seven digits of fractional second precision", () => {
       const statement = compile('$.time_tz(7)')
       const actual = one(statement.query("12:34:56.12345675+00:00"))
 
-      expect(actual?.toString()).to.equal("12:34:56.1234568")
+      expect(actual?.toString()).to.equal("12:34:56.1234568+00:00")
     })
   })
 
