@@ -1,5 +1,6 @@
 import {type TemporalParser, type TemporalType, TemporalTypes, type TimeRoundOptions, type TimestampRoundOptions} from "./types.ts"
-import {ZonedTime} from "./zoned-time.ts";
+import {ZonedTime} from "./zoned-time.ts"
+import {INT_MAX} from "./ƒ-utils.ts"
 
 
 /**
@@ -345,7 +346,10 @@ export function timeRoundOptions(precision?: number): TimeRoundOptions | undefin
 
 function _timeRoundOptions(precision: number): TimeRoundOptions {
   if (precision > 9) {
-    console.warn(`time/timestamp_tz() precision must be an integer between 0 and 9, found ${precision}. Decreasing to 9`)
+    if (precision > INT_MAX) {
+      throw new Error("time precision is out of range for integer")
+    }
+    console.warn(`time/timestamp() precision must be an integer between 0 and 9, found ${precision}. Decreasing to 9`)
     precision = 9
   }
   if (precision === 0) {

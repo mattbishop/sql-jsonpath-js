@@ -2,6 +2,10 @@ import {CLDR, timeRoundOptions, timestampRoundOptions} from "./datetime.ts"
 import {type KeyValue, MissingVariableError} from "./json-path.ts"
 import {autoFlatMap, autoMap, flatten, isIterable, isIterableInput, isSeq, one, toSeq} from "./iterators.ts"
 import {
+  BIGINT_MAX,
+  BIGINT_MIN,
+  INT_MAX,
+  INT_MIN,
   hasValue,
   isBigInt,
   isBoolean,
@@ -47,10 +51,6 @@ type StrictConfig = {
 const KV_INDEX = "KV-index"
 const CURRENT_ARRAY = "current-array"
 const RANGE = Symbol.for("*range")
-const BIGINT_MIN = -(2n ** 63n)
-const BIGINT_MAX = 2n ** 63n - 1n
-const INTEGER_MIN = -(2 ** 31)
-const INTEGER_MAX = 2 ** 31 - 1
 
 
 /** @internal */
@@ -360,7 +360,7 @@ export class ƒBase {
       default:
         throw new Error(`integer() can only be applied to a string or numeric value: ${input}`)
     }
-    if (value < INTEGER_MIN || value > INTEGER_MAX) {
+    if (value < INT_MIN || value > INT_MAX) {
       throw new Error(`value out of range for integer(): ${value}`)
     }
     return sqlNum(value) as number
@@ -723,7 +723,7 @@ export class ƒBase {
 
 
   private _maybeElement(array: Array<unknown>, pos: number): unknown {
-    if (pos > INTEGER_MAX) {
+    if (pos > INT_MAX) {
       throw new Error ("Array subscript is out of integer range.")
     }
     if (pos > -1 && pos < array.length) {

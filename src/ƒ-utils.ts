@@ -2,6 +2,15 @@ import {type Maybe, NO_VALUE, type NumBigInt, Pred, type SingleOrSeq} from "./ty
 import {isSeq, next, noValueFilter} from "./iterators.ts"
 import {ZonedTime} from "./zoned-time.ts"
 
+/** @internal */
+export const BIGINT_MIN = -(2n ** 63n)
+/** @internal */
+export const BIGINT_MAX = 2n ** 63n - 1n
+/** @internal */
+export const INT_MIN = -(2 ** 31)
+/** @internal */
+export const INT_MAX = 2 ** 31 - 1
+
 
 /*
   From spec. Ij is a value to be typed.
