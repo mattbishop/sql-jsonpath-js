@@ -3,6 +3,10 @@ import {sqlType, toPred} from "./ƒ-utils.ts"
 import {CompOp, NO_VALUE, Pred, TemporalTypes} from "./types.ts"
 
 
+/**
+ * Compares two values of unknown type and returns a Pred result.
+ * @internal
+ */
 export function compareValues(lax: boolean, compOp: CompOp, left: unknown, right: unknown): Pred {
   const leftIterable = isIterable(left)
   const rightIterable = isIterable(right)

@@ -8,9 +8,10 @@ import {INT_MAX} from "./ƒ-utils.ts"
  * @internal
  */
 export const CLDR = "CLDR"
-const UTC = "Etc/UTC"
 
 type StringToTemporal = (input: string) => TemporalType
+
+const UTC = "Etc/UTC"
 
 const parserCache: Map<string, TemporalParser> = new Map()
 
