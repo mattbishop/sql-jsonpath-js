@@ -5,6 +5,7 @@
   "keywords": [
     "sql",
     "jsonpath",
+    "sql/jsonpath",
     "sql-2023",
     "json"
   ],
@@ -27,7 +28,6 @@
     "dist"
   ],
   "scripts": {
-    "pg-test": "yarn build && node --test --import tsx test/postgres/*-tests.ts",
     "test": "yarn build && node --test --import tsx test/**/*-tests.ts",
     "coverage": "yarn build && node --test --experimental-test-coverage --import tsx test/**/*-tests.ts",
     "benchmark": "node --import tsx benchmark/cases.ts",
