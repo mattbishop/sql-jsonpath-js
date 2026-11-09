@@ -1,4 +1,4 @@
-import {CLDR, timeRoundOptions, timestampRoundOptions} from "./datetime.ts"
+import {CLDR, timeRoundOptions} from "./datetime.ts"
 import {type KeyValue, MissingVariableError} from "./json-path.ts"
 import {autoFlatMap, autoMap, flatten, isIterable, isIterableInput, isSeq, one, toSeq} from "./iterators.ts"
 import {
@@ -36,8 +36,7 @@ import {
   type SingleOrSeq,
   type TemporalParser,
   type TemporalType,
-  type TimeRoundOptions,
-  type TimestampRoundOptions
+  type TimeRoundOptions
 } from "./types.ts"
 import {compareValues} from "./compare.ts"
 
@@ -439,11 +438,13 @@ export class ƒBase {
       case "bigint":
         return String(input)
     }
-    if (   input instanceof Temporal.Instant
-        || input instanceof Temporal.PlainDateTime
+    if (   input instanceof Temporal.PlainDateTime
         || input instanceof Temporal.PlainDate
         || input instanceof Temporal.PlainTime) {
       return input.toString()
+    }
+    if (input instanceof Temporal.ZonedDateTime) {
+      return input.toString({timeZoneName: "never"})
     }
     throw new Error(`string() can only be applied to a string, boolean, numeric, or datetime value: ${JSON.stringify(input)}`)
   }
@@ -580,7 +581,7 @@ export class ƒBase {
   }
 
 
-  private static _timestamp(input: unknown, parser: TemporalParser, roundOpts?: TimestampRoundOptions): Temporal.PlainDateTime {
+  private static _timestamp(input: unknown, parser: TemporalParser, roundOpts?: TimeRoundOptions): Temporal.PlainDateTime {
     if (isString(input)) {
       let timestamp = parser.toTimestamp(input)
       if (roundOpts) {
@@ -593,12 +594,12 @@ export class ƒBase {
 
   timestamp(input: unknown, precision?: number): SingleOrSeq<Temporal.PlainDateTime> {
     const parser = this.scope.get(CLDR) as TemporalParser
-    const roundOpts = timestampRoundOptions(precision)
+    const roundOpts = timeRoundOptions(precision)
     return this._unwrapWithArgs(input, ƒBase._timestamp, !this.inQuery, parser, roundOpts)
   }
 
 
-  private static _timestamp_tz(input: unknown, parser: TemporalParser, roundOpts?: TimeRoundOptions): Temporal.Instant {
+  private static _timestamp_tz(input: unknown, parser: TemporalParser, roundOpts?: TimeRoundOptions): Temporal.ZonedDateTime {
     if (isString(input)) {
       let timestamp = parser.toTimestampTz(input)
       if (roundOpts) {
@@ -609,7 +610,7 @@ export class ƒBase {
     throw new Error(`timestamp() input must be a string, found ${JSON.stringify(input)}.`)
   }
 
-  timestamp_tz(input: unknown, precision?: number): SingleOrSeq<Temporal.Instant> {
+  timestamp_tz(input: unknown, precision?: number): SingleOrSeq<Temporal.ZonedDateTime> {
     const parser = this.scope.get(CLDR) as TemporalParser
     const roundOpts = timeRoundOptions(precision)
     return this._unwrapWithArgs(input, ƒBase._timestamp_tz, !this.inQuery, parser, roundOpts)

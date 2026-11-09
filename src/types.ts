@@ -59,17 +59,13 @@ export enum TemporalTypes {
 /** @internal */
 export type TemporalType =
   Temporal.PlainDateTime
-  | Temporal.Instant            // DateTime with an offset value
-  // | Temporal.ZonedDateTime   // These have named time zones like "[Pacific/Vancouver]"
+  | Temporal.ZonedDateTime
   | Temporal.PlainDate
   | Temporal.PlainTime
   | ZonedTime
 
 /** @internal */
 export type TimeRoundOptions = Temporal.RoundingOptions<"second" | "millisecond" | "microsecond" | "nanosecond">
-
-/** @internal */
-export type TimestampRoundOptions = TimeRoundOptions | Temporal.RoundingOptions<"day" | "hour" | "minute">
 
 /** @internal */
 export interface TemporalParser {
@@ -81,7 +77,7 @@ export interface TemporalParser {
 
   toTimestamp(input: string): Temporal.PlainDateTime
 
-  toTimestampTz(input: string): Temporal.Instant
+  toTimestampTz(input: string): Temporal.ZonedDateTime
 
   toTemporal(input: string): TemporalType
 }

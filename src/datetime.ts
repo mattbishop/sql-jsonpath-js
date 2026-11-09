@@ -1,4 +1,4 @@
-import {type TemporalParser, type TemporalType, TemporalTypes, type TimeRoundOptions, type TimestampRoundOptions} from "./types.ts"
+import {type TemporalParser, type TemporalType, TemporalTypes, type TimeRoundOptions} from "./types.ts"
 import {ZonedTime} from "./zoned-time.ts"
 import {INT_MAX} from "./ƒ-utils.ts"
 
@@ -8,6 +8,7 @@ import {INT_MAX} from "./ƒ-utils.ts"
  * @internal
  */
 export const CLDR = "CLDR"
+const UTC = "Etc/UTC"
 
 type StringToTemporal = (input: string) => TemporalType
 
@@ -77,9 +78,8 @@ function _toTimeTz(parser: StringToTemporal, input: string): ZonedTime {
   if (value instanceof ZonedTime) {
     return value
   }
-  if (value instanceof Temporal.Instant) {
-    const dt = value.toZonedDateTimeISO("UTC")
-    return ZonedTime.fromZDT(dt)
+  if (value instanceof Temporal.ZonedDateTime) {
+    return ZonedTime.fromZDT(value.withTimeZone(UTC))
   }
   throw new Error(`Cannot convert input to a time with time zone: "${input}"`)
 }
@@ -95,12 +95,12 @@ function _toTimestamp(parser: StringToTemporal, input: string): Temporal.PlainDa
   throw new Error(`Cannot convert input to a datetime: "${input}"`)
 }
 
-function _toTimestampTz(parser: StringToTemporal, input: string): Temporal.Instant {
+function _toTimestampTz(parser: StringToTemporal, input: string): Temporal.ZonedDateTime {
   const value = parser(input)
-  if (value instanceof Temporal.Instant) {
+  if (value instanceof Temporal.ZonedDateTime) {
     return value
   }
-  throw new Error(`Cannot convert the string to an instant: "${input}"`)
+  throw new Error(`Cannot convert the string to a timestamp with time zone: "${input}"`)
 }
 
 
@@ -236,11 +236,10 @@ function createFormattedParser(template: string): StringToTemporal {
       if (offset) {
         return Temporal.ZonedDateTime.from({
             year, month, day, hour, minute, second, millisecond, microsecond, nanosecond,
-            timeZone: "Etc/UTC",  // timeZone is required but will probably not match the offset
-            offset
+            timeZone: offset
           },
           USE_OFFSET_REJECT_OVERFLOW
-        ).toInstant()
+        )
       } else {
          return Temporal.PlainDateTime.from(
            {year, month, day, hour, minute, second, millisecond, microsecond, nanosecond},
@@ -251,14 +250,11 @@ function createFormattedParser(template: string): StringToTemporal {
       return Temporal.PlainDate.from({year, month, day}, REJECT_OVERFLOW)
     }
     if (offset) {
-      const zdt = Temporal.ZonedDateTime.from({
-          year, month, day, hour, minute, second, millisecond, microsecond, nanosecond,
-          timeZone: "Etc/UTC",
-          offset
-        },
-        USE_OFFSET_REJECT_OVERFLOW
+      const plain = Temporal.PlainTime.from(
+        {hour, minute, second, millisecond, microsecond, nanosecond},
+        REJECT_OVERFLOW
       )
-      return ZonedTime.fromZDT(zdt)
+      return new ZonedTime(plain, offset)
     }
     return Temporal.PlainTime.from(
       {hour, minute, second, millisecond, microsecond, nanosecond},
@@ -278,7 +274,12 @@ function parseTemporalString(input: string): TemporalType {
     case TemporalTypes.TIMESTAMP:
       return Temporal.PlainDateTime.from(input, REJECT_OVERFLOW)
     case TemporalTypes.TIMESTAMP_TZ:
-      return Temporal.Instant.from(input)
+      let offset = input.match(/(?:Z|[+-]\d{1,2}:?\d{2})$/)?.[0]
+      // string ends with Z or +/- something.
+      if ("Z" === offset) {
+        offset = "+00:00"
+      }
+      return Temporal.Instant.from(input).toZonedDateTimeISO(offset || UTC)
     default:
       throw new Error(`Not a valid date or time string: "${input}"`)
   }
@@ -374,57 +375,4 @@ function _timeRoundOptions(precision: number): TimeRoundOptions {
     roundingIncrement: 10 ** (9 - precision),
     roundingMode
   }
-}
-
-
-// Only has max 9 values
-const tsroCache: TimestampRoundOptions[] = []
-
-/** @internal */
-export function timestampRoundOptions(precision?: number): TimestampRoundOptions | undefined {
-  if (precision !== undefined) {
-    let tsro = tsroCache[precision]
-    if (!tsro) {
-      tsro = _timestampRoundOptions(precision)
-      tsroCache[precision] = tsro
-    }
-    return tsro
-  }
-}
-
-function _timestampRoundOptions(precision: number): TimestampRoundOptions {
-  if (precision > 9) {
-  throw new Error(`timestamp() precision must be an integer between 0 and 9, found ${precision}.`)
-  }
-  if (precision === 0) {
-    return { smallestUnit: "day", roundingMode }
-  }
-  if (precision <= 2) {
-    return {
-      smallestUnit: "hour",
-      roundingIncrement: 10 ** (2 - precision),
-      roundingMode
-    }
-  }
-  if (precision <= 4) {
-    return {
-      smallestUnit: "minute",
-      roundingIncrement: 10 ** (4 - precision),
-      roundingMode
-    }
-  }
-  if (precision <= 6) {
-    return {
-      smallestUnit: "second",
-      roundingIncrement: 10 ** (6 - precision),
-      roundingMode
-    }
-  }
-  if (precision === 7) {
-    return { smallestUnit: "millisecond", roundingMode }
-  }
-  if (precision === 8) {
-    return { smallestUnit: "microsecond", roundingMode }
-  }
-  return { smallestUnit: "nanosecond", roundingMode }
 }

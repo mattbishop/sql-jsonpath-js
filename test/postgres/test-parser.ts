@@ -92,11 +92,13 @@ function parseJsonbTest(testInput: JsonbTest, statement: string): (() => (boolea
 }
 
 function mapToPgComparable(input: unknown) {
-  if (   input instanceof Temporal.Instant
-      || input instanceof Temporal.PlainDate
+  if (   input instanceof Temporal.PlainDate
       || input instanceof Temporal.PlainTime
       || input instanceof Temporal.PlainDateTime) {
     return input.toString()
+  }
+  if (input instanceof Temporal.ZonedDateTime) {
+    return input.toString({timeZoneName: "never"})
   }
   if (typeof input === "bigint") {
     return Number(input).valueOf()

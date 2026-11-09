@@ -39,7 +39,7 @@ export function sqlType(input: unknown): string {
       return "array"
     }
     // input instanceof Date would fit here, if we used it
-    if (input instanceof Temporal.Instant) {
+    if (input instanceof Temporal.ZonedDateTime) {
       return "timestamp with time zone"
     }
     if (input instanceof Temporal.PlainDateTime) {
