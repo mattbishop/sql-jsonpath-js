@@ -274,7 +274,10 @@ function parseTemporalString(input: string): TemporalType {
     case TemporalTypes.TIMESTAMP:
       return Temporal.PlainDateTime.from(input, REJECT_OVERFLOW)
     case TemporalTypes.TIMESTAMP_TZ:
-      let offset = input.match(/(?:Z|[+-]\d{1,2}:?\d{2})$/)?.[0]
+      if (input.toUpperCase() !== input) {
+        throw new Error("timestamp strings must be upper-case")
+      }
+      let offset = input.match(/(?:Z|[+-]\d{2}:?\d{2})$/)?.[0]
       // string ends with Z or +/- something.
       if ("Z" === offset) {
         offset = "+00:00"
@@ -301,7 +304,6 @@ function inferTemporalKind(input: string): TemporalTypes | undefined {
         break
       case "+":
       case "Z":
-      case "z":
         hasZone = true
     }
   }

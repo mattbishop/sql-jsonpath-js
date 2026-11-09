@@ -10,6 +10,7 @@ import {
   SingletonIterator
 } from "../src/iterators.ts"
 
+
 describe("iterators", () => {
   describe("isIterableInput", () => {
     it("treats non-string non-array iterables as iterable input", () => {

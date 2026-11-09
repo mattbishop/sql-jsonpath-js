@@ -1,5 +1,5 @@
 import {type TransitionActions} from "./tests-fsm.ts"
-import {NO_VALUE} from "../../src/types"
+import {NO_VALUE} from "../../src/types.ts"
 
 
 export interface JsonbTest {
@@ -46,7 +46,6 @@ export function createTestsBuilder(): TestsBuilder {
   }
 
   function onContinue(args: unknown) {
-    console.info("onContinue: ", args)
     current.statement += args
   }
 

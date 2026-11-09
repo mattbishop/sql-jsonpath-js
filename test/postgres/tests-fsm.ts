@@ -1,4 +1,4 @@
-import {t, StateMachine, type ITransition, type Callback, SyncStateMachine} from "typescript-fsm"
+import {t, type ITransition, type Callback, SyncStateMachine} from "typescript-fsm"
 
 /*
 First rows: the test case (can be multiline)
@@ -75,10 +75,8 @@ const rowsPattern = /^\((\d+) rows?\)/
  */
 
 export function createTester(actions: TransitionActions): (line: string) => void {
-
   const testMachine: SyncStateMachine<States, Events> = new SyncStateMachine(States.start)
   testMachine.addTransitions(buildTransitions(actions))
-  console.info(testMachine.toMermaid("tests"))
 
   return (line) => lineToTransition(testMachine, line)
 }

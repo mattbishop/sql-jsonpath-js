@@ -54,7 +54,7 @@ export class ZonedTime extends Temporal.PlainTime {
     if ("Z" === offset) {
       return 0
     }
-    const match = /^([+-])(\d{1,2})(?::?(\d{2}))?$/.exec(offset)
+    const match = /^([+-])(\d{2})(?::?(\d{2}))?$/.exec(offset)
     if (!match) {
       throw new Error(`invalid ZonedTime offset: ${offset}`)
     }

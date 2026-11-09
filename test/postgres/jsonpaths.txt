@@ -3167,26 +3167,27 @@ select jsonb_path_query('"12:34 -05:20"', '$.datetime("HH24:MI TZH:TZM")');
  "12:34:00-05:20"
 (1 row)
 
-set time zone '+10';
-select jsonb_path_query('"2023-08-15 12:34:56 +05:30"', '$.time()');
+-- do not support set time zone
+-- set time zone '+10';
+select jsonb_path_query('"2023-08-15 12:34:56+05:30"', '$.time()');
 ERROR:  cannot convert value from timestamptz to time without time zone usage
 HINT:  Use *_tz() function for time zone support.
-select jsonb_path_query_tz('"2023-08-15 12:34:56 +05:30"', '$.time()'); -- should work
+select jsonb_path_query_tz('"2023-08-15 12:34:56+05:30"', '$.time()'); -- should work
  jsonb_path_query_tz
 ---------------------
  "17:04:56"
 (1 row)
 
-select jsonb_path_query('"2023-08-15 12:34:56 +05:30"', '$.time_tz()');
+select jsonb_path_query('"2023-08-15 12:34:56+05:30"', '$.time_tz()');
  jsonb_path_query
 ------------------
- "17:04:56+10:00"
+ "07:04:56+00:00"
 (1 row)
 
-select jsonb_path_query('"2023-08-15 12:34:56 +05:30"', '$.timestamp()');
+select jsonb_path_query('"2023-08-15 12:34:56+05:30"', '$.timestamp()');
 ERROR:  cannot convert value from timestamptz to timestamp without time zone usage
 HINT:  Use *_tz() function for time zone support.
-select jsonb_path_query_tz('"2023-08-15 12:34:56 +05:30"', '$.timestamp()'); -- should work
+select jsonb_path_query_tz('"2023-08-15 12:34:56+05:30"', '$.timestamp()'); -- should work
   jsonb_path_query_tz
 -----------------------
  "2023-08-15T17:04:56"
@@ -3201,7 +3202,7 @@ select jsonb_path_query_tz('"2023-08-15 12:34:56"', '$.timestamp_tz()'); -- shou
  "2023-08-15T12:34:56+10:00"
 (1 row)
 
-select jsonb_path_query('"2023-08-15 12:34:56 +05:30"', '$.timestamp_tz()');
+select jsonb_path_query('"2023-08-15 12:34:56+05:30"', '$.timestamp_tz()');
       jsonb_path_query
 -----------------------------
  "2023-08-15T12:34:56+05:30"
@@ -3271,32 +3272,33 @@ select jsonb_path_query('"12:34 -05:20"', '$.datetime("HH24:MI TZH:TZM")');
  "12:34:00-05:20"
 (1 row)
 
-set time zone default;
-select jsonb_path_query('"2023-08-15 12:34:56 +05:30"', '$.time()');
+-- do not support set time zone
+-- set time zone default;
+select jsonb_path_query('"2023-08-15 12:34:56+05:30"', '$.time()');
 ERROR:  cannot convert value from timestamptz to time without time zone usage
 HINT:  Use *_tz() function for time zone support.
-select jsonb_path_query_tz('"2023-08-15 12:34:56 +05:30"', '$.time()'); -- should work
+select jsonb_path_query_tz('"2023-08-15 12:34:56+05:30"', '$.time()'); -- should work
  jsonb_path_query_tz
 ---------------------
  "00:04:56"
 (1 row)
 
-select jsonb_path_query('"2023-08-15 12:34:56 +05:30"', '$.time_tz()');
+select jsonb_path_query('"2023-08-15 12:34:56+05:30"', '$.time_tz()');
  jsonb_path_query
 ------------------
- "00:04:56-07:00"
+ "07:04:56+00:00"
 (1 row)
 
-select jsonb_path_query('"2023-08-15 12:34:56 +05:30"', '$.timestamp()');
+select jsonb_path_query('"2023-08-15 12:34:56+05:30"', '$.timestamp()');
 ERROR:  cannot convert value from timestamptz to timestamp without time zone usage
 HINT:  Use *_tz() function for time zone support.
-select jsonb_path_query_tz('"2023-08-15 12:34:56 +05:30"', '$.timestamp()'); -- should work
+select jsonb_path_query_tz('"2023-08-15 12:34:56+05:30"', '$.timestamp()'); -- should work
   jsonb_path_query_tz
 -----------------------
  "2023-08-15T00:04:56"
 (1 row)
 
-select jsonb_path_query('"2023-08-15 12:34:56 +05:30"', '$.timestamp_tz()');
+select jsonb_path_query('"2023-08-15 12:34:56+05:30"', '$.timestamp_tz()');
       jsonb_path_query
 -----------------------------
  "2023-08-15T12:34:56+05:30"
@@ -3326,59 +3328,50 @@ select jsonb_path_query('"2017-03-10 12:34:56"', '$.datetime()');
  "2017-03-10T12:34:56"
 (1 row)
 
-select jsonb_path_query('"2017-03-10 12:34:56+3"', '$.datetime().type()');
+-- non-standard time zone offset
+-- select jsonb_path_query('"2017-03-10 12:34:56+3"', '$.datetime().type()');
+
+-- non-standard time zone offset
+-- select jsonb_path_query('"2017-03-10 12:34:56+3"', '$.datetime()');
+
+select jsonb_path_query('"2017-03-10 12:34:56+03:10"', '$.datetime().type()');
       jsonb_path_query
 ----------------------------
  "timestamp with time zone"
 (1 row)
 
-select jsonb_path_query('"2017-03-10 12:34:56+3"', '$.datetime()');
-      jsonb_path_query
------------------------------
- "2017-03-10T12:34:56+03:00"
-(1 row)
-
-select jsonb_path_query('"2017-03-10 12:34:56+3:10"', '$.datetime().type()');
-      jsonb_path_query
-----------------------------
- "timestamp with time zone"
-(1 row)
-
-select jsonb_path_query('"2017-03-10 12:34:56+3:10"', '$.datetime()');
+select jsonb_path_query('"2017-03-10 12:34:56+03:10"', '$.datetime()');
       jsonb_path_query
 -----------------------------
  "2017-03-10T12:34:56+03:10"
 (1 row)
 
-select jsonb_path_query('"2017-03-10T12:34:56+3:10"', '$.datetime()');
+select jsonb_path_query('"2017-03-10T12:34:56+03:10"', '$.datetime()');
       jsonb_path_query
 -----------------------------
  "2017-03-10T12:34:56+03:10"
 (1 row)
 
-select jsonb_path_query('"2017-03-10t12:34:56+3:10"', '$.datetime()');
-ERROR:  datetime format is not recognized: "2017-03-10t12:34:56+3:10"
+select jsonb_path_query('"2017-03-10t12:34:56+03:10"', '$.datetime()');
+ERROR:  datetime format is not recognized: "2017-03-10t12:34:56+03:10"
 HINT:  Use a datetime template argument to specify the input data format.
-select jsonb_path_query('"2017-03-10 12:34:56.789+3:10"', '$.datetime()');
+select jsonb_path_query('"2017-03-10 12:34:56.789+03:10"', '$.datetime()');
         jsonb_path_query
 ---------------------------------
  "2017-03-10T12:34:56.789+03:10"
 (1 row)
 
-select jsonb_path_query('"2017-03-10T12:34:56.789+3:10"', '$.datetime()');
+select jsonb_path_query('"2017-03-10T12:34:56.789+03:10"', '$.datetime()');
         jsonb_path_query
 ---------------------------------
  "2017-03-10T12:34:56.789+03:10"
 (1 row)
 
-select jsonb_path_query('"2017-03-10t12:34:56.789+3:10"', '$.datetime()');
-ERROR:  datetime format is not recognized: "2017-03-10t12:34:56.789+3:10"
+select jsonb_path_query('"2017-03-10t12:34:56.789+03:10"', '$.datetime()');
+ERROR:  datetime format is not recognized: "2017-03-10t12:34:56.789+03:10"
 HINT:  Use a datetime template argument to specify the input data format.
-select jsonb_path_query('"2017-03-10T12:34:56.789EST"', '$.datetime()');
-        jsonb_path_query
----------------------------------
- "2017-03-10T12:34:56.789-05:00"
-(1 row)
+-- removed test unsupported timestamp format
+-- select jsonb_path_query('"2017-03-10T12:34:56.789EST"', '$.datetime()');
 
 select jsonb_path_query('"2017-03-10T12:34:56.789Z"', '$.datetime()');
         jsonb_path_query
@@ -3398,31 +3391,32 @@ select jsonb_path_query('"12:34:56"', '$.datetime()');
  "12:34:56"
 (1 row)
 
-select jsonb_path_query('"12:34:56+3"', '$.datetime().type()');
+select jsonb_path_query('"12:34:56+03"', '$.datetime().type()');
    jsonb_path_query
 -----------------------
  "time with time zone"
 (1 row)
 
-select jsonb_path_query('"12:34:56+3"', '$.datetime()');
+select jsonb_path_query('"12:34:56+03"', '$.datetime()');
  jsonb_path_query
 ------------------
  "12:34:56+03:00"
 (1 row)
 
-select jsonb_path_query('"12:34:56+3:10"', '$.datetime().type()');
+select jsonb_path_query('"12:34:56+03:10"', '$.datetime().type()');
    jsonb_path_query
 -----------------------
  "time with time zone"
 (1 row)
 
-select jsonb_path_query('"12:34:56+3:10"', '$.datetime()');
+select jsonb_path_query('"12:34:56+03:10"', '$.datetime()');
  jsonb_path_query
 ------------------
  "12:34:56+03:10"
 (1 row)
 
-set time zone '+00';
+-- do not support set time zone
+-- set time zone '+00';
 -- date comparison
 select jsonb_path_query(
 	'["2017-03-10", "2017-03-11", "2017-03-09", "12:34:56", "01:02:03+04", "2017-03-10 00:00:00", "2017-03-10 12:34:56", "2017-03-10 01:02:03+04", "2017-03-10 03:00:00+03"]',
@@ -4120,7 +4114,8 @@ select jsonb_path_query('"1000000-01-01"', '$.datetime() > "2020-01-01 12:00:00"
  true
 (1 row)
 
-set time zone default;
+-- do not support set time zone
+-- set time zone default;
 -- jsonpath operators
 SELECT jsonb_path_query('[{"a": 1}, {"a": 2}]', '$[*]');
  jsonb_path_query

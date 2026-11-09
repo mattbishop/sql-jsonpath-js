@@ -558,7 +558,7 @@ describe("datetime tests", () => {
       })
 
       it("supports offsets without explicit minutes", () => {
-        const left = ZonedTime.from("12:35:00+1")
+        const left = ZonedTime.from("12:35:00+01")
         const right = ZonedTime.from("11:35:00+00:00")
 
         expect(left.compare(right)).to.equal(0)

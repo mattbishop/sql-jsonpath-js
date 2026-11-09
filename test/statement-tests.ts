@@ -5,12 +5,12 @@ import {PGlite} from "@electric-sql/pglite"
 
 import {isIterableInput, isSeq, ReplayableIterable} from "../src/iterators.ts"
 import type {Input} from "../src/json-path.ts"
+import {isBigInt} from "../src/ƒ-utils.ts"
 
 // better for debugging issues
-import {compile, one} from "../src/index.ts"
-import {isBigInt} from "../src/ƒ-utils";
+// import {compile, one} from "../src/index.ts"
 // testing from /dist to ensure the exported interface is correct
-//import {compile, one} from "../dist/index.js"
+import {compile, one} from "../dist/index.js"
 
 
 const pg = await PGlite.create({

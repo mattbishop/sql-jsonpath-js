@@ -2,7 +2,10 @@ import {expect} from "chai"
 import {describe, it} from "node:test"
 
 import {buildTemporalParser} from "../src/datetime.ts"
-import {ZonedTime} from "../src/json-path.ts"
+import {ZonedTime} from "../src/zoned-time.ts"
+
+
+const ZDT_toStringOpts: Temporal.ZonedDateTimeToStringOptions = { timeZoneName: "never" }
 
 
 describe("Temporal parsing", () => {
@@ -58,14 +61,14 @@ describe("Temporal parsing", () => {
         const value = parser.toTimeTz("12:34:56+00:00")
 
         expect(value).to.be.instanceOf(ZonedTime)
-        expect(value.toString()).to.equal("12:34:56Z")
+        expect(value.toString()).to.equal("12:34:56+00:00")
       })
 
       it("converts an instant to a ZonedTime", () => {
         const value = parser.toTimeTz("2024-01-15T12:34:56Z")
 
         expect(value).to.be.instanceOf(ZonedTime)
-        expect(value.toString()).to.equal("12:34:56Z")
+        expect(value.toString()).to.equal("12:34:56+00:00")
       })
 
       it("rejects a plain time", () => {
@@ -99,13 +102,13 @@ describe("Temporal parsing", () => {
       it("returns an Instant unchanged", () => {
         const value = parser.toTimestampTz("2024-01-15T12:34:56Z")
 
-        expect(value).to.be.instanceOf(Temporal.Instant)
-        expect(value.toString()).to.equal("2024-01-15T12:34:56Z")
+        expect(value).to.be.instanceOf(Temporal.ZonedDateTime)
+        expect(value.toString(ZDT_toStringOpts)).to.equal("2024-01-15T12:34:56+00:00")
       })
 
       it("rejects a PlainDateTime", () => {
         expect(() => parser.toTimestampTz("2024-01-15T12:34:56"))
-          .to.throw('Cannot convert the string to an instant: "2024-01-15T12:34:56"')
+          .to.throw('Cannot convert the string to a timestamp with time zone: "2024-01-15T12:34:56"')
       })
     })
   })
@@ -126,19 +129,19 @@ describe("Temporal parsing", () => {
     it("parses times with timezone offsets as ZonedTime", () => {
       const value = parse("04:11:18.0214+00:00")
       expect(value).to.be.instanceOf(ZonedTime)
-      expect(value.toString()).to.equal("04:11:18.0214Z")
+      expect(value.toString()).to.equal("04:11:18.0214+00:00")
     })
 
     it("parses times with positive offsets as ZonedTime", () => {
       const value = parse("12:34:56+05:30")
       expect(value).to.be.instanceOf(ZonedTime)
-      expect(value.toString()).to.equal("07:04:56Z")
+      expect(value.toString()).to.equal("12:34:56+05:30")
     })
 
     it("parses times with negative offsets as ZonedTime", () => {
       const value = parse("12:34:56-03:30")
       expect(value).to.be.instanceOf(ZonedTime)
-      expect(value.toString()).to.equal("16:04:56Z")
+      expect(value.toString()).to.equal("12:34:56-03:30")
     })
 
     it("parses datetimes without a zone", () => {
@@ -149,20 +152,20 @@ describe("Temporal parsing", () => {
 
     it("parses datetimes with Z", () => {
       const value = parse("2024-01-15T12:34:56Z")
-      expect(value).to.be.instanceOf(Temporal.Instant)
-      expect(value.toString()).to.equal("2024-01-15T12:34:56Z")
+      expect(value).to.be.instanceOf(Temporal.ZonedDateTime)
+      expect(value.toString(ZDT_toStringOpts)).to.equal("2024-01-15T12:34:56+00:00")
     })
 
     it("parses datetimes with a positive offset", () => {
       const value = parse("2024-01-15 12:34:56+02:00")
-      expect(value).to.be.instanceOf(Temporal.Instant)
-      expect(value.toString()).to.equal("2024-01-15T10:34:56Z")
+      expect(value).to.be.instanceOf(Temporal.ZonedDateTime)
+      expect(value.toString(ZDT_toStringOpts)).to.equal("2024-01-15T12:34:56+02:00")
     })
 
     it("parses datetimes with a negative offset", () => {
       const value = parse("2024-01-15T12:34:56-05:30")
-      expect(value).to.be.instanceOf(Temporal.Instant)
-      expect(value.toString()).to.equal("2024-01-15T18:04:56Z")
+      expect(value).to.be.instanceOf(Temporal.ZonedDateTime)
+      expect(value.toString(ZDT_toStringOpts)).to.equal("2024-01-15T12:34:56-05:30")
     })
 
     it("does not misclassify dates that contain hyphens as timezone offsets", () => {
@@ -174,10 +177,8 @@ describe("Temporal parsing", () => {
       expect(() => parse("not-a-date")).to.throw("Temporal error: Invalid character while parsing year value.")
     })
 
-    it("accepts lowercase z as a zone designator", () => {
-      const value = parse("2024-01-15T12:34:56z")
-      expect(value).to.be.instanceOf(Temporal.Instant)
-      expect(value.toString()).to.equal("2024-01-15T12:34:56Z")
+    it("does not accept lowercase z as a zone designator", () => {
+      expect(() => parse("2024-01-15T12:34:56z")).to.throw("Temporal error: UTC designator is not valid for DateTime parsing.")
     })
   })
 
@@ -192,16 +193,16 @@ describe("Temporal parsing", () => {
   describe("datetime with space separator and Z", () => {
     it("parses a space-separated UTC datetime as an Instant", () => {
       const value = parse("2024-01-15 12:34:56Z")
-      expect(value).to.be.instanceOf(Temporal.Instant)
-      expect(value.toString()).to.equal("2024-01-15T12:34:56Z")
+      expect(value).to.be.instanceOf(Temporal.ZonedDateTime)
+      expect(value.toString(ZDT_toStringOpts)).to.equal("2024-01-15T12:34:56+00:00")
     })
   })
 
   describe("fractional seconds", () => {
     it("parses an instant with fractional seconds", () => {
       const value = parse("2024-01-15T12:34:56.789Z")
-      expect(value).to.be.instanceOf(Temporal.Instant)
-      expect(value.toString()).to.equal("2024-01-15T12:34:56.789Z")
+      expect(value).to.be.instanceOf(Temporal.ZonedDateTime)
+      expect(value.toString(ZDT_toStringOpts)).to.equal("2024-01-15T12:34:56.789+00:00")
     })
 
     it("parses a plain time with fractional seconds", () => {
@@ -232,14 +233,14 @@ describe("Temporal parsing", () => {
   describe("zero offsets", () => {
     it("parses +00:00 as an Instant", () => {
       const value = parse("2024-01-15T12:34:56+00:00")
-      expect(value).to.be.instanceOf(Temporal.Instant)
-      expect(value.toString()).to.equal("2024-01-15T12:34:56Z")
+      expect(value).to.be.instanceOf(Temporal.ZonedDateTime)
+      expect(value.toString(ZDT_toStringOpts)).to.equal("2024-01-15T12:34:56+00:00")
     })
 
     it("parses -00:00 as an Instant", () => {
       const value = parse("2024-01-15T12:34:56-00:00")
-      expect(value).to.be.instanceOf(Temporal.Instant)
-      expect(value.toString()).to.equal("2024-01-15T12:34:56Z")
+      expect(value).to.be.instanceOf(Temporal.ZonedDateTime)
+      expect(value.toString(ZDT_toStringOpts)).to.equal("2024-01-15T12:34:56+00:00")
     })
   })
 

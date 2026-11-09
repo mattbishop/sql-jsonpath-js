@@ -1,10 +1,10 @@
-import { expect } from "chai"
-import type { TestFn } from "node:test"
+import {expect} from "chai"
+import type {TestFn} from "node:test"
 
-import {DefaultOnErrorIterator, isIterable, isSeq, next, noValueFilter, one} from "../../src/iterators.ts"
-import { type JsonbTest} from "./fsm-actions.ts"
-import { compile } from "../../src/index.ts"
-import {NO_VALUE} from "../../src/types"
+import {DefaultOnErrorIterator, isIterable, isSeq, noValueFilter} from "../../src/iterators.ts"
+import {type JsonbTest} from "./fsm-actions.ts"
+import {compile} from "../../src/index.ts"
+import {NO_VALUE} from "../../src/types.ts"
 
 
 export function parseTest(jsonb: JsonbTest): TestFn | undefined {
@@ -21,7 +21,7 @@ export function parseTest(jsonb: JsonbTest): TestFn | undefined {
           // iterate over all the elements to trigger an error
           Array.from(results)
         }
-        console.warn("Expected error, but result is " + JSON.stringify(results))
+        console.warn(`Expected error, but result is ${JSON.stringify(results)}`)
       }, jsonb.statement).to.throw()
     } else {
       const results = testƒ()
@@ -75,7 +75,6 @@ function parseJsonbTest(testInput: JsonbTest, statement: string): (() => (boolea
       return
     }
 
-    console.info("parsing: ", src)
     // compile path in a function so it can throw during test execution.
     const sqlJsonPath = () => compile(src)
 
@@ -116,7 +115,6 @@ function parse_jsonbFunctionTest(functionName:  string,
   const input = JSON.parse(dataArg)
   const vars = parseVars(last1)
 
-  console.info("parsing: ", srcArg)
   // compile path in a function so it can throw during test execution.
   const sqlJsonPath = () => compile(srcArg)
 
