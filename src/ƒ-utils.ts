@@ -124,11 +124,7 @@ export function isObject(input: unknown): input is Record<string, unknown> {
   return input !== null
     && typeof input === "object"
     && !Array.isArray(input)
-    && !(input instanceof Temporal.Instant)
-    && !(input instanceof Temporal.PlainDateTime)
-    && !(input instanceof ZonedTime)
-    && !(input instanceof Temporal.PlainTime)
-    && !(input instanceof Temporal.PlainDate)
+    && !((input as any)[Symbol.toStringTag]?.startsWith("Temporal."))
 }
 
 /** @internal */
