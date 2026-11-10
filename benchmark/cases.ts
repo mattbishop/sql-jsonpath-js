@@ -105,10 +105,44 @@ function createEventLog(eventCount: number) {
   }
 }
 
-function* createEventIterator(count: number): Generator<Event> {
-  for (let i = 0; i < count; i++) {
-    yield createEvent(i)
+
+function createDecimalValues(count: number) {
+  return {
+    values: Array.from({length: count}, (_, index) => {
+      const value = index + 0.49
+      return index % 3 === 0
+        ? String(value)
+        : value
+    })
   }
+}
+
+
+function createIntegerValues(count: number) {
+  return {
+    values: Array.from({length: count}, (_, index) => {
+      const value = index % 3 === 0
+        ? String(index)
+        : index
+      return value
+    })
+  }
+}
+
+
+function createWideObject(count: number) {
+  return Object.fromEntries(
+    Array.from({length: count}, (_, index) => [
+      `key-${index}`,
+      {
+        id: index,
+        value: index % 10,
+        nested: {
+          label: `value-${index}`
+        }
+      }
+    ])
+  )
 }
 
 
@@ -135,8 +169,38 @@ const benchmarks: BenchmarkCase[] = [
     iterations: ITERATIONS
   },
   {
+    name: "large array filter with suppressed predicate errors",
+    statement: "$.store.book[*] ? (@.missing.number() > 0)",
+    input: () => createStore(100),
+    iterations: ITERATIONS
+  },
+  {
     name: "large array nested wildcard projection",
     statement: "$.store.book[*].stock[*].count",
+    input: () => createStore(1000),
+    iterations: ITERATIONS
+  },
+  {
+    name: "large object wildcard traversal",
+    statement: "$.*",
+    input: () => createWideObject(1000),
+    iterations: ITERATIONS
+  },
+  {
+    name: "large array simple subscript",
+    statement: "$.store.book[0]",
+    input: () => createStore(1000),
+    iterations: ITERATIONS
+  },
+  {
+    name: "large array last subscript",
+    statement: "$.store.book[last]",
+    input: () => createStore(1000),
+    iterations: ITERATIONS
+  },
+  {
+    name: "large array range subscript",
+    statement: "$.store.book[0 to 10]",
     input: () => createStore(1000),
     iterations: ITERATIONS
   },
@@ -144,6 +208,24 @@ const benchmarks: BenchmarkCase[] = [
     name: "large array string predicate",
     statement: '$.store.book.title ? (@ starts with "SQL")',
     input: () => createStore(50),
+    iterations: ITERATIONS
+  },
+  {
+    name: "large numeric number conversion projection",
+    statement: "$.values[*].number()",
+    input: () => createDecimalValues(1000),
+    iterations: ITERATIONS
+  },
+  {
+    name: "large numeric integer conversion projection",
+    statement: "$.values[*].integer()",
+    input: () => createIntegerValues(1000),
+    iterations: ITERATIONS
+  },
+  {
+    name: "large numeric decimal conversion projection",
+    statement: "$.values[*].decimal(10, 2)",
+    input: () => createDecimalValues(1000),
     iterations: ITERATIONS
   },
   {

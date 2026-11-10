@@ -59,7 +59,7 @@ function _toDate(parser: StringToTemporal, input: string): Temporal.PlainDate {
     return value.toPlainDate()
   }
   // not allowed to convert zoned timestamp to date
-  throw new Error(`Cannot convert input to a date: "${input}"`)
+  throw new Error("Cannot convert input to a date.")
 }
 
 function _toTime(parser: StringToTemporal, input: string): Temporal.PlainTime {
@@ -71,7 +71,7 @@ function _toTime(parser: StringToTemporal, input: string): Temporal.PlainTime {
   if (value instanceof Temporal.PlainDateTime) {
     return value.toPlainTime()
   }
-  throw new Error(`Cannot convert input to a time: "${input}"`)
+  throw new Error("Cannot convert input to a time.")
 }
 
 function _toTimeTz(parser: StringToTemporal, input: string): ZonedTime {
@@ -82,7 +82,7 @@ function _toTimeTz(parser: StringToTemporal, input: string): ZonedTime {
   if (value instanceof Temporal.ZonedDateTime) {
     return ZonedTime.fromZDT(value.withTimeZone(UTC))
   }
-  throw new Error(`Cannot convert input to a time with time zone: "${input}"`)
+  throw new Error("Cannot convert input to a time with time zone.")
 }
 
 function _toTimestamp(parser: StringToTemporal, input: string): Temporal.PlainDateTime {
@@ -93,7 +93,7 @@ function _toTimestamp(parser: StringToTemporal, input: string): Temporal.PlainDa
   if (value instanceof Temporal.PlainDate) {
     return value.toPlainDateTime()
   }
-  throw new Error(`Cannot convert input to a datetime: "${input}"`)
+  throw new Error("Cannot convert input to a datetime.")
 }
 
 function _toTimestampTz(parser: StringToTemporal, input: string): Temporal.ZonedDateTime {
@@ -101,7 +101,7 @@ function _toTimestampTz(parser: StringToTemporal, input: string): Temporal.Zoned
   if (value instanceof Temporal.ZonedDateTime) {
     return value
   }
-  throw new Error(`Cannot convert the string to a timestamp with time zone: "${input}"`)
+  throw new Error("Cannot convert the string to a timestamp with time zone.")
 }
 
 
@@ -165,7 +165,7 @@ function createFormattedParser(template: string): StringToTemporal {
     if (fieldIn) {
       const field = fieldIn.toUpperCase()
       if (fields.has(field)) {
-        throw new Error(`Rule 3: Duplicate field "${field}"`)
+        throw new Error(`Duplicate field "${field}"`)
       }
       fields.add(field)
       regexPattern += FIELD_TO_REGEX[field]
@@ -175,7 +175,7 @@ function createFormattedParser(template: string): StringToTemporal {
       hasTime = hasTime || "APFHST".includes(field[0])
     } else if (delim) {
       if (lastWasDelim) {
-        throw new Error("Rule 2: Consecutive delimiters")
+        throw new Error("Consecutive delimiters")
       }
       regexPattern += RegExp.escape(delim)
       lastWasDelim = true
@@ -285,7 +285,7 @@ function parseTemporalString(input: string): TemporalType {
       }
       return Temporal.Instant.from(input).toZonedDateTimeISO(offset || UTC)
     default:
-      throw new Error(`Not a valid date or time string: "${input}"`)
+      throw new Error("Not a valid date or time string.")
   }
 }
 

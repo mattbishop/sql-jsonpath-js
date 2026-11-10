@@ -76,7 +76,7 @@ export class ƒBase {
     }
     const {strict, error} = config
     if (!strict(input)) {
-      throw new Error(`In 'strict' mode! ${error} Found: ${JSON.stringify(input)}`)
+      throw new Error(`In 'strict' mode! ${error}`)
     }
   }
 
@@ -325,10 +325,10 @@ export class ƒBase {
         value = input as bigint
         break
       default:
-        throw new Error(`bigint() can only be applied to a string or numeric value: ${input}`)
+        throw new Error("bigint() can only be applied to a string or numeric value.")
     }
     if (value < BIGINT_MIN || value > BIGINT_MAX) {
-      throw new Error(`value out of range for bigint(): ${value}`)
+      throw new Error("value out of range for bigint()")
     }
     return value
   }
@@ -350,17 +350,17 @@ export class ƒBase {
         value = Number(input)
         if (!Number.isInteger(value)) {
           // do not round decimal strings.
-          throw new Error(`integer() string input cannot be a decimal value: ${input}`)
+          throw new Error("integer() string input cannot be a decimal value")
         }
         break
       case "bigint":
         value = Number(input)
         break
       default:
-        throw new Error(`integer() can only be applied to a string or numeric value: ${input}`)
+        throw new Error("integer() can only be applied to a string or numeric value.")
     }
     if (value < INT_MIN || value > INT_MAX) {
-      throw new Error(`value out of range for integer(): ${value}`)
+      throw new Error("value out of range for integer()")
     }
     return sqlNum(value) as number
   }
@@ -399,7 +399,7 @@ export class ƒBase {
 
     if (hasScale) {
       if (!Number.isInteger(scale) || scale < -1000 || scale > 1000) {
-        throw new Error(`decimal() scale must be an integer between -1000 and 1000, found ${scale}.`)
+        throw new Error("decimal() scale must be an integer between -1000 and 1000.")
       }
       const mult = 10 ** scale
       value = sqlRound(value * mult) / mult
@@ -410,7 +410,7 @@ export class ƒBase {
 
     if (hasPrecision) {
       if (!Number.isInteger(precision) || precision < 1 || precision > 1000) {
-        throw new Error(`decimal() precision must be an integer between 1 and 1000, found ${precision}.`)
+        throw new Error("decimal() precision must be an integer between 1 and 1000.")
       }
       const absValue = Math.abs(value)
       const integerDigits = absValue < 1
@@ -418,7 +418,7 @@ export class ƒBase {
         : Math.trunc(absValue).toString().length
       const maxIntegerDigits = Math.abs(precision - (scale ?? 0))
       if (integerDigits > maxIntegerDigits) {
-        throw new Error(`value out of range for decimal(${precision}${hasScale ? `,${scale}` : ""}): ${value}`)
+        throw new Error(`value out of range for decimal(${precision}${hasScale ? `,${scale}` : ""}).`)
       }
     }
     return sqlNum(value) as number
@@ -446,7 +446,7 @@ export class ƒBase {
     if (input instanceof Temporal.ZonedDateTime) {
       return input.toString({timeZoneName: "never"})
     }
-    throw new Error(`string() can only be applied to a string, boolean, numeric, or datetime value: ${JSON.stringify(input)}`)
+    throw new Error("string() can only be applied to a string, boolean, numeric, or datetime value.")
   }
 
   string(input: unknown): SingleOrSeq<string> {
@@ -479,7 +479,7 @@ export class ƒBase {
     else if ((isNumber(input) && Number.isInteger(input)) || isBigInt(input)) {
       return input != 0
     }
-    throw new Error(`boolean() can only be applied to a boolean, string or integer value: ${JSON.stringify(input)}`)
+    throw new Error("boolean() can only be applied to a boolean, string or integer value.")
   }
 
   boolean(input: unknown): SingleOrSeq<boolean> {
@@ -528,7 +528,7 @@ export class ƒBase {
     if (isString(input)) {
       return parser.toDate(input)
     }
-    throw new Error(`date() input must be a string, found ${JSON.stringify(input)}.`)
+    throw new Error("date() input must be a string.")
   }
 
   date(input: unknown): SingleOrSeq<Temporal.PlainDate> {
@@ -545,7 +545,7 @@ export class ƒBase {
       }
       return time
     }
-    throw new Error(`time() input must be a string, found ${JSON.stringify(input)}.`)
+    throw new Error("time() input must be a string.")
   }
 
 
@@ -567,7 +567,7 @@ export class ƒBase {
       }
       return time
     }
-    throw new Error(`time() input must be a string, found ${JSON.stringify(input)}.`)
+    throw new Error("time() input must be a string.")
   }
 
   // returns the time value in UTC, so calculates the effect of the time zone
@@ -589,7 +589,7 @@ export class ƒBase {
       }
       return timestamp
     }
-    throw new Error(`timestamp() input must be a string, found ${JSON.stringify(input)}.`)
+    throw new Error("timestamp() input must be a string.")
   }
 
   timestamp(input: unknown, precision?: number): SingleOrSeq<Temporal.PlainDateTime> {
@@ -607,7 +607,7 @@ export class ƒBase {
       }
       return timestamp
     }
-    throw new Error(`timestamp() input must be a string, found ${JSON.stringify(input)}.`)
+    throw new Error("timestamp() input must be a string.")
   }
 
   timestamp_tz(input: unknown, precision?: number): SingleOrSeq<Temporal.ZonedDateTime> {
@@ -645,7 +645,7 @@ export class ƒBase {
     if (isString(input)) {
       return parser.toTemporal(input)
     }
-    throw new Error(`datetime() input must be a string, found ${JSON.stringify(input)}.`)
+    throw new Error("datetime() input must be a string.")
   }
 
   datetime(input: unknown, template: string): SingleOrSeq<TemporalType> {
@@ -669,7 +669,7 @@ export class ƒBase {
         this.scope.set(KV_INDEX, id === Number.MAX_SAFE_INTEGER ? 0 : id + 1)
         return ƒBase._toKV(row, id)
       }
-      throw new Error(`keyvalue() input must be an object, found ${JSON.stringify(row)}.`)
+      throw new Error("keyvalue() input must be an object.")
     }
     return this._unwrapWith(input, mapƒ, !this.inQuery, { strict: isObject, error: "keyvalue() can only be applied to an object." })
       .flatMap<KeyValue>(flatten)

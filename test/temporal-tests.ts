@@ -31,7 +31,7 @@ describe("Temporal parsing", () => {
 
       it("rejects an instant", () => {
         expect(() => parser.toDate("2024-01-15T12:34:56Z"))
-          .to.throw('Cannot convert input to a date: "2024-01-15T12:34:56Z"')
+          .to.throw("Cannot convert input to a date.")
       })
     })
 
@@ -52,7 +52,7 @@ describe("Temporal parsing", () => {
 
       it("rejects a time with time zone", () => {
         expect(() => parser.toTime("12:34:56+02:00"))
-          .to.throw('Cannot convert input to a time: "12:34:56+02:00"')
+          .to.throw("Cannot convert input to a time.")
       })
     })
 
@@ -73,7 +73,7 @@ describe("Temporal parsing", () => {
 
       it("rejects a plain time", () => {
         expect(() => parser.toTimeTz("12:34:56"))
-          .to.throw('Cannot convert input to a time with time zone: "12:34:56"')
+          .to.throw("Cannot convert input to a time with time zone.")
       })
     })
 
@@ -94,7 +94,7 @@ describe("Temporal parsing", () => {
 
       it("rejects a plain time", () => {
         expect(() => parser.toTimestamp("12:34:56"))
-          .to.throw('Cannot convert input to a datetime: "12:34:56"')
+          .to.throw("Cannot convert input to a datetime.")
       })
     })
 
@@ -108,7 +108,7 @@ describe("Temporal parsing", () => {
 
       it("rejects a PlainDateTime", () => {
         expect(() => parser.toTimestampTz("2024-01-15T12:34:56"))
-          .to.throw('Cannot convert the string to a timestamp with time zone: "2024-01-15T12:34:56"')
+          .to.throw("Cannot convert the string to a timestamp with time zone.")
       })
     })
   })
@@ -261,7 +261,7 @@ describe("Temporal parsing", () => {
 
   describe("invalid date-time formats", () => {
     it("rejects slash-separated dates", () => {
-      expect(() => parse("2024/01/15")).to.throw('Not a valid date or time string: "2024/01/15"')
+      expect(() => parse("2024/01/15")).to.throw('Not a valid date or time string.')
     })
 
     it("rejects month 13", () => {

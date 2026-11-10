@@ -90,10 +90,10 @@ export function toNumber(input: unknown, method: string): number {
       value = Number(input)
       break
     default:
-      throw new Error(`${method}() can only be applied to a string or numeric value: ${input}`)
+      throw new Error(`${method}() can only be applied to a string or numeric value.`)
   }
   if (!Number.isFinite(value)) {
-    throw new Error(`${method}() input ${input} is not a representation of a finite number.`)
+    throw new Error(`${method}() input is not a representation of a finite number.`)
   }
   return sqlNum(value) as number
 }
@@ -182,7 +182,7 @@ export function mustBeNumber(input: unknown, method: string, suppress = false): 
   if (suppress) {
     return NO_VALUE
   }
-  throw new Error(`${method} input must be a number, found ${input}.`)
+  throw new Error(`${method}() input must be a number.`)
 }
 
 /** @internal */
@@ -196,7 +196,7 @@ export function mustBeNumberOrBigInt(num: unknown, method: string, suppress = fa
   if (suppress) {
     return NO_VALUE
   }
-  throw new Error(`${method} input must be a number or bigint, found ${JSON.stringify(num)}.`)
+  throw new Error(`${method}() input must be a number or bigint.`)
 }
 
 /** @internal */

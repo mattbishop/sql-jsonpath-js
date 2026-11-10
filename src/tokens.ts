@@ -239,7 +239,7 @@ export const allTokens = [
 function createRegexToken(configIn: ITokenConfig): TokenType {
   const {pattern: regex, ...config} = configIn
   if (!(regex instanceof RegExp)) {
-    throw new Error(`pattern must be a regular expression: ${JSON.stringify(regex)}`)
+    throw new Error("pattern must be a regular expression.")
   }
   if (!regex.flags.includes("y")) {
     throw new Error(`regex must be sticky ("y" flag): ${regex.source}`)
