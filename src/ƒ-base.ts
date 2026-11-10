@@ -1,6 +1,6 @@
 import {CLDR, timeRoundOptions} from "./datetime.ts"
 import {type KeyValue, MissingVariableError} from "./json-path.ts"
-import {autoFlatMap, autoMap, flatten, isIterable, isIterableInput, isSeq, one, toSeq} from "./iterators.ts"
+import {autoFlatMap, autoMap, flatten, isIterable, isIterableInput, isSeq, MapArrayIterator, MapWithArgsArrayIterator, one, toSeq} from "./iterators.ts"
 import {
   BIGINT_MAX,
   BIGINT_MIN,
@@ -105,9 +105,11 @@ export class ƒBase {
       return NO_VALUE as T
     }
     this._checkStrict(input, strict ?? {strict: isNotArray, error: "Cannot unwrap non-array input."})
-    return isIterable(input)
-      ? Iterator.from(ƒBase._mapWith(input, mapƒ, filter))
-      : mapƒ(input)
+    return Array.isArray(input)
+      ? Iterator.from(new MapArrayIterator(input, mapƒ, filter))
+      : isIterable(input)
+        ? Iterator.from(ƒBase._mapWith(input, mapƒ, filter))
+        : mapƒ(input)
   }
 
   private static *_mapWith<T>(iterable: Iterable<unknown>,
@@ -134,9 +136,11 @@ export class ƒBase {
       return NO_VALUE as T
     }
     this._checkStrict(input, {strict: isNotArray, error: "Cannot unwrap non-array input."})
-    return isIterable(input)
-      ? Iterator.from(ƒBase._mapWithArgs(input, mapƒ, filter, args))
-      : mapƒ(input, ...args)
+    return Array.isArray(input)
+      ? Iterator.from(new MapWithArgsArrayIterator(input, mapƒ, filter, args))
+      : isIterable(input)
+        ? Iterator.from(ƒBase._mapWithArgs(input, mapƒ, filter, args))
+        : mapƒ(input, ...args)
   }
 
   private static *_mapWithArgs<T, A extends unknown[]>(iterable:  Iterable<unknown>,

@@ -1,5 +1,5 @@
 import type {Input} from "./json-path.ts"
-import {type Mapƒ, NO_VALUE, type Seq, type SingleOrSeq} from "./types.ts"
+import {type MapWithArgsƒ, type Mapƒ, NO_VALUE, type Seq, type SingleOrSeq} from "./types.ts"
 
 
 /** @internal */
@@ -95,6 +95,69 @@ export class ReplayableIterable<T> implements Iterable<T> {
       this.cache.push(next.value)
       yield next.value
       index++
+    }
+  }
+}
+
+
+/** @internal */
+export class MapArrayIterator<T> implements Iterator<T> {
+  constructor(private readonly array:   unknown[],
+              private readonly mapƒ:    Mapƒ<T>,
+              private readonly filter:  boolean) { }
+
+  private index = 0
+
+  next(): IteratorResult<T> {
+    while (this.index < this.array.length) {
+      const element = this.array[this.index++]
+      if (element === NO_VALUE && this.filter) {
+        continue
+      }
+      const mapped = this.mapƒ(element)
+      if (mapped === NO_VALUE && this.filter) {
+        continue
+      }
+      return {
+        value: mapped,
+        done:  false
+      }
+    }
+    return {
+      value: undefined as T,
+      done:  true
+    }
+  }
+}
+
+
+/** @internal */
+export class MapWithArgsArrayIterator<T, A extends unknown[]> implements Iterator<T> {
+  constructor(private readonly array:   unknown[],
+              private readonly mapƒ:    MapWithArgsƒ<T, A>,
+              private readonly filter:  boolean,
+              private readonly args:    A) { }
+
+  private index = 0
+
+  next(): IteratorResult<T> {
+    while (this.index < this.array.length) {
+      const element = this.array[this.index++]
+      if (element === NO_VALUE && this.filter) {
+        continue
+      }
+      const mapped = this.mapƒ(element, ...this.args)
+      if (mapped === NO_VALUE && this.filter) {
+        continue
+      }
+      return {
+        value: mapped,
+        done:  false
+      }
+    }
+    return {
+      value: undefined as T,
+      done:  true
     }
   }
 }
