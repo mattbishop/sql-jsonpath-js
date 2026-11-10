@@ -101,52 +101,29 @@ export class ReplayableIterable<T> implements Iterable<T> {
 
 
 /** @internal */
-export class MapArrayIterator<T> implements Iterator<T> {
-  constructor(private readonly array:   unknown[],
-              private readonly mapƒ:    Mapƒ<T>,
-              private readonly filter:  boolean) { }
-
-  private index = 0
-
-  next(): IteratorResult<T> {
-    while (this.index < this.array.length) {
-      const element = this.array[this.index++]
-      if (element === NO_VALUE && this.filter) {
-        continue
-      }
-      const mapped = this.mapƒ(element)
-      if (mapped === NO_VALUE && this.filter) {
-        continue
-      }
-      return {
-        value: mapped,
-        done:  false
-      }
-    }
-    return {
-      value: undefined as T,
-      done:  true
-    }
+export class MapWithIterator<T, A extends unknown[]> implements Iterator<T> {
+  constructor(                  iterable:  Iterable<unknown>,
+              private readonly  mapƒ:      Mapƒ<T> | MapWithArgsƒ<T, A>,
+              private readonly  filter:    boolean,
+              private readonly  args?:      A) {
+    this.iterator = iterable[Symbol.iterator]()
   }
-}
 
-
-/** @internal */
-export class MapWithArgsArrayIterator<T, A extends unknown[]> implements Iterator<T> {
-  constructor(private readonly array:   unknown[],
-              private readonly mapƒ:    MapWithArgsƒ<T, A>,
-              private readonly filter:  boolean,
-              private readonly args:    A) { }
-
-  private index = 0
+  private readonly iterator: Iterator<unknown>
 
   next(): IteratorResult<T> {
-    while (this.index < this.array.length) {
-      const element = this.array[this.index++]
+    while (true) {
+      const result = this.iterator.next()
+      if (result.done) {
+        return result
+      }
+      const element = result.value
       if (element === NO_VALUE && this.filter) {
         continue
       }
-      const mapped = this.mapƒ(element, ...this.args)
+      const mapped = this.args
+        ? this.mapƒ(element, ...this.args)
+        : this.mapƒ(element)
       if (mapped === NO_VALUE && this.filter) {
         continue
       }
@@ -154,10 +131,6 @@ export class MapWithArgsArrayIterator<T, A extends unknown[]> implements Iterato
         value: mapped,
         done:  false
       }
-    }
-    return {
-      value: undefined as T,
-      done:  true
     }
   }
 }
