@@ -98,27 +98,24 @@ export function createStatement(text: string): SqlJsonPathStatement {
       // iterate through the inputs one at a time and test them against fn()
       // filter() will omit the exists == false elements, and the caller needs to know this
       const existsƒ = (i: unknown) => hasValue(fn(i, false, vars), ctx.lax)
-      if (isIterableInput(input)) {
-        return Iterator.from(input)
-          .map(existsƒ)
-      }
-      // single input requires single output
-      return existsƒ(input)
+      return isIterableInput(input)
+        ? Iterator.from(input).map(existsƒ)
+        // single input requires single output
+        : existsƒ(input)
     },
 
     query<T>(input: Input, config: QueryConfig<T> = {}): IteratorObject<T> {
       const {vars} = config
       const queryƒ = (i: unknown) => fn(i, true, vars) as SingleOrSeq<T>
-      const iterator =
-        new FlattenWithIterator<T>(toInputIterator(input), queryƒ)
+      const iterator = new FlattenWithIterator<T>(toInputIterator(input), queryƒ)
         .filter(noValueFilter)
-      return Iterator.from(defaultsIterator(iterator, config))
+      return defaultsIterator(iterator, config)
     }
   }
 }
 
 
-function defaultsIterator<T>(iterator: Iterator<T>, config: QueryConfig<T>): Iterator<T> {
+function defaultsIterator<T>(iterator: IteratorObject<T>, config: QueryConfig<T>): IteratorObject<T> {
   const {defaultOnEmpty, defaultOnError} = config
   // test against undefined so statements can default to false, "", 0, and other truthy values.
   if (defaultOnError !== undefined) {

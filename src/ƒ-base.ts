@@ -117,7 +117,7 @@ export class ƒBase {
     }
     this._checkStrict(input, strict ?? {strict: isNotArray, error: "Cannot unwrap non-array input."})
     return isIterable(input)
-        ? Iterator.from(new MapWithIterator(input, mapƒ, filter))
+        ? new MapWithIterator(input, mapƒ, filter)
         : mapƒ(input)
   }
 
@@ -131,7 +131,7 @@ export class ƒBase {
     }
     this._checkStrict(input, {strict: isNotArray, error: "Cannot unwrap non-array input."})
     return isIterable(input)
-        ? Iterator.from(new MapWithIterator(input, mapƒ, filter, args))
+        ? new MapWithIterator(input, mapƒ, filter, args)
         : mapƒ(input, ...args)
   }
 
@@ -679,7 +679,7 @@ export class ƒBase {
     // [*] is not the same as unwrap. [*] always turns the array into a seq.
     this._checkStrict(input, {strict: Array.isArray, error: "[*] can only be applied to an array."})
     return Array.isArray(input)
-      ? Iterator.from(input)
+      ? input.values()
       : input
   }
 
@@ -832,7 +832,8 @@ export class ƒBase {
       // Lax mode auto-unwraps arrays/sequences, so the filter keeps the
       // individual values that match the predicate.
       if (Array.isArray(input)) {
-        return Iterator.from(input)
+        return input
+          .values()
           .filter(matches)
       }
       if (isSeq(input)) {

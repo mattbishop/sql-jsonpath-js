@@ -18,7 +18,9 @@ export function isSeq(input: unknown): input is Seq<unknown> {
 export function toSeq(input: unknown): Seq<unknown> {
   return isSeq(input)
     ? new FlattenWithIterator(input)
-    : Iterator.from(Array.isArray(input) ? input : new SingletonIterator(input))
+    : Array.isArray(input)
+      ? input.values()
+      : new SingletonIterator(input)
 }
 
 
@@ -26,7 +28,7 @@ export function toSeq(input: unknown): Seq<unknown> {
 export function flattenSeq<T>(input: SingleOrSeq<SingleOrSeq<T>>): Seq<T> {
   return isSeq(input)
     ? new FlattenWithIterator<T>(input)
-    : Iterator.from(new SingletonIterator(input))
+    : new SingletonIterator(input)
 }
 
 
@@ -53,9 +55,9 @@ export function isIterableInput<T>(input: Input<T>): input is Iterable<T> {
  * @internal
  */
 export function toInputIterator(input: Input): IteratorObject<unknown> {
-  return Iterator.from(isIterableInput(input)
-    ? input
-    : new SingletonIterator(input))
+  return isIterableInput(input)
+    ? Iterator.from(input)
+    : new SingletonIterator(input)
 }
 
 export class FlattenWithIterator<O, I = unknown, M extends SingleOrSeq<O> = SingleOrSeq<O>> extends Iterator<O> {
@@ -137,11 +139,12 @@ export class ReplayableIterable<T> implements Iterable<T> {
 
 
 /** @internal */
-export class MapWithIterator<T, A extends unknown[]> implements Iterator<T> {
-  constructor(                  iterable:  Iterable<unknown>,
-              private readonly  mapƒ:      Mapƒ<T> | MapWithArgsƒ<T, A>,
-              private readonly  filter:    boolean,
-              private readonly  args?:      A) {
+export class MapWithIterator<T, A extends unknown[]> extends Iterator<T> {
+  constructor(                  iterable: Iterable<unknown>,
+              private readonly  mapƒ:     Mapƒ<T> | MapWithArgsƒ<T, A>,
+              private readonly  filterNV: boolean,
+              private readonly  args?:    A) {
+    super()
     this.iterator = iterable[Symbol.iterator]()
   }
 
@@ -154,13 +157,13 @@ export class MapWithIterator<T, A extends unknown[]> implements Iterator<T> {
         return result
       }
       const element = result.value
-      if (element === NO_VALUE && this.filter) {
+      if (element === NO_VALUE && this.filterNV) {
         continue
       }
       const mapped = this.args
         ? this.mapƒ(element, ...this.args)
         : this.mapƒ(element)
-      if (mapped === NO_VALUE && this.filter) {
+      if (mapped === NO_VALUE && this.filterNV) {
         continue
       }
       return {
@@ -173,12 +176,14 @@ export class MapWithIterator<T, A extends unknown[]> implements Iterator<T> {
 
 
 /** @internal */
-export class SingletonIterator<T> implements Iterator<T> {
-  constructor(private readonly value: T) { }
+export class SingletonIterator<T> extends Iterator<T> {
+  constructor(private readonly value: T) {
+    super()
+  }
 
   private done = false
 
-  next() {
+  next(): IteratorResult<T> {
     if (this.done) {
       return {
         done:   true,
@@ -198,12 +203,14 @@ export class SingletonIterator<T> implements Iterator<T> {
  * Return a default value if the iterator has no values (done at the start) @internal
  * @internal
  */
-export class DefaultOnEmptyIterator<T> implements Iterator<T> {
+export class DefaultOnEmptyIterator<T> extends Iterator<T> {
 
   private started = false
 
   constructor(private readonly  defaultValue: T,
-              private readonly  iterator:     Iterator<T>) { }
+              private readonly  iterator:     Iterator<T>) {
+    super()
+  }
 
   next(): IteratorResult<T> {
     if (!this.started) {
@@ -221,10 +228,12 @@ export class DefaultOnEmptyIterator<T> implements Iterator<T> {
 /**
  * @internal
  */
-export class DefaultOnErrorIterator<T> implements Iterator<T> {
+export class DefaultOnErrorIterator<T> extends Iterator<T> {
 
   constructor(private readonly defaultValue:  T,
-              private readonly iterator:      Iterator<T>) { }
+              private readonly iterator:      Iterator<T>) {
+    super()
+  }
 
   next(): IteratorResult<T> {
     try {
