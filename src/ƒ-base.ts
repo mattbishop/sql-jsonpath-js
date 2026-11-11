@@ -3,7 +3,8 @@ import {type KeyValue, MissingVariableError} from "./json-path.ts"
 import {
   autoFlatMap,
   autoMap,
-  flatten,
+  flattenSeq,
+  FlattenWithIterator,
   isIterable,
   isIterableInput,
   isSeq,
@@ -650,8 +651,8 @@ export class ƒBase {
       }
       throw new Error("keyvalue() input must be an object.")
     }
-    return this._unwrapWith(input, mapƒ, !this.inQuery, { strict: isObject, error: "keyvalue() can only be applied to an object." })
-      .flatMap<KeyValue>(flatten)
+    const unwrapped = this._unwrapWith(input, mapƒ, !this.inQuery, { strict: isObject, error: "keyvalue() can only be applied to an object." })
+    return flattenSeq(unwrapped)
   }
 
   private static *_objectValues(input: unknown): Generator<unknown> {
@@ -665,8 +666,8 @@ export class ƒBase {
   }
 
   private _dotStar(input: unknown): Seq<unknown> {
-    return this._unwrapWith(input, ƒBase._objectValues, !this.inQuery, { strict: isObject, error: ".* can only be applied to an object." })
-      .flatMap(flatten)
+    const unwrapped = this._unwrapWith(input, ƒBase._objectValues, !this.inQuery, { strict: isObject, error: ".* can only be applied to an object." })
+    return flattenSeq(unwrapped)
   }
 
   dotStar(input: unknown): Seq<unknown> {
@@ -717,8 +718,7 @@ export class ƒBase {
 
   private _array(input: unknown, subscripts: unknown[]): Seq<unknown> {
     const array = this._toArray(input, {strict: Array.isArray, error: "Array accessors can only be applied to an array."})
-    return Iterator.from(subscripts)
-      .map((sub) => {
+    const mapSubs = (sub: unknown) => {
         // range function generates a sequence of array positions
         if (ƒBase.isRangeFunction(sub)) {
           return sub(array)
@@ -739,8 +739,8 @@ export class ƒBase {
           throw new Error("array subscript must be single numeric value")
         }
         throw new Error("array accessor must be numbers")
-      })
-      .flatMap(flatten)
+      }
+    return new FlattenWithIterator(subscripts.values(), mapSubs)
   }
 
   array(input: unknown): (subscripts: unknown[]) => Seq<unknown> {

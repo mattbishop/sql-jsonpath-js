@@ -17,16 +17,16 @@ export function isSeq(input: unknown): input is Seq<unknown> {
 /** @internal */
 export function toSeq(input: unknown): Seq<unknown> {
   return isSeq(input)
-    ? input.flatMap(flatten)
+    ? new FlattenWithIterator(input)
     : Iterator.from(Array.isArray(input) ? input : new SingletonIterator(input))
 }
 
 
 /** @internal */
-export function flatten<T>(value: T | IteratorObject<T>): IteratorObject<T> {
-  return isSeq(value)
-    ? value
-    : Iterator.from(new SingletonIterator(value))
+export function flattenSeq<T>(input: SingleOrSeq<SingleOrSeq<T>>): Seq<T> {
+  return isSeq(input)
+    ? new FlattenWithIterator<T>(input)
+    : Iterator.from(new SingletonIterator(input))
 }
 
 
@@ -58,6 +58,42 @@ export function toInputIterator(input: Input): IteratorObject<unknown> {
     : new SingletonIterator(input))
 }
 
+export class FlattenWithIterator<O, I = unknown, M extends SingleOrSeq<O> = SingleOrSeq<O>> extends Iterator<O> {
+  private inner?: Iterator<O>
+
+  constructor(
+    private readonly input: Iterator<I>,
+    private readonly mapƒ?: Mapƒ<M>) {
+      super()
+  }
+
+  next(): IteratorResult<O> {
+    while (true) {
+      if (this.inner) {
+        const innerNext = this.inner.next()
+        if (!innerNext.done) {
+          return innerNext
+        }
+        this.inner = undefined
+      }
+      const outerNext = this.input.next()
+      if (outerNext.done) {
+        return {done: true, value: undefined}
+      }
+      const mapped = this.mapƒ
+        ? this.mapƒ(outerNext.value)
+        : outerNext.value
+      if (isSeq(mapped)) {
+        this.inner = mapped as Iterator<O>
+        continue
+      }
+      return {
+        done: false,
+        value: mapped as O
+      }
+    }
+  }
+}
 
 /**
  * Wraps a single-pass iterable so it can be iterated multiple times.
@@ -236,6 +272,6 @@ export function autoMap<T>(input: SingleOrSeq<unknown>, mapƒ: Mapƒ<T>): Single
  */
 export function autoFlatMap<I extends SingleOrSeq<unknown>>(input: unknown, mapƒ: Mapƒ<I>): I {
   return isSeq(input)
-    ? input.map(mapƒ).flatMap(flatten) as I
+    ? new FlattenWithIterator(input, mapƒ) as I
     : mapƒ(input)
 }

@@ -2,11 +2,19 @@ import {Lexer} from "chevrotain"
 
 import {type CodegenContext, newCodegenVisitor} from "./codegen-visitor.ts"
 import {ƒBase} from "./ƒ-base.ts"
-import {DefaultOnEmptyIterator, DefaultOnErrorIterator, flatten, isIterableInput, noValueFilter, toInputIterator} from "./iterators.ts"
+import {
+  DefaultOnEmptyIterator,
+  DefaultOnErrorIterator,
+  FlattenWithIterator,
+  isIterableInput,
+  noValueFilter,
+  toInputIterator
+} from "./iterators.ts"
 import {type Input, MissingVariableError, type NamedVariables, type QueryConfig, type SqlJsonPathStatement} from "./json-path.ts"
 import {JsonPathParser} from "./parser.ts"
 import {allTokens} from "./tokens.ts"
 import {hasValue, isObject} from "./ƒ-utils.ts"
+import type { SingleOrSeq } from "./types.ts"
 
 
 const jsonPathLexer = new Lexer(allTokens, {
@@ -100,10 +108,9 @@ export function createStatement(text: string): SqlJsonPathStatement {
 
     query<T>(input: Input, config: QueryConfig<T> = {}): IteratorObject<T> {
       const {vars} = config
-      const queryƒ = (i: unknown) => fn(i, true, vars) as IteratorObject<T>
-      const iterator = toInputIterator(input)
-        .map(queryƒ)
-        .flatMap(flatten)
+      const queryƒ = (i: unknown) => fn(i, true, vars) as SingleOrSeq<T>
+      const iterator =
+        new FlattenWithIterator<T>(toInputIterator(input), queryƒ)
         .filter(noValueFilter)
       return Iterator.from(defaultsIterator(iterator, config))
     }
