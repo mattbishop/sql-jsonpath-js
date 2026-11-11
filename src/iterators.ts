@@ -9,6 +9,10 @@ export function noValueFilter(v: unknown) {
 
 
 /** @internal */
+export const EMPTY_ITERATOR = [].values()
+
+
+/** @internal */
 export function isSeq(input: unknown): input is Seq<unknown> {
   return !Array.isArray(input) && typeof (input as Seq<unknown>)?.flatMap === "function"
 }

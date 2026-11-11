@@ -3,6 +3,7 @@ import {type KeyValue, MissingVariableError} from "./json-path.ts"
 import {
   autoFlatMap,
   autoMap,
+  EMPTY_ITERATOR,
   flattenSeq,
   FlattenWithIterator,
   isIterable,
@@ -148,9 +149,10 @@ export class ƒBase {
   }
 
   private operand(input:unknown): Maybe<NumBigInt> {
+    const numƒ = (v: unknown) => ƒBase._num(v, false)
     const values = this.lax
-      ? this._unwrapWith(input, (v) => ƒBase._num(v, false), false)
-      : autoMap(input, (v) => ƒBase._num(v, false))
+      ? this._unwrapWith(input, numƒ, false)
+      : autoMap(input, numƒ)
 
     if (isSeq(values)) {
       const first = values.next()
@@ -218,14 +220,17 @@ export class ƒBase {
 
   private static _neg(input: unknown, suppress: boolean): Maybe<NumBigInt> {
     const num = mustBeNumberOrBigInt(input, "negation", suppress)
-    return num === NO_VALUE ? num : sqlNum(-num)
+    return num === NO_VALUE
+      ? num
+      : sqlNum(-num)
   }
 
   neg(input: unknown): SingleOrSeq<Maybe<NumBigInt>> {
     const suppress = this.lax && !this.inQuery
+    const negƒ = (v: unknown) => ƒBase._neg(v, suppress)
     return this.lax
-      ? this._unwrapWith(input, (v) => ƒBase._neg(v, suppress), true)
-      : autoMap(input, (v) => ƒBase._neg(v, suppress))
+      ? this._unwrapWith(input, negƒ, true)
+      : autoMap(input, negƒ)
   }
 
 
@@ -252,9 +257,10 @@ export class ƒBase {
    */
   pos(input: unknown): SingleOrSeq<Maybe<NumBigInt>> {
     const suppress = this.lax && !this.inQuery
+    const posƒ = (v: unknown) => ƒBase._pos(v, suppress)
     return this.lax
-      ? this._unwrapWith(input, (v) => ƒBase._pos(v, suppress), true)
-      : autoMap(input, (v) => ƒBase._pos(v, suppress))
+      ? this._unwrapWith(input, posƒ, true)
+      : autoMap(input, posƒ)
 
   }
 
@@ -634,11 +640,14 @@ export class ƒBase {
   }
 
 
-  private static *_toKV(obj: Record<string, unknown>, id: number): Generator<KeyValue> {
-    for (const key in obj)
-      if (Object.hasOwn(obj, key)) {
-        yield {id, key, value: obj[key]}
-      }
+  private static _toKV(obj: Record<string, unknown>, id: number): Seq<KeyValue> {
+    const kv = []
+    const keys = Object.keys(obj)
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i]
+      kv.push({id, key, value: obj[key]})
+    }
+    return kv.values()
   }
 
   keyvalue(input: unknown): Seq<KeyValue> {
@@ -655,14 +664,12 @@ export class ƒBase {
     return flattenSeq(unwrapped)
   }
 
-  private static *_objectValues(input: unknown): Generator<unknown> {
+
+  private static _objectValues(input: unknown): Seq<unknown> {
     if (isObject(input)) {
-      for (const key in input) {
-        if (Object.hasOwn(input, key)) {
-          yield input[key]
-        }
-      }
+      return Object.values(input).values()
     }
+    return EMPTY_ITERATOR
   }
 
   private _dotStar(input: unknown): Seq<unknown> {
