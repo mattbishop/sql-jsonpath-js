@@ -11,6 +11,7 @@ import {
   isSeq,
   MapWithIterator,
   one,
+  RangeIterator,
   toSeq
 } from "./iterators.ts"
 import {
@@ -726,27 +727,26 @@ export class ƒBase {
   private _array(input: unknown, subscripts: unknown[]): Seq<unknown> {
     const array = this._toArray(input, {strict: Array.isArray, error: "Array accessors can only be applied to an array."})
     const mapSubs = (sub: unknown) => {
-        // range function generates a sequence of array positions
-        if (ƒBase.isRangeFunction(sub)) {
-          return sub(array)
-            .map((s: number) => this._maybeElement(array, s))
-        }
-        if (isFunction(sub)) {
-          sub = sub(array)
-        }
-        if (isNumber(sub)) {
-          return this._maybeElement(array, sub)
-        }
-        if (isSeq(sub)) {
-          // not a range query, can only be one element
-          const s = one(sub)
-          if (isNumber(s) && sub.next().done) {
-            return this._maybeElement(array, s)
-          }
-          throw new Error("array subscript must be single numeric value")
-        }
-        throw new Error("array accessor must be numbers")
+      // range function generates a sequence of array elements
+      if (ƒBase.isRangeFunction(sub)) {
+        return sub(array, this._maybeElement)
       }
+      if (isFunction(sub)) {
+        sub = sub(array)
+      }
+      if (isNumber(sub)) {
+        return this._maybeElement(array, sub)
+      }
+      if (isSeq(sub)) {
+        // not a range query, can only be one element
+        const s = one(sub)
+        if (isNumber(s) && sub.next().done) {
+          return this._maybeElement(array, s)
+        }
+        throw new Error("array subscript must be single numeric value")
+      }
+      throw new Error("array accessor must be numbers")
+    }
     return new FlattenWithIterator(subscripts.values(), mapSubs)
   }
 
@@ -775,25 +775,23 @@ export class ƒBase {
     return 0
   }
 
-
   private static isRangeFunction(input: unknown): input is Function {
     // @ts-ignore
     return input[RANGE]
   }
 
-  private static *_range(start: number, end: number): Generator<number> {
-    for (let i = start; i <= end; i++) {
-      yield i
-    }
-  }
-
-  range(from: unknown, to: unknown): (array: Array<unknown>) => Seq<number> {
+  range(from: unknown, to: unknown): (array: unknown[]) => Seq<unknown> {
+    // need to pin 'this' in the closure
+    const mapƒ = this._maybeElement.bind(this)
     const rangeƒ = (array: unknown[]) => {
       const start = isFunction(from) ? from(array) : from
       const end = isFunction(to) ? to(array) : to
-      return Iterator.from(ƒBase._range(
+      return new RangeIterator(
+        array,
         Math.floor(mustBeNumber(start, "'from'") as number),
-        Math.floor(mustBeNumber(end, "'to'") as number)))
+        Math.floor(mustBeNumber(end, "'to'") as number),
+        mapƒ
+      )
     }
     // mark the function so it can be identified later as a range generator.
     rangeƒ[RANGE] = true

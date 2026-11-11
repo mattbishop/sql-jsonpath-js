@@ -11,6 +11,11 @@ export function noValueFilter(v: unknown) {
 /** @internal */
 export const EMPTY_ITERATOR = [].values()
 
+const DONE_RESULT: IteratorResult<any> = {
+  value:  undefined,
+  done:   true
+}
+
 
 /** @internal */
 export function isSeq(input: unknown): input is Seq<unknown> {
@@ -84,7 +89,7 @@ export class FlattenWithIterator<O, I = unknown, M extends SingleOrSeq<O> = Sing
       }
       const outerNext = this.input.next()
       if (outerNext.done) {
-        return {done: true, value: undefined}
+        return DONE_RESULT
       }
       const mapped = this.mapƒ
         ? this.mapƒ(outerNext.value)
@@ -94,8 +99,8 @@ export class FlattenWithIterator<O, I = unknown, M extends SingleOrSeq<O> = Sing
         continue
       }
       return {
-        done: false,
-        value: mapped as O
+        value:  mapped as O,
+        done:   false
       }
     }
   }
@@ -179,6 +184,30 @@ export class MapWithIterator<T, A extends unknown[]> extends Iterator<T> {
 }
 
 
+type RangeMapƒ = (array: unknown[], pos: number) => unknown
+
+export class RangeIterator extends Iterator<unknown> {
+  constructor(private readonly  array:  unknown[],
+                                start:  number,
+              private readonly  end:    number,
+              private readonly  mapƒ:   RangeMapƒ) {
+    super()
+    this.current = start
+  }
+
+  private current: number
+
+  next(): IteratorResult<unknown> {
+    return this.current <= this.end
+      ? {
+          value:  this.mapƒ(this.array, this.current++),
+          done:   false
+        }
+    : DONE_RESULT
+  }
+}
+
+
 /** @internal */
 export class SingletonIterator<T> extends Iterator<T> {
   constructor(private readonly value: T) {
@@ -189,15 +218,12 @@ export class SingletonIterator<T> extends Iterator<T> {
 
   next(): IteratorResult<T> {
     if (this.done) {
-      return {
-        done:   true,
-        value:  undefined as T
-      }
+      return DONE_RESULT
     }
     this.done = true
     return {
-      done:   false,
-      value:  this.value
+      value:  this.value,
+      done:   false
     }
   }
 }
@@ -221,7 +247,10 @@ export class DefaultOnEmptyIterator<T> extends Iterator<T> {
       this.started = true
       const first = this.iterator.next()
       return first.done
-        ? { value: this.defaultValue, done: false }
+        ? {
+            value:  this.defaultValue,
+            done:   false
+          }
         : first
     }
     return this.iterator.next()
@@ -243,7 +272,10 @@ export class DefaultOnErrorIterator<T> extends Iterator<T> {
     try {
       return this.iterator.next()
     } catch {
-      return { value: this.defaultValue, done: false }
+      return {
+        value: this.defaultValue,
+        done: false
+      }
     }
   }
 }
