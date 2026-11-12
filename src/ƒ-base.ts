@@ -696,7 +696,7 @@ export class ƒBase {
   }
 
 
-  private _member(obj: unknown, member: string, lax: boolean): unknown {
+  private static _member(obj: unknown, member: string, lax: boolean): unknown {
     if (isObject(obj) && Object.hasOwn(obj, member)) {
       return obj[member]
     }
@@ -707,18 +707,18 @@ export class ƒBase {
   }
 
   member(input: unknown, member: string): SingleOrSeq<unknown> {
-    return this._unwrapWithArgs(input, this._member, !this.inQuery, member, this.lax)
+    return this._unwrapWithArgs(input, ƒBase._member, !this.inQuery, member, this.lax)
   }
 
 
-  private _maybeElement(array: Array<unknown>, pos: number): unknown {
+  private static _maybeElement(array: Array<unknown>, pos: number, lax: boolean): unknown {
     if (pos > INT_MAX) {
       throw new Error ("Array subscript is out of integer range.")
     }
     if (pos > -1 && pos < array.length) {
       return array[pos]
     }
-    if (this.lax) {
+    if (lax) {
       return NO_VALUE
     }
     throw new Error (`Array subscript [${pos}] is out of bounds. In 'strict' mode.`)
@@ -729,19 +729,19 @@ export class ƒBase {
     const mapSubs = (sub: unknown) => {
       // range function generates a sequence of array elements
       if (ƒBase.isRangeFunction(sub)) {
-        return sub(array, this._maybeElement)
+        return sub(array)
       }
       if (isFunction(sub)) {
         sub = sub(array)
       }
       if (isNumber(sub)) {
-        return this._maybeElement(array, sub)
+        return ƒBase._maybeElement(array, sub, this.lax)
       }
       if (isSeq(sub)) {
         // not a range query, can only be one element
         const s = one(sub)
         if (isNumber(s) && sub.next().done) {
-          return this._maybeElement(array, s)
+          return ƒBase._maybeElement(array, s, this.lax)
         }
         throw new Error("array subscript must be single numeric value")
       }
@@ -781,8 +781,6 @@ export class ƒBase {
   }
 
   range(from: unknown, to: unknown): (array: unknown[]) => Seq<unknown> {
-    // need to pin 'this' in the closure
-    const mapƒ = this._maybeElement.bind(this)
     const rangeƒ = (array: unknown[]) => {
       const start = isFunction(from) ? from(array) : from
       const end = isFunction(to) ? to(array) : to
@@ -790,7 +788,8 @@ export class ƒBase {
         array,
         Math.floor(mustBeNumber(start, "'from'") as number),
         Math.floor(mustBeNumber(end, "'to'") as number),
-        mapƒ
+        ƒBase._maybeElement,
+        this.lax
       )
     }
     // mark the function so it can be identified later as a range generator.

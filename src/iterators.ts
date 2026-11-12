@@ -191,13 +191,14 @@ export class MapWithIterator<T, A extends unknown[]> extends Iterator<T> {
 }
 
 
-type RangeMapƒ = (array: unknown[], pos: number) => unknown
+type RangeMapƒ = (array: unknown[], pos: number, lax: boolean) => unknown
 
 export class RangeIterator extends Iterator<unknown> {
   constructor(private readonly  array:  unknown[],
                                 start:  number,
               private readonly  end:    number,
-              private readonly  mapƒ:   RangeMapƒ) {
+              private readonly  mapƒ:   RangeMapƒ,
+              private readonly  lax:    boolean) {
     super()
     this.current = start
   }
@@ -207,7 +208,7 @@ export class RangeIterator extends Iterator<unknown> {
   next(): IteratorResult<unknown> {
     return this.current <= this.end
       ? {
-          value:  this.mapƒ(this.array, this.current++),
+          value:  this.mapƒ(this.array, this.current++, this.lax),
           done:   false
         }
     : DONE_RESULT
