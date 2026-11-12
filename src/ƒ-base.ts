@@ -213,7 +213,7 @@ export class ƒBase {
         result = left % right
         break
       default:
-        throw new Error(`${op} is not a valid calc operation`)
+        throw new Error("not a valid calc operation")
     }
     return Number(result)
   }
@@ -416,7 +416,7 @@ export class ƒBase {
   }
 
 
-  private static _string(input: unknown): string {
+  private static _string(input: any): string {
     switch (typeof input) {
       case "string":
         return input
@@ -425,9 +425,8 @@ export class ƒBase {
       case "bigint":
         return String(input)
     }
-    if (   input instanceof Temporal.PlainDateTime
-        || input instanceof Temporal.PlainDate
-        || input instanceof Temporal.PlainTime) {
+    // this includes ZonedTime
+    if (input[Symbol.toStringTag]?.startsWith("Temporal.Plain")) {
       return input.toString()
     }
     if (input instanceof Temporal.ZonedDateTime) {
