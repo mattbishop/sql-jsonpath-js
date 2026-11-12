@@ -38,25 +38,32 @@ export function sqlType(input: unknown): string {
     if (Array.isArray(input)) {
       return "array"
     }
-    // input instanceof Date would fit here, if we used it
-    if (input instanceof Temporal.ZonedDateTime) {
-      return "timestamp with time zone"
-    }
-    if (input instanceof Temporal.PlainDateTime) {
-      return "timestamp without time zone"
-    }
-    if (input instanceof ZonedTime) {
-      return "time with time zone"
-    }
-    if (input instanceof Temporal.PlainTime) {
-      return "time without time zone"
-    }
-    if (input instanceof Temporal.PlainDate) {
-      return "date"
+    if (isTemporal(input)) {
+      return temporalSqlType(input)
     }
   }
   return type
 }
+
+function temporalSqlType(input: unknown): string {
+  if (input instanceof Temporal.ZonedDateTime) {
+    return "timestamp with time zone"
+  }
+  if (input instanceof Temporal.PlainDateTime) {
+    return "timestamp without time zone"
+  }
+  if (input instanceof ZonedTime) {
+    return "time with time zone"
+  }
+  if (input instanceof Temporal.PlainTime) {
+    return "time without time zone"
+  }
+  if (input instanceof Temporal.PlainDate) {
+    return "date"
+  }
+  return "object"
+}
+
 
 // SQL does not support IEEE 754 signed zero
 /** @internal */
@@ -124,12 +131,16 @@ export function isObject(input: unknown): input is Record<string, unknown> {
   return input !== null
     && typeof input === "object"
     && !Array.isArray(input)
-    && !((input as any)[Symbol.toStringTag]?.startsWith("Temporal."))
+    && !isTemporal(input)
 }
 
 /** @internal */
 export function isFunction(input: unknown): input is Function {
   return typeof input === "function"
+}
+
+function isTemporal(input: any): boolean {
+  return input[Symbol.toStringTag]?.startsWith("Temporal.")
 }
 
 /** @internal */

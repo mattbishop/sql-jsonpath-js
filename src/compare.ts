@@ -61,28 +61,14 @@ function comparePair(compOp: CompOp, left: any, typeLeft: string, right: any, ty
     return numComp
   }
 
-  if (areTemporalComparable(typeLeft, typeRight)) {
-    left = toTemporalComparable(left)
-    right = toTemporalComparable(right)
-    typeLeft = typeRight = "temporal"
+  const tempComp = compareTemporalPair(compOp, left, typeLeft, right, typeRight)
+  if (tempComp) {
+    return tempComp
   }
 
   // check that left and right can be compared
   if (typeLeft === typeRight) {
-    switch (compOp) {
-      case CompOp.EQ :
-        return toPred(left === right)
-      case CompOp.NEQ :
-        return toPred(left !== right)
-      case CompOp.GT :
-        return toPred(left > right)
-      case CompOp.GTE :
-        return toPred(left >= right)
-      case CompOp.LT :
-        return toPred(left < right)
-      case CompOp.LTE :
-        return toPred(left <= right)
-    }
+    return evalCompOp(compOp, left, right)
   }
   return Pred.UNKNOWN
 }
@@ -113,26 +99,36 @@ function compareNumerics(compOp:    CompOp,
       default:
         return undefined
     }
+    return evalCompOp(compOp, left, right)
+  }
+}
 
-    switch (compOp) {
-      case CompOp.EQ :
-        // ==, not === so number and bigint can be compared
-        return toPred(left == right)
-      case CompOp.NEQ :
-        return toPred(left != right)
-      case CompOp.GT :
-        //@ts-ignore
-        return toPred(left > right)
-      case CompOp.GTE :
-        //@ts-ignore
-        return toPred(left >= right)
-      case CompOp.LT :
-        //@ts-ignore
-        return toPred(left < right)
-      case CompOp.LTE :
-        //@ts-ignore
-        return toPred(left <= right)
-    }
+function compareTemporalPair(compOp: CompOp,
+                             left: any,
+                             typeLeft: string,
+                             right: any,
+                             typeRight: string): Pred | undefined {
+  if (areTemporalComparable(typeLeft, typeRight)) {
+    return evalCompOp(compOp, toTemporalComparable(left), toTemporalComparable(right))
+  }
+}
+
+function evalCompOp(compOp: CompOp, left: any, right: any): Pred {
+  switch (compOp) {
+    case CompOp.EQ:
+      return toPred(left === right)
+    case CompOp.NEQ:
+      return toPred(left != right)
+    case CompOp.GT:
+      return toPred(left > right)
+    case CompOp.GTE:
+      return toPred(left >= right)
+    case CompOp.LT:
+      return toPred(left < right)
+    case CompOp.LTE:
+      return toPred(left <= right)
+    default:
+      throw new Error(`unknwon comp op: ${compOp}`)
   }
 }
 

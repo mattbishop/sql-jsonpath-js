@@ -124,24 +124,31 @@ export class ReplayableIterable<T> implements Iterable<T> {
     this.iterator = iterable[Symbol.iterator]()
   }
 
-  *[Symbol.iterator](): Iterator<T> {
+  [Symbol.iterator](): IterableIterator<T> {
     let index = 0
-
-    while (index < this.cache.length) {
-      yield this.cache[index++]
-    }
-
-    while (!this.done) {
-      const next = this.iterator.next()
-
-      if (next.done) {
-        this.done = true
-        return
+    return {
+      [Symbol.iterator]() {
+        return this
+      },
+      next: (): IteratorResult<T> => {
+        if (index < this.cache.length) {
+          return {
+            value: this.cache[index++],
+            done: false
+          }
+        }
+        if (this.done) {
+          return DONE_RESULT
+        }
+        const next = this.iterator.next()
+        if (next.done) {
+          this.done = true
+          return DONE_RESULT
+        }
+        this.cache.push(next.value)
+        index++
+        return next
       }
-
-      this.cache.push(next.value)
-      yield next.value
-      index++
     }
   }
 }
