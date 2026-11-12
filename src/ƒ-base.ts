@@ -769,7 +769,7 @@ export class ƒBase {
       return array.length - 1
     }
     if (isIterable(array)) {
-      return (arr: unknown) => this.last(arr)
+      return this.last
     }
     // scalar values are auto-wrapped, so their last position is 0
     return 0
@@ -798,7 +798,7 @@ export class ƒBase {
   }
 
 
-  private matchesFilter(input: unknown, filterExp: Predƒ): boolean {
+  private _matchesFilter(input: unknown, filterExp: Predƒ): boolean {
     try {
       const result = filterExp(input)
       if (isSeq(result)) {
@@ -830,7 +830,7 @@ export class ƒBase {
   }
 
   filter(input: unknown, filterExp: Predƒ): SingleOrSeq<unknown> {
-    const matches = (v: unknown) => this.matchesFilter(v, filterExp)
+    const matches = (v: unknown) => this._matchesFilter(v, filterExp)
 
     if (this.lax) {
       // Lax mode auto-unwraps arrays/sequences, so the filter keeps the
