@@ -1,6 +1,7 @@
 import {isIterable, noValueFilter, ReplayableIterable, toSeq} from "./iterators.ts"
 import {sqlType, toPred} from "./ƒ-utils.ts"
 import {CompOp, NO_VALUE, Pred, TemporalTypes} from "./types.ts"
+import {ZonedTime} from "./zoned-time.ts"
 
 
 /**
@@ -39,8 +40,20 @@ export function compareValues(lax: boolean, compOp: CompOp, left: unknown, right
   return compareLeftIterRightIter(lax, compOp, left as Iterable<unknown>, right as Iterable<unknown>)
 }
 
-
 function comparePair(compOp: CompOp, left: any, typeLeft: string, right: any, typeRight: string): Pred {
+  if (typeLeft === typeRight) {
+    if (typeLeft === "number") {
+      return compareNumbers(compOp, left, right)
+    }
+    if (typeLeft === "string" || typeLeft === "boolean") {
+      return evalCompOp(compOp, left, right)
+    }
+  }
+  return compareOtherPair(compOp, left, typeLeft, right, typeRight)
+}
+
+
+function compareOtherPair(compOp: CompOp, left: any, typeLeft: string, right: any, typeRight: string): Pred {
   // these are not comparable, even if both are NO_VALUE
   if (left === NO_VALUE || right === NO_VALUE) {
     return Pred.FALSE
@@ -56,28 +69,25 @@ function comparePair(compOp: CompOp, left: any, typeLeft: string, right: any, ty
     return nullComp
   }
 
-  const numComp = compareNumerics(compOp, left, typeLeft, right, typeRight)
-  if (numComp) {
-    return numComp
+  const sComp = compareMaybeNumerics(compOp, left, typeLeft, right, typeRight)
+  if (sComp) {
+    return sComp
   }
 
-  const tempComp = compareTemporalPair(compOp, left, typeLeft, right, typeRight)
+  const tempComp = compareMaybeTemporals(compOp, left, typeLeft, right, typeRight)
   if (tempComp) {
     return tempComp
-  }
-
-  // check that left and right can be compared
-  if (typeLeft === typeRight) {
-    return evalCompOp(compOp, left, right)
   }
   return Pred.UNKNOWN
 }
 
-function compareNumerics(compOp:    CompOp,
-                         left:      unknown,
-                         typeLeft:  string,
-                         right:     unknown,
-                         typeRight: string): Pred | undefined {
+
+function compareMaybeNumerics(compOp:    CompOp,
+                              left:      any,
+                              typeLeft:  string,
+                              right:     any,
+                              typeRight: string): Pred | undefined {
+
   if (   (typeLeft === "number" && !Number.isFinite(left))
       || (typeRight === "number" && !Number.isFinite(right))) {
     return Pred.UNKNOWN
@@ -90,46 +100,142 @@ function compareNumerics(compOp:    CompOp,
     typeRight = "number"
   }
 
+  if (typeLeft === typeRight && typeLeft === "number") {
+    return compareNumBigInt(compOp, left, right)
+  }
+}
+
+// number-only so V8 can optimize
+function compareNumbers(compOp: CompOp, left: number, right: number): Pred {
+  // handle number / bigint comparison, which requires == vs ===
+  let result
+  switch (compOp) {
+    case CompOp.EQ:
+      result = left === right
+      break
+    case CompOp.NEQ:
+      result = left !== right
+      break
+    case CompOp.GT:
+      result = left > right
+      break
+    case CompOp.GTE:
+      result = left >= right
+      break
+    case CompOp.LT:
+      result = left < right
+      break
+    case CompOp.LTE:
+      result = left <= right
+      break
+    default:
+      throw new Error("unknown comp op")
+  }
+  return toPred(result)
+}
+
+function compareNumBigInt(compOp: CompOp, left: any, right: any): Pred {
+  // handle number / bigint comparison, which requires == vs ===
+  let result
+  switch (compOp) {
+    case CompOp.EQ:
+      result = left == right
+      break
+    case CompOp.NEQ:
+      result = left != right
+      break
+    default:
+      return evalCompOp(compOp, left, right)
+  }
+  return toPred(result)
+}
+
+
+function compareMaybeTemporals(compOp: CompOp,
+                             left:      any,
+                             typeLeft:  string,
+                             right:     any,
+                             typeRight: string): Pred | undefined {
   if (typeLeft === typeRight) {
     switch (typeLeft) {
-      case "number":
-      case "string":
-      case "boolean":
-        break
+      case TemporalTypes.DATE:
+        return evalCmpResult(compOp, Temporal.PlainDate.compare(left, right))
+      case TemporalTypes.TIMESTAMP:
+        return evalCmpResult(compOp, Temporal.PlainDateTime.compare(left, right))
+      case TemporalTypes.TIME:
+        return evalCmpResult(compOp, Temporal.PlainTime.compare(left, right))
+      case TemporalTypes.TIME_TZ:
+        return evalCmpResult(compOp, ZonedTime.compare(left, right))
+      case TemporalTypes.TIMESTAMP_TZ:
+        return evalCmpResult(compOp, Temporal.ZonedDateTime.compare(left, right))
       default:
         return undefined
     }
-    return evalCompOp(compOp, left, right)
   }
+
+  // Cross-type comparisons (e.g., PlainDate vs PlainDateTime)
+  if (   (typeLeft === TemporalTypes.DATE && typeRight === TemporalTypes.TIMESTAMP)
+      || (typeLeft === TemporalTypes.TIMESTAMP && typeRight === TemporalTypes.DATE)) {
+    const l = typeLeft === TemporalTypes.DATE ? left.toPlainDateTime() : left
+    const r = typeRight === TemporalTypes.DATE ? right.toPlainDateTime() : right
+    return evalCmpResult(compOp, Temporal.PlainDateTime.compare(l, r))
+  }
+
+  return undefined
 }
 
-function compareTemporalPair(compOp: CompOp,
-                             left: any,
-                             typeLeft: string,
-                             right: any,
-                             typeRight: string): Pred | undefined {
-  if (areTemporalComparable(typeLeft, typeRight)) {
-    return evalCompOp(compOp, toTemporalComparable(left), toTemporalComparable(right))
-  }
-}
-
-function evalCompOp(compOp: CompOp, left: any, right: any): Pred {
+function evalCmpResult(compOp: CompOp, cmp: number): Pred {
+  let result
   switch (compOp) {
     case CompOp.EQ:
-      return toPred(left === right)
+      result = cmp === 0
+      break
     case CompOp.NEQ:
-      return toPred(left != right)
+      result = cmp !== 0
+      break
     case CompOp.GT:
-      return toPred(left > right)
+      result = cmp > 0
+      break
     case CompOp.GTE:
-      return toPred(left >= right)
+      result = cmp >= 0
+      break
     case CompOp.LT:
-      return toPred(left < right)
+      result = cmp < 0
+      break
     case CompOp.LTE:
-      return toPred(left <= right)
-    default:
-      throw new Error(`unknwon comp op: ${compOp}`)
+      result = cmp <= 0
+      break
+    default: throw new Error("unknown comp op")
   }
+  return toPred(result)
+}
+
+
+function evalCompOp(compOp: CompOp, left: any, right: any): Pred {
+  let result
+  switch (compOp) {
+    case CompOp.EQ:
+      result = left === right
+      break
+    case CompOp.NEQ:
+      result = left !== right
+      break
+    case CompOp.GT:
+      result = left > right
+      break
+    case CompOp.GTE:
+      result = left >= right
+      break
+    case CompOp.LT:
+      result = left < right
+      break
+    case CompOp.LTE:
+      result = left <= right
+      break
+    default:
+      throw new Error("unknown comp op")
+  }
+  return toPred(result)
 }
 
 /*
@@ -140,53 +246,19 @@ function evalCompOp(compOp: CompOp, left: any, right: any): Pred {
  */
 function compareMaybeNull(compOp: CompOp, typeLeft: string, typeRight: string): Pred | undefined {
   if (typeLeft === "null" || typeRight === "null") {
+    let result
     switch (compOp) {
       case CompOp.EQ :
-        return toPred(typeLeft === typeRight)
+        result = typeLeft === typeRight
+        break
       case CompOp.NEQ :
-        return toPred(typeLeft !== typeRight)
+        result = typeLeft !== typeRight
+        break
       default:
         return Pred.UNKNOWN
     }
+    return toPred(result)
   }
-}
-
-
-/*
-    COMPARABLE:
-    * date and timestamp
-    * date and datetime
-    * datetime and timestamp
-
-    NOT COMPARABLE:
-    * date and timestamp_tz
-    * date and time
-    * date and time_tz
-    * time and time_tz
-*/
-function areTemporalComparable(typeLeft: string, typeRight: string): boolean {
-  if (   typeLeft === typeRight
-      && (typeLeft === TemporalTypes.DATE || typeLeft.startsWith("time"))) {
-    return true
-  }
-  // types are different but possibly comparable
-  const leftIsComparable =
-       typeLeft === TemporalTypes.DATE
-    || typeLeft === TemporalTypes.TIMESTAMP
-
-  const rightIsComparable =
-       typeRight === TemporalTypes.DATE
-    || typeRight === TemporalTypes.TIMESTAMP
-
-  return leftIsComparable && rightIsComparable
-}
-
-function toTemporalComparable(temporal: Temporal.PlainDate | Temporal.PlainDateTime): string {
-  // todo it would be good to cache this conversion
-  if (temporal instanceof Temporal.PlainDate) {
-    temporal = Temporal.PlainDateTime.from(temporal)
-  }
-  return temporal.toString()
 }
 
 
