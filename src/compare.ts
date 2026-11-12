@@ -152,10 +152,10 @@ function compareNumBigInt(compOp: CompOp, left: any, right: any): Pred {
 
 
 function compareMaybeTemporals(compOp: CompOp,
-                             left:      any,
-                             typeLeft:  string,
-                             right:     any,
-                             typeRight: string): Pred | undefined {
+                               left:      any,
+                               typeLeft:  string,
+                               right:     any,
+                               typeRight: string): Pred | undefined {
   if (typeLeft === typeRight) {
     switch (typeLeft) {
       case TemporalTypes.DATE:
@@ -165,7 +165,7 @@ function compareMaybeTemporals(compOp: CompOp,
       case TemporalTypes.TIME:
         return evalCmpResult(compOp, Temporal.PlainTime.compare(left, right))
       case TemporalTypes.TIME_TZ:
-        return evalCmpResult(compOp, ZonedTime.compare(left, right))
+        return evalCmpResult(compOp, left.compare(right))
       case TemporalTypes.TIMESTAMP_TZ:
         return evalCmpResult(compOp, Temporal.ZonedDateTime.compare(left, right))
       default:

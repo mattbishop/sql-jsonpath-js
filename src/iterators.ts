@@ -69,6 +69,7 @@ export function toInputIterator(input: Input): IteratorObject<unknown> {
     : new SingletonIterator(input)
 }
 
+/** @internal */
 export class FlattenWithIterator<O, I = unknown, M extends SingleOrSeq<O> = SingleOrSeq<O>> extends Iterator<O> {
   private inner?: Iterator<O>
 
@@ -193,6 +194,7 @@ export class MapWithIterator<T, A extends unknown[]> extends Iterator<T> {
 
 type RangeMapƒ = (array: unknown[], pos: number, lax: boolean) => unknown
 
+/** @internal */
 export class RangeIterator extends Iterator<unknown> {
   constructor(private readonly  array:  unknown[],
                                 start:  number,
