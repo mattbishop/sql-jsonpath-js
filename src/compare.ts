@@ -1,7 +1,6 @@
 import {isIterable, noValueFilter, ReplayableIterable, toSeq} from "./iterators.ts"
 import {sqlType, toPred} from "./ƒ-utils.ts"
 import {CompOp, NO_VALUE, Pred, TemporalTypes} from "./types.ts"
-import {ZonedTime} from "./zoned-time.ts"
 
 
 /**
@@ -16,7 +15,6 @@ export function compareValues(lax: boolean, compOp: CompOp, left: unknown, right
   if (!leftIterable && !rightIterable) {
     return comparePair(compOp, left, sqlType(left), right, sqlType(right))
   }
-
 
   let typeLeft = sqlType(left)
   let typeRight = sqlType(right)
@@ -272,13 +270,19 @@ function compareLeftIterRightIter(lax:      boolean,
                                   compOp:   CompOp,
                                   leftIn:   Iterable<unknown>,
                                   rightIn:  Iterable<unknown>) {
-  const leftValues = toSeq(leftIn).filter(noValueFilter)
-  const rightValues = new ReplayableIterable(toSeq(rightIn).filter(noValueFilter))
+  const leftValues = toSeq(leftIn)
+  const rightValues = new ReplayableIterable(rightIn)
 
   let hasUnknown = false
   for (const left of leftValues) {
+    if (!noValueFilter(left)) {
+      continue
+    }
     const typeLeft = sqlType(left)
     for (const right of rightValues) {
+      if (!noValueFilter(right)) {
+        continue
+      }
       const typeRight = sqlType(right)
       const result = comparePair(compOp, left, typeLeft, right, typeRight)
       if (result === Pred.TRUE) {
@@ -301,13 +305,19 @@ function compareLeftIterRight(lax:        boolean,
                               compOp:     CompOp,
                               leftIn:     Iterable<unknown>,
                               right:      unknown,
-                              rightType:  string) {
-  const leftValues = toSeq(leftIn).filter(noValueFilter)
-
+                              typeRight:  string) {
+  const leftValues = toSeq(leftIn)
   let hasUnknown = false
   for (const left of leftValues) {
-    const leftType = sqlType(left)
-    const result = comparePair(compOp, left, leftType, right, rightType)
+    if (!noValueFilter(left)) {
+      continue
+    }
+    let typeLeft: string = typeof left
+    // fast path for common types.
+    if (typeLeft !== "string" && typeLeft !== "number") {
+      typeLeft = sqlType(left)
+    }
+    const result = comparePair(compOp, left, typeLeft, right, typeRight)
     if (result === Pred.TRUE) {
       return Pred.TRUE
     }
@@ -328,11 +338,17 @@ function compareLeftRightIter(lax:      boolean,
                               left:     unknown,
                               typeLeft: string,
                               rightIn:  Iterable<unknown>) {
-  const rightValues = toSeq(rightIn).filter(noValueFilter)
-
+  const rightValues = toSeq(rightIn)
   let hasUnknown = false
   for (const right of rightValues) {
-    const typeRight = sqlType(right)
+    if (!noValueFilter(right)) {
+      continue
+    }
+    let typeRight: string = typeof right
+    // fast path for common types.
+    if (typeRight !== "string" && typeRight !== "number") {
+      typeRight = sqlType(left)
+    }
     const result = comparePair(compOp, left, typeLeft, right, typeRight)
     if (result === Pred.TRUE) {
       return Pred.TRUE

@@ -69,32 +69,50 @@ export function toInputIterator(input: Input): IteratorObject<unknown> {
     : new SingletonIterator(input)
 }
 
-/** @internal */
-export class FlattenWithIterator<O, I = unknown, M extends SingleOrSeq<O> = SingleOrSeq<O>> extends Iterator<O> {
+/**
+ * Combines flattening, optional mapping, and optional NO_VALUE filtering
+ * into a single physical Iterator layer to stay under V8's inlining budget.
+ * @internal
+ */
+export class FlattenWithIterator<O, I = unknown> extends Iterator<O> {
   private inner?: Iterator<O>
 
-  constructor(
-    private readonly input: Iterator<I>,
-    private readonly mapƒ?: Mapƒ<M>) {
-      super()
+  constructor(private readonly  input: Iterator<I>,
+              private readonly  mapƒ?: Mapƒ<any>,
+              private readonly  filterNV: boolean = false) {
+    super()
   }
 
   next(): IteratorResult<O> {
     while (true) {
+      // 1. Process active inner sequence (Flatten step)
       if (this.inner) {
         const innerNext = this.inner.next()
         if (!innerNext.done) {
+          if (this.filterNV && innerNext.value === NO_VALUE) {
+            continue
+          }
           return innerNext
         }
         this.inner = undefined
       }
+
+      // 2. Pull from outer sequence
       const outerNext = this.input.next()
       if (outerNext.done) {
         return DONE_RESULT
       }
+
+      // 3. Apply Map directly inside the same frame
       const mapped = this.mapƒ
         ? this.mapƒ(outerNext.value)
         : outerNext.value
+
+      if (this.filterNV && mapped === NO_VALUE) {
+        continue
+      }
+
+      // 4. Handle nested sequences dynamically
       if (isSeq(mapped)) {
         this.inner = mapped as Iterator<O>
         continue
@@ -106,6 +124,7 @@ export class FlattenWithIterator<O, I = unknown, M extends SingleOrSeq<O> = Sing
     }
   }
 }
+
 
 /**
  * Wraps a single-pass iterable so it can be iterated multiple times.

@@ -7,7 +7,7 @@ import {
   DefaultOnErrorIterator,
   FlattenWithIterator,
   isIterableInput,
-  noValueFilter,
+  MapWithIterator,
   toInputIterator
 } from "./iterators.ts"
 import {type Input, MissingVariableError, type NamedVariables, type QueryConfig, type SqlJsonPathStatement} from "./json-path.ts"
@@ -99,7 +99,7 @@ export function createStatement(text: string): SqlJsonPathStatement {
       // filter() will omit the exists == false elements, and the caller needs to know this
       const existsƒ = (i: unknown) => hasValue(fn(i, false, vars), ctx.lax)
       return isIterableInput(input)
-        ? Iterator.from(input).map(existsƒ)
+        ? new MapWithIterator(input, existsƒ, false)
         // single input requires single output
         : existsƒ(input)
     },
@@ -107,8 +107,7 @@ export function createStatement(text: string): SqlJsonPathStatement {
     query<T>(input: Input, config: QueryConfig<T> = {}): IteratorObject<T> {
       const {vars} = config
       const queryƒ = (i: unknown) => fn(i, true, vars) as SingleOrSeq<T>
-      const iterator = new FlattenWithIterator<T>(toInputIterator(input), queryƒ)
-        .filter(noValueFilter)
+      const iterator = new FlattenWithIterator<T>(toInputIterator(input), queryƒ, true)
       return defaultsIterator(iterator, config)
     }
   }
