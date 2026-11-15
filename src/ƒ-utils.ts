@@ -30,19 +30,28 @@ export const INT_MAX = 2 ** 31 - 1
  */
 /** @internal */
 export function sqlType(input: unknown): string {
+  const type = typeof input
+  // most common types, short-circuit deeper analysis for speed improvement
+  if (type === "string" || type === "number" || type === "boolean") {
+    return type
+  }
   if (input === null || input === undefined) {
     return "null"
   }
-  const type = typeof input
   if (type === "object") {
     if (Array.isArray(input)) {
       return "array"
     }
-    if (isTemporal(input)) {
-      return temporalSqlType(input)
-    }
+    return maybeTemporalSqlType(input)
   }
   return type
+}
+
+function maybeTemporalSqlType(input: unknown): string {
+  if (isTemporal(input)) {
+    return temporalSqlType(input)
+  }
+  return "object"
 }
 
 function temporalSqlType(input: unknown): string {
@@ -139,7 +148,9 @@ export function isFunction(input: unknown): input is Function {
   return typeof input === "function"
 }
 
-function isTemporal(input: any): boolean {
+
+/** @internal */
+export function isTemporal(input: any): boolean {
   return input[Symbol.toStringTag]?.startsWith("Temporal.")
 }
 

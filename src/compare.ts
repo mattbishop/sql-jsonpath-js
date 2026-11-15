@@ -3,6 +3,16 @@ import {sqlType, toPred} from "./ƒ-utils.ts"
 import {CompOp, NO_VALUE, Pred, TemporalTypes} from "./types.ts"
 
 
+// lookup before diving into expensive temporal comparison
+const temporalTypes: Record<string, boolean> = {
+  [TemporalTypes.DATE]:         true,
+  [TemporalTypes.TIME]:         true,
+  [TemporalTypes.TIME_TZ]:      true,
+  [TemporalTypes.TIMESTAMP]:    true,
+  [TemporalTypes.TIMESTAMP_TZ]: true,
+}
+
+
 /**
  * Compares two values of unknown type and returns a Pred result.
  * @internal
@@ -72,7 +82,10 @@ function compareOtherPair(compOp: CompOp, left: any, typeLeft: string, right: an
     return sComp
   }
 
-  const tempComp = compareMaybeTemporals(compOp, left, typeLeft, right, typeRight)
+  const tempComp =
+         temporalTypes[typeLeft]
+      && temporalTypes[typeRight]
+      && compareTemporals(compOp, left, typeLeft, right, typeRight)
   if (tempComp) {
     return tempComp
   }
@@ -149,11 +162,11 @@ function compareNumBigInt(compOp: CompOp, left: any, right: any): Pred {
 }
 
 
-function compareMaybeTemporals(compOp: CompOp,
-                               left:      any,
-                               typeLeft:  string,
-                               right:     any,
-                               typeRight: string): Pred | undefined {
+function compareTemporals(compOp: CompOp,
+                          left:      any,
+                          typeLeft:  string,
+                          right:     any,
+                          typeRight: string): Pred | undefined {
   if (typeLeft === typeRight) {
     switch (typeLeft) {
       case TemporalTypes.DATE:
@@ -312,11 +325,7 @@ function compareLeftIterRight(lax:        boolean,
     if (!noValueFilter(left)) {
       continue
     }
-    let typeLeft: string = typeof left
-    // fast path for common types.
-    if (typeLeft !== "string" && typeLeft !== "number") {
-      typeLeft = sqlType(left)
-    }
+    const typeLeft = sqlType(left)
     const result = comparePair(compOp, left, typeLeft, right, typeRight)
     if (result === Pred.TRUE) {
       return Pred.TRUE
@@ -344,11 +353,7 @@ function compareLeftRightIter(lax:      boolean,
     if (!noValueFilter(right)) {
       continue
     }
-    let typeRight: string = typeof right
-    // fast path for common types.
-    if (typeRight !== "string" && typeRight !== "number") {
-      typeRight = sqlType(left)
-    }
+    let typeRight = sqlType(right)
     const result = comparePair(compOp, left, typeLeft, right, typeRight)
     if (result === Pred.TRUE) {
       return Pred.TRUE
