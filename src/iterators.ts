@@ -232,7 +232,7 @@ export class RangeIterator extends Iterator<unknown> {
           value:  this.mapƒ(this.array, this.current++, this.lax),
           done:   false
         }
-    : DONE_RESULT
+      : DONE_RESULT
   }
 }
 
