@@ -1,6 +1,6 @@
 import {performance} from "node:perf_hooks"
 
-import {compile, type SqlJsonPathStatement} from "../src/index.ts"
+import {compile, type SqlJsonPathStatement} from "../dist/index.js"
 
 export type BenchmarkInputFactory = () => unknown
 
@@ -24,10 +24,22 @@ type BenchmarkResult = {
   resultCount: number
 }
 
+export type BenchmarkStatement = Pick<SqlJsonPathStatement, "query" | "exists">
+export type BenchmarkCompile = (statement: string) => BenchmarkStatement
+export type BenchmarkComparison = {
+  name: string
+  operation: "query" | "exists"
+  iterations: number
+  baseline: BenchmarkResult
+  current: BenchmarkResult
+  speedup: number
+  resultsMatch: boolean
+}
+
 const DEFAULT_ITERATIONS = 1000
 const DEFAULT_WARMUP_ITERATIONS = 50
 
-function consumeQuery(statement: SqlJsonPathStatement, input: unknown): number {
+function consumeQuery(statement: BenchmarkStatement, input: unknown): number {
   let count = 0
   for (const _value of statement.query(input)) {
     count++
@@ -35,7 +47,7 @@ function consumeQuery(statement: SqlJsonPathStatement, input: unknown): number {
   return count
 }
 
-function consumeExists(statement: SqlJsonPathStatement, input: unknown): number {
+function consumeExists(statement: BenchmarkStatement, input: unknown): number {
   const result = statement.exists(input)
 
   if (typeof result === "boolean") {
@@ -51,7 +63,7 @@ function consumeExists(statement: SqlJsonPathStatement, input: unknown): number 
   return count
 }
 
-function runOperation(statement: SqlJsonPathStatement, benchmark: BenchmarkCase): number {
+function runOperation(statement: BenchmarkStatement, benchmark: BenchmarkCase): number {
   const operation = benchmark.operation ?? "query"
   const input = benchmark.input()
 
@@ -60,12 +72,15 @@ function runOperation(statement: SqlJsonPathStatement, benchmark: BenchmarkCase)
     : consumeQuery(statement, input)
 }
 
-export function runBenchmark(benchmark: BenchmarkCase): BenchmarkResult {
+export function runBenchmark(
+  benchmark: BenchmarkCase,
+  compileStatement: BenchmarkCompile = compile
+): BenchmarkResult {
   const operation = benchmark.operation ?? "query"
   const iterations = benchmark.iterations ?? DEFAULT_ITERATIONS
   const warmup = benchmark.warmup ?? DEFAULT_WARMUP_ITERATIONS
 
-  const statement = compile(benchmark.statement)
+  const statement = compileStatement(benchmark.statement)
 
   for (let i = 0; i < warmup; i++) {
     runOperation(statement, benchmark)
@@ -94,10 +109,31 @@ export function runBenchmark(benchmark: BenchmarkCase): BenchmarkResult {
 }
 
 export function runBenchmarks(benchmarks: BenchmarkCase[]): BenchmarkResult[] {
-  return benchmarks.map(runBenchmark)
+  return benchmarks.map((benchmark) => runBenchmark(benchmark))
 }
 
-export function printResults(results: BenchmarkResult[]) {
+export function runComparisons(
+  benchmarks: BenchmarkCase[],
+  baselineCompile: BenchmarkCompile,
+  currentCompile: BenchmarkCompile
+): BenchmarkComparison[] {
+  return benchmarks.map((benchmark) => {
+    const current = runBenchmark(benchmark, currentCompile)
+    const baseline = runBenchmark(benchmark, baselineCompile)
+
+    return {
+      name: benchmark.name,
+      operation: benchmark.operation ?? "query",
+      iterations: benchmark.iterations ?? DEFAULT_ITERATIONS,
+      baseline,
+      current,
+      speedup: current.opsPerSecond / baseline.opsPerSecond,
+      resultsMatch: baseline.resultCount === current.resultCount
+    }
+  })
+}
+
+export function printResults(results: BenchmarkResult[]): void {
   const rows = results.map((result) => ({
     name: result.name,
     operation: result.operation,
@@ -109,4 +145,24 @@ export function printResults(results: BenchmarkResult[]) {
   }))
 
   console.table(rows)
+}
+
+export function formatComparisonResults(results: BenchmarkComparison[]): Record<string, any> {
+  return results.map((result) => ({
+    name: result.name,
+    operation: result.operation,
+    iterations: result.iterations,
+    "2.1.0 total ms": result.baseline.totalMs.toFixed(2),
+    "current total ms": result.current.totalMs.toFixed(2),
+    "2.1.0 ops/sec": result.baseline.opsPerSecond.toFixed(2),
+    "current ops/sec": result.current.opsPerSecond.toFixed(2),
+    speedup: `${result.speedup.toFixed(2)}x`,
+    "2.1.0 results": result.baseline.resultCount,
+    "current results": result.current.resultCount,
+    "counts match": result.resultsMatch
+  }))
+}
+
+export function printComparisonResults(results: BenchmarkComparison[]): void {
+  console.table(formatComparisonResults(results))
 }

@@ -30,8 +30,9 @@
   "scripts": {
     "test": "yarn build && node --test --import tsx test/**/*-tests.ts",
     "coverage": "yarn build && node --test --experimental-test-coverage --import tsx test/**/*-tests.ts",
-    "benchmark": "node --import tsx benchmark/cases.ts",
-    "bench:inline": "node --trace-turbo-inlining --import tsx benchmark/cases.ts > inlining.log 2>&1",
+    "benchmark": "yarn build && node --import tsx benchmark/cases.ts",
+    "bench:compare": "yarn build && node --import tsx benchmark/compare.ts",
+    "bench:inline": "yarn build && node --trace-turbo-inlining --import tsx benchmark/cases.ts > inlining.log 2>&1",
     "clean": "node -e \"fs.rmSync('./dist', {recursive: true, force: true})\"",
     "build": "yarn clean && tsc",
     "diagram": "yarn build && node utils/generate-diagrams.js",
@@ -53,6 +54,7 @@
     "@types/chai": "5.2.3",
     "@types/node": "26.6.6",
     "chai": "6.3.0",
+    "sql-jsonpath-js-2.1.0": "npm:sql-jsonpath-js@2.1.0",
     "tsx": "4.23.15",
     "typescript": "7.0.2",
     "typescript-fsm": "1.6.0"

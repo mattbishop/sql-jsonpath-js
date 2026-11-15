@@ -1,3 +1,5 @@
+import {pathToFileURL} from "node:url"
+
 import {printResults, runBenchmarks, type BenchmarkCase} from "./bench.ts"
 
 type Book = {
@@ -149,7 +151,7 @@ function createWideObject(count: number) {
 const ITERATIONS = Number(process.env.BENCH_ITERATIONS ?? 10_000)
 
 
-const benchmarks: BenchmarkCase[] = [
+export const benchmarks: BenchmarkCase[] = [
   {
     name: "large array member projection",
     statement: "$.store.book[*].author",
@@ -159,12 +161,14 @@ const benchmarks: BenchmarkCase[] = [
   {
     name: "large array numeric filter",
     statement: "$.store.book ? (@.price > 25)",
+    operation: "exists",
     input: () => createStore(100),
     iterations: ITERATIONS
   },
   {
     name: "large array exists filter",
     statement: "$.store.book ? (exists(@.isbn))",
+    operation: "exists",
     input: () => createStore(100),
     iterations: ITERATIONS
   },
@@ -172,6 +176,7 @@ const benchmarks: BenchmarkCase[] = [
     name: "large array filter with suppressed predicate errors",
     statement: "$.store.book[*] ? (@.missing.number() > 0)",
     input: () => createStore(100),
+    operation: "exists",
     iterations: ITERATIONS
   },
   {
@@ -279,4 +284,6 @@ const benchmarks: BenchmarkCase[] = [
   }
 ]
 
-printResults(runBenchmarks(benchmarks))
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  printResults(runBenchmarks(benchmarks))
+}

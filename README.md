@@ -340,3 +340,16 @@ This example is taken from Stefan Goessner’s original JSONPath documentation.
 | `$.store.bicycle ? (@.colour like_regex "^RED$" flag "i")`            | All bicycles whose colour is “red”, case insensitive            |
 | `$.store.book.price ? (@ > 10)`                                       | All books whose price is > 10                                   |
 | `$.* ? (exists(@.book) \|\| exists(@.bicycle)).*[*] ? (@.price > 10)` | All books and bicycles whose price > 10                         |
+
+### Benchmarks
+
+Run the existing current-version benchmark with `yarn benchmark`. To compare the published `2.1.0` package against the current source, install the development dependencies and run:
+
+```sh
+yarn install
+yarn bench:compare
+```
+
+The comparison command uses the same benchmark cases for both implementations. Set `BENCH_ITERATIONS` to change the number of measured iterations per case (the default is `10,000`); for example, `BENCH_ITERATIONS=100 yarn bench:compare` runs a shorter comparison. Each implementation is compiled once per case, then warmed up for 50 operations before timing. The published package runs first for each case, followed by the current source; compilation and warmup are excluded from the reported time, while creating each input is included.
+
+The table reports total time, operations per second, and the current-to-`2.1.0` throughput ratio (`speedup`; values above `1x` mean the current source is faster). Result counts are included to flag cases where the implementations did not produce the same number of results, but matching counts do not guarantee identical result values. For more reliable comparisons, run the command multiple times under similar system load.
